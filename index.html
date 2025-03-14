@@ -27,13 +27,13 @@
             z-index: 2; /* Lower layer: text, above background but below canvas */
         }
         #title {
-            top: 10px; /* At the very top */
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 1.5em; /* Smaller than before (was 2em) */
+            font-size: 1.5em; /* Smaller mode text */
         }
         #level {
-            top: 40px; /* Moved down to fit title above */
+            top: 40px;
             left: 50%;
             transform: translateX(-50%);
             font-size: 2em;
@@ -46,20 +46,20 @@
             transition: opacity 0.5s ease;
         }
         #wallHits {
-            top: 80px; /* Moved down to fit title and level */
+            top: 80px; /* Below level text */
             left: 50%;
             transform: translateX(-50%);
             font-size: 2em;
         }
         #attempts {
-            top: 40px; /* Aligned with level, moved down */
+            top: 40px; /* Aligned with level */
             left: 20px;
-            font-size: 1em; /* Smaller text */
+            font-size: 1em;
         }
         #highScore {
-            top: 40px; /* Aligned with level, moved down */
+            top: 40px; /* Aligned with level */
             right: 20px;
-            font-size: 1em; /* Smaller text */
+            font-size: 1em;
         }
         #modeButton {
             position: absolute;
@@ -74,8 +74,8 @@
             z-index: 15; /* Top layer: buttons */
         }
         button {
-            padding: 8px 16px; /* Adjusted for neat text fit */
-            font-size: 1em; /* Smaller text to fit neatly */
+            padding: 8px 16px;
+            font-size: 1em;
             cursor: pointer;
             background-color: #333;
             color: #fff;
@@ -109,58 +109,54 @@
         const modeButton = document.getElementById('modeButton');
         const mapButton = document.getElementById('mapButton');
 
-        // Set canvas size to fit the window
-        canvas.width = window.innerWidth * 0.9;
-        canvas.height = window.innerHeight * 0.9;
-
         // Border width
         const borderWidth = 2;
 
         // Circle properties
         const circle = {
-            x: canvas.width / 2,  // Initial x position
-            y: canvas.height / 2, // Initial y position
+            x: 0,  // Initial x position (set after canvas size)
+            y: 0,  // Initial y position (set after canvas size)
             radius: 30,
-            dx: 0,  // X velocity
-            dy: 0,  // Y velocity
+            dx: 0,
+            dy: 0,
             isDragging: false,
             lastX: 0,
             lastY: 0,
             lastTime: 0,
-            wallContact: { // Track contact time for each wall
+            wallContact: {
                 left: { time: 0, inContact: false },
                 right: { time: 0, inContact: false },
                 top: { time: 0, inContact: false },
                 bottom: { time: 0, inContact: false },
-                boundary: { time: 0, inContact: false } // For circular map
+                boundary: { time: 0, inContact: false }
             }
         };
 
         // Physics constants
-        const gravity = 0.5;  // Gravity pulling downward
-        const friction = 0.98; // Friction to slow down the circle
-        const bounciness = 0.9; // Coefficient of restitution (high for extra bouncy)
-        const bounceTimeWindow = 100; // Time window in milliseconds to detect a bounce
+        const gravity = 0.5;
+        const friction = 0.98;
+        const bounciness = 0.9;
+        const bounceTimeWindow = 100;
 
-        // Background color properties (using HSL for smooth transitions)
-        let backgroundHue = 0; // Hue for color cycling (0-360)
-        const backgroundSaturation = 70; // Fixed saturation (0-100%)
-        let backgroundLightness = 50; // Lightness (0-100%), starts at 50%
-        const maxLightness = 50; // Normal brightness level
-        const minLightness = 10; // Darkest possible level
-        const darkenAmount = 5; // How much to darken per hit
-        const lightenRate = 0.05; // How quickly lightness returns to normal
+        // Background color properties
+        let backgroundHue = 0;
+        const backgroundSaturation = 70;
+        let backgroundLightness = 50;
+        const maxLightness = 50;
+        const minLightness = 10;
+        const darkenAmount = 5;
+        const lightenRate = 0.05;
 
         // Game state
         let isCountingDown = false;
         let countdown = 3;
         let wallHits = 0;
-        let level = 1; // Current level
+        let level = 1;
         let isTrackingHits = false;
-        let attempts = 3; // Current attempts (Survival Mode only)
-        let highScore = 1; // Current high score
-        let currentMode = 'survival'; // 'survival' or 'endurance'
-        let currentMap = 'rectangle'; // 'rectangle' or 'circle'
+        let attempts = 3;
+        let highScore = 1;
+        let currentMode = 'survival';
+        let currentMap = 'rectangle';
 
         // Saved states for each mode and map combination
         const gameStates = {
@@ -170,7 +166,26 @@
             'endurance-circle': { level: 1, attempts: Infinity, highScore: 0 }
         };
 
-        // Function to update display based on current state
+        // Function to set canvas size and position
+        function setCanvasSize() {
+            const wallHitsBottom = wallHitsDisplay.getBoundingClientRect().bottom;
+            const buttonTop = modeButton.getBoundingClientRect().top; // Same as mapButton’s top
+            const availableHeight = buttonTop - wallHitsBottom;
+            canvas.height = availableHeight - 2 * borderWidth; // Account for border
+            canvas.width = window.innerWidth * 0.9; // Keep width 90% of window
+            canvas.style.top = `${wallHitsBottom + (availableHeight - canvas.height) / 2}px`; // Center vertically
+            canvas.style.left = `${(window.innerWidth - canvas.width) / 2}px`; // Center horizontally
+
+            // Reset circle position to center of new canvas
+            circle.x = canvas.width / 2;
+            circle.y = canvas.height / 2;
+        }
+
+        // Initial canvas sizing
+        window.addEventListener('load', setCanvasSize);
+        window.addEventListener('resize', setCanvasSize);
+
+        // Function to update display
         function updateDisplay() {
             levelDisplay.textContent = `Level: ${level}`;
             attemptsDisplay.textContent = `Attempts: ${attempts === Infinity ? '∞' : attempts}`;
@@ -184,7 +199,7 @@
             gameStates[key] = { level, attempts, highScore };
         }
 
-        // Function to load state for a given mode and map
+        // Function to load state
         function loadState(mode, map) {
             const key = `${mode}-${map}`;
             level = gameStates[key].level;
@@ -193,7 +208,7 @@
             updateDisplay();
         }
 
-        // Function to convert HSL to RGB
+        // HSL to RGB conversion
         function hslToRgb(h, s, l) {
             s /= 100;
             l /= 100;
@@ -216,41 +231,34 @@
             return { r, g, b };
         }
 
-        // Function to invert RGB color
+        // Invert RGB color
         function invertColor(rgb) {
-            return {
-                r: 255 - rgb.r,
-                g: 255 - rgb.g,
-                b: 255 - rgb.b
-            };
+            return { r: 255 - rgb.r, g: 255 - rgb.g, b: 255 - rgb.b };
         }
 
-        // Update background color (via CSS on the body)
+        // Update background color
         function updateBackground() {
             const rgb = hslToRgb(backgroundHue, backgroundSaturation, backgroundLightness);
             document.body.style.backgroundColor = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
         }
 
-        // Draw the border and circle on the canvas
+        // Draw the border and circle
         function drawScene() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas for transparency
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Calculate circle (and border) color
             const backgroundRgb = hslToRgb(backgroundHue, backgroundSaturation, backgroundLightness);
             const circleRgb = invertColor(backgroundRgb);
 
-            // Draw border (matching circle color)
             ctx.strokeStyle = `rgb(${circleRgb.r}, ${circleRgb.g}, ${circleRgb.b})`;
-            ctx.lineWidth = borderWidth * 2; // Double the border width for inner + outer
+            ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
                 ctx.strokeRect(0, 0, canvas.width, canvas.height);
-            } else { // Circle map
+            } else {
                 ctx.beginPath();
                 ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - borderWidth, 0, Math.PI * 2);
                 ctx.stroke();
             }
 
-            // Draw circle
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = `rgb(${circleRgb.r}, ${circleRgb.g}, ${circleRgb.b})`;
@@ -258,23 +266,17 @@
             ctx.closePath();
         }
 
-        // Update physics and handle wall collisions
+        // Update physics and collisions
         function updatePhysics() {
             const currentTime = Date.now();
 
             if (!circle.isDragging) {
-                // Apply gravity
                 circle.dy += gravity;
-
-                // Apply velocity
                 circle.x += circle.dx;
                 circle.y += circle.dy;
-
-                // Apply friction
                 circle.dx *= friction;
                 circle.dy *= friction;
 
-                // Check wall contacts and detect bounces
                 let walls;
                 if (currentMap === 'rectangle') {
                     walls = [
@@ -283,7 +285,7 @@
                         { name: 'bottom', edge: canvas.height, pos: circle.y + circle.radius, velocity: circle.dy, isContact: circle.y + circle.radius >= canvas.height },
                         { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, isContact: circle.y - circle.radius <= 0 }
                     ];
-                } else { // Circle map
+                } else {
                     const centerX = canvas.width / 2;
                     const centerY = canvas.height / 2;
                     const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
@@ -298,7 +300,7 @@
                         if (!contact.inContact) {
                             contact.inContact = true;
                             contact.time = currentTime;
-                            if (isTrackingHits) wallHits++; // Increment wall hits on contact
+                            if (isTrackingHits) wallHits++;
                         }
                     } else {
                         if (contact.inContact) {
@@ -307,7 +309,6 @@
                     }
                 });
 
-                // Handle collisions
                 if (currentMap === 'rectangle') {
                     if (circle.x + circle.radius > canvas.width) {
                         circle.x = canvas.width - circle.radius;
@@ -323,7 +324,7 @@
                         circle.y = circle.radius;
                         circle.dy = -circle.dy * bounciness;
                     }
-                } else { // Circle map
+                } else {
                     const centerX = canvas.width / 2;
                     const centerY = canvas.height / 2;
                     const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
@@ -339,16 +340,12 @@
                 }
             }
 
-            // Update background color (smooth hue cycling)
-            backgroundHue = (backgroundHue + 0.5) % 360; // Cycle hue for flowing colors
-
-            // Gradually restore background lightness
+            backgroundHue = (backgroundHue + 0.5) % 360;
             if (backgroundLightness < maxLightness) {
                 backgroundLightness += lightenRate;
                 if (backgroundLightness > maxLightness) backgroundLightness = maxLightness;
             }
 
-            // Update wall hits display
             if (isTrackingHits) {
                 wallHitsDisplay.textContent = `${wallHits}`;
                 wallHitsDisplay.style.display = 'block';
@@ -395,29 +392,22 @@
             );
             if (dist < circle.radius) {
                 if (isTrackingHits && !isCountingDown) {
-                    // End current game
                     isTrackingHits = false;
                     if (wallHits === level) {
-                        // Level beaten
                         level++;
-                        if (currentMode === 'survival') attempts = 3; // Reset attempts in Survival Mode
-                        if (level > highScore) {
-                            highScore = level; // Update high score
-                        }
+                        if (currentMode === 'survival') attempts = 3;
+                        if (level > highScore) highScore = level;
                     } else if (currentMode === 'survival') {
-                        // Level not beaten in Survival Mode
                         attempts--;
                         if (attempts <= 0) {
-                            level = 1; // Reset to level 1
-                            attempts = 3; // Reset attempts to 3
+                            level = 1;
+                            attempts = 3;
                         }
                     }
                     saveState();
                     updateDisplay();
-                    // Start new game immediately
                     startCountdown();
                 } else if (!isCountingDown) {
-                    // Start new game if no game is in progress
                     startCountdown();
                 }
             }
@@ -446,7 +436,7 @@
                 circle.x = pos.x;
                 circle.y = pos.y;
                 const currentTime = Date.now();
-                const dt = (currentTime - circle.lastTime) / 1000; // Time in seconds
+                const dt = (currentTime - circle.lastTime) / 1000;
                 if (dt > 0) {
                     circle.dx = (pos.x - circle.lastX) / dt;
                     circle.dy = (pos.y - circle.lastY) / dt;
@@ -473,11 +463,11 @@
             saveState();
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             loadState(currentMode, currentMap);
-            // Reset circle position to center when changing maps
             circle.x = canvas.width / 2;
             circle.y = canvas.height / 2;
             circle.dx = 0;
             circle.dy = 0;
+            setCanvasSize(); // Adjust canvas size on map change
         });
 
         // Event listeners for mouse
@@ -497,13 +487,13 @@
         // Animation loop
         function animate() {
             updatePhysics();
-            updateBackground(); // Update background color via CSS
-            drawScene(); // Draw border and circle on the canvas
+            updateBackground();
+            drawScene();
             requestAnimationFrame(animate);
         }
 
         // Start the animation
-        updateDisplay(); // Initial display update
+        updateDisplay();
         animate();
     </script>
 </body>
