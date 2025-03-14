@@ -16,7 +16,7 @@
         }
         canvas {
             position: absolute;
-            z-index: 10; /* Top layer: circle and border */
+            z-index: 5; /* Middle layer: circle and border */
             background: transparent; /* Transparent canvas background */
         }
         #level, #countdown, #wallHits, #attempts, #highScore, #title {
@@ -24,10 +24,16 @@
             color: #fff;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
             font-weight: bold;
-            z-index: 5; /* Middle layer: text, above background but below circle */
+            z-index: 2; /* Lower layer: text, above background but below canvas */
+        }
+        #title {
+            top: 10px; /* At the very top */
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5em; /* Smaller than before (was 2em) */
         }
         #level {
-            top: 20px;
+            top: 40px; /* Moved down to fit title above */
             left: 50%;
             transform: translateX(-50%);
             font-size: 2em;
@@ -40,38 +46,32 @@
             transition: opacity 0.5s ease;
         }
         #wallHits {
-            top: 60px; /* Positioned below the level number */
+            top: 80px; /* Moved down to fit title and level */
             left: 50%;
             transform: translateX(-50%);
             font-size: 2em;
         }
         #attempts {
-            top: 20px;
-            left: 20px; /* Top left corner */
+            top: 40px; /* Aligned with level, moved down */
+            left: 20px;
             font-size: 1em; /* Smaller text */
         }
         #highScore {
-            top: 20px;
-            right: 20px; /* Top right corner */
+            top: 40px; /* Aligned with level, moved down */
+            right: 20px;
             font-size: 1em; /* Smaller text */
-        }
-        #title {
-            top: calc(50% - 45vh - 40px); /* Above the canvas */
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 2em;
         }
         #modeButton {
             position: absolute;
             bottom: 20px;
             left: 20px;
-            z-index: 5; /* Above background, below circle */
+            z-index: 15; /* Top layer: buttons */
         }
         #mapButton {
             position: absolute;
             bottom: 20px;
             right: 20px;
-            z-index: 5; /* Above background, below circle */
+            z-index: 15; /* Top layer: buttons */
         }
         button {
             padding: 8px 16px; /* Adjusted for neat text fit */
@@ -88,12 +88,12 @@
     </style>
 </head>
 <body>
+    <div id="title">Survival Mode</div>
     <div id="level">Level: 1</div>
     <div id="countdown" style="opacity: 0;"></div>
     <div id="wallHits" style="display: none;"></div>
     <div id="attempts">Attempts: 3</div>
     <div id="highScore">High Score: 1</div>
-    <div id="title">Survival Mode</div>
     <button id="modeButton">Mode</button>
     <button id="mapButton">Map</button>
     <canvas id="canvas"></canvas>
