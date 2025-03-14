@@ -168,21 +168,29 @@
 
         // Function to set canvas size and position
         function setCanvasSize() {
-            const wallHitsBottom = wallHitsDisplay.getBoundingClientRect().bottom;
-            const buttonTop = modeButton.getBoundingClientRect().top; // Same as mapButton’s top
+            const wallHitsRect = wallHitsDisplay.getBoundingClientRect();
+            const wallHitsBottom = wallHitsRect.bottom;
+            const buttonRect = modeButton.getBoundingClientRect();
+            const buttonTop = buttonRect.top;
             const availableHeight = buttonTop - wallHitsBottom;
             canvas.height = availableHeight - 2 * borderWidth; // Account for border
-            canvas.width = window.innerWidth * 0.9; // Keep width 90% of window
+            canvas.width = window.innerWidth * 0.9; // 90% of window width
             canvas.style.top = `${wallHitsBottom + (availableHeight - canvas.height) / 2}px`; // Center vertically
             canvas.style.left = `${(window.innerWidth - canvas.width) / 2}px`; // Center horizontally
 
-            // Reset circle position to center of new canvas
+            // Ensure circle stays centered in the canvas
             circle.x = canvas.width / 2;
             circle.y = canvas.height / 2;
         }
 
-        // Initial canvas sizing
-        window.addEventListener('load', setCanvasSize);
+        // Initialize canvas size after DOM is ready and after render
+        document.addEventListener('DOMContentLoaded', () => {
+            setCanvasSize();
+            // Force a recalculation after initial render
+            requestAnimationFrame(() => {
+                setCanvasSize();
+            });
+        });
         window.addEventListener('resize', setCanvasSize);
 
         // Function to update display
@@ -191,6 +199,7 @@
             attemptsDisplay.textContent = `Attempts: ${attempts === Infinity ? '∞' : attempts}`;
             highScoreDisplay.textContent = `High Score: ${highScore}`;
             titleDisplay.textContent = currentMode === 'survival' ? 'Survival Mode' : 'Endurance Mode';
+            setCanvasSize(); // Ensure canvas updates with text changes
         }
 
         // Function to save current state
