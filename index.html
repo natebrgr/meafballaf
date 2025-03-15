@@ -98,7 +98,6 @@
         #playButton {
             position: absolute;
             z-index: 20;
-            /* Bottom set dynamically */
             left: 50%;
             transform: translateX(-50%);
             padding: 8px 16px;
@@ -251,7 +250,7 @@
             modeButton.style.left = `${canvasLeft}px`;
             mapButton.style.bottom = `${buttonBottom}px`;
             mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
-            playButton.style.bottom = `${buttonBottom}px`; // Align with MODE and MAP
+            playButton.style.bottom = `${buttonBottom}px`;
 
             livesDisplay.style.left = `${canvasLeft}px`;
             hiScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
@@ -266,7 +265,8 @@
             hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
             hiScoreCount.style.transform = 'translateX(-50%)';
 
-            if (!isPaused && !circle.isDragging) {
+            // Only reset circle position on initial load or if not paused/counting
+            if (!gameStates[`${currentMode}-${currentMap}`].circle.x && !isPaused && !isCountingDown && !circle.isDragging) {
                 circle.x = canvas.width / 2;
                 circle.y = canvas.height / 2;
             }
@@ -361,7 +361,7 @@
             }
 
             if (isCountingDown) {
-                startCountdown(true); // Resume existing countdown
+                startCountdown(true);
             }
 
             updateDisplay();
@@ -541,6 +541,7 @@
         }
 
         function handleTap(e) {
+            if (isPaused) return;
             e.preventDefault();
             const pos = getMousePos(e);
             const dist = Math.sqrt(
@@ -564,7 +565,7 @@
                     saveState();
                     updateDisplay();
                     startCountdown();
-                } else if (!isCountingDown && !isPaused) {
+                } else if (!isCountingDown) {
                     startCountdown();
                 }
             }
