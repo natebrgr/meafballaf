@@ -13,18 +13,32 @@
             align-items: center;
             height: 100vh;
             font-family: Arial, sans-serif;
+            transition: background-color 0.5s ease;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.9) 100%);
+            pointer-events: none;
+            z-index: 1;
         }
         canvas {
             position: absolute;
-            z-index: 5; /* Middle layer: circle and border */
+            z-index: 5;
             background: transparent;
+            filter: drop-shadow(0 0 5px #fff);
         }
         #level, #countdown, #wallHits, #lives, #hiScore, #title {
             position: absolute;
-            color: #000; /* Black text for buttons */
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            color: #e0e0e0; /* Soft white */
+            text-shadow: 0 0 5px #fff; /* White glow */
             font-weight: bold;
-            z-index: 2; /* Lower layer: text, above background but below canvas */
+            z-index: 2;
         }
         #title {
             top: 10px;
@@ -46,44 +60,56 @@
             transition: opacity 0.5s ease;
         }
         #wallHits {
-            top: 80px; /* Defines top of border */
+            top: 80px;
             left: 50%;
             transform: translateX(-50%);
             font-size: 2em;
             visibility: hidden;
         }
         #lives {
-            top: 80px; /* Align with wallHits */
+            top: 80px;
             font-size: 1em;
             /* Left set dynamically */
         }
         #hiScore {
-            top: 80px; /* Align with wallHits */
+            top: 80px;
             font-size: 1em;
             /* Right set dynamically */
         }
+        #livesCount, #hiScoreCount {
+            color: #e0e0e0; /* Soft white */
+            text-shadow: 0 0 5px #fff; /* White glow */
+            font-size: 1.8em;
+            position: absolute;
+            z-index: 2;
+        }
         #modeButton {
             position: absolute;
-            bottom: 20px;
-            z-index: 15; /* Top layer: buttons */
+            bottom: 25px; /* Increased from 20px */
+            z-index: 15;
             /* Left set dynamically */
         }
         #mapButton {
             position: absolute;
-            bottom: 20px;
-            z-index: 15; /* Top layer: buttons */
+            bottom: 25px; /* Increased from 20px */
+            z-index: 15;
             /* Right set dynamically */
         }
         button {
             padding: 8px 16px;
             font-size: 1em;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
             cursor: pointer;
-            color: #000; /* Black text */
+            color: #e0e0e0; /* Soft white, matching HI SCORE and LIVES */
+            text-shadow: 0 0 5px #fff; /* White glow */
             border: none;
             border-radius: 5px;
+            filter: drop-shadow(0 0 5px #fff);
+            transition: background-color 0.5s ease;
         }
         button:hover {
-            filter: brightness(85%); /* Slight darken on hover */
+            filter: drop-shadow(0 0 5px #fff) brightness(85%);
         }
         #livesWindow, #hiScoreWindow {
             position: absolute;
@@ -92,11 +118,13 @@
             transform: translate(-50%, -50%) scale(0);
             padding: 20px;
             font-size: 1.5em;
-            color: #000; /* Black text */
+            color: #e0e0e0; /* Soft white */
+            text-shadow: 0 0 5px #fff; /* White glow */
             border-radius: 10px;
             opacity: 0;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-            z-index: 20; /* Above everything */
+            transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.5s ease;
+            z-index: 20;
+            filter: drop-shadow(0 0 5px #fff);
         }
         #livesWindow.active, #hiScoreWindow.active {
             transform: translate(-50%, -50%) scale(1);
@@ -108,14 +136,16 @@
     <div id="title">Survival Mode</div>
     <div id="level">Level: 1</div>
     <div id="countdown" style="opacity: 0;"></div>
-    <div id="wallHits" style="visibility: hidden;"></div>
-    <button id="lives">Lives: 3</button>
-    <button id="hiScore">Hi Score: 1</button>
+    <div id="wallHits" style="visibility: hidden;">0</div>
+    <div id="livesCount">3</div>
+    <button id="lives">LIVES</button>
+    <div id="hiScoreCount">1</div>
+    <button id="hiScore">HI SCORE</button>
     <button id="modeButton">Mode</button>
     <button id="mapButton">Map</button>
     <canvas id="canvas"></canvas>
     <div id="livesWindow">MEAF yourself Leroy</div>
-    <div id="hiScoreWindow">u suck meaf</div>
+    <div id="hiScoreWindow">eat my MEAF LERoYYY!</div>
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -124,16 +154,16 @@
         const wallHitsDisplay = document.getElementById('wallHits');
         const livesDisplay = document.getElementById('lives');
         const hiScoreDisplay = document.getElementById('hiScore');
+        const livesCount = document.getElementById('livesCount');
+        const hiScoreCount = document.getElementById('hiScoreCount');
         const titleDisplay = document.getElementById('title');
         const modeButton = document.getElementById('modeButton');
         const mapButton = document.getElementById('mapButton');
         const livesWindow = document.getElementById('livesWindow');
         const hiScoreWindow = document.getElementById('hiScoreWindow');
 
-        // Border width
         const borderWidth = 2;
 
-        // Circle properties
         const circle = {
             x: 0,
             y: 0,
@@ -153,22 +183,20 @@
             }
         };
 
-        // Physics constants
         const gravity = 0.5;
         const friction = 0.98;
         const bounciness = 0.9;
         const bounceTimeWindow = 100;
 
-        // Background color properties
-        let backgroundHue = 0;
-        const backgroundSaturation = 70;
-        let backgroundLightness = 50;
-        const maxLightness = 50;
-        const minLightness = 10;
-        const darkenAmount = 5;
-        const lightenRate = 0.05;
+        const colors = [
+            { r: 0, g: 0, b: 0 },
+            { r: 5, g: 5, b: 25 },
+            { r: 15, g: 5, b: 25 }
+        ];
+        let currentColorIndex = 0;
+        let colorProgress = 0;
+        const colorTransitionSpeed = 0.01;
 
-        // Game state
         let isCountingDown = false;
         let countdown = 3;
         let wallHits = 0;
@@ -179,7 +207,6 @@
         let currentMode = 'survival';
         let currentMap = 'rectangle';
 
-        // Saved states for each mode and map combination
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 1 },
             'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0 },
@@ -187,12 +214,11 @@
             'endurance-circle': { level: 1, lives: Infinity, hiScore: 0 }
         };
 
-        // Function to set canvas size and align elements
         function setCanvasSize() {
             const wallHitsTop = parseInt(window.getComputedStyle(wallHitsDisplay).top) || 80;
             const wallHitsHeight = wallHitsDisplay.offsetHeight || 32;
             const wallHitsBottom = wallHitsTop + wallHitsHeight;
-            const buttonBottom = parseInt(window.getComputedStyle(modeButton).bottom) || 20;
+            const buttonBottom = parseInt(window.getComputedStyle(modeButton).bottom) || 25;
             const buttonHeight = modeButton.offsetHeight || 36;
             const buttonTop = window.innerHeight - buttonBottom - buttonHeight;
 
@@ -203,41 +229,48 @@
             canvas.style.top = `${wallHitsBottom + (availableHeight - canvas.height) / 2}px`;
             canvas.style.left = `${canvasLeft}px`;
 
-            // Align elements with border edges
             livesDisplay.style.left = `${canvasLeft}px`;
             hiScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
             modeButton.style.left = `${canvasLeft}px`;
             mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
 
+            const livesLeft = canvasLeft + (livesDisplay.offsetWidth / 2);
+            livesCount.style.left = `${livesLeft}px`;
+            livesCount.style.top = `${80 - livesCount.offsetHeight - 5}px`;
+            livesCount.style.transform = 'translateX(-50%)';
+
+            const hiScoreLeft = (canvasLeft + canvas.width) - (hiScoreDisplay.offsetWidth / 2);
+            hiScoreCount.style.left = `${hiScoreLeft}px`;
+            hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
+            hiScoreCount.style.transform = 'translateX(-50%)';
+
             circle.x = canvas.width / 2;
             circle.y = canvas.height / 2;
         }
 
-        // Initialize canvas size and alignment
         document.addEventListener('DOMContentLoaded', () => {
             wallHitsDisplay.style.visibility = 'hidden';
-            void wallHitsDisplay.offsetHeight; // Force reflow
+            void wallHitsDisplay.offsetHeight;
             setCanvasSize();
             requestAnimationFrame(() => setCanvasSize());
         });
         window.addEventListener('resize', setCanvasSize);
 
-        // Function to update display
         function updateDisplay() {
             levelDisplay.textContent = `Level: ${level}`;
-            livesDisplay.textContent = `Lives: ${lives === Infinity ? '∞' : lives}`;
-            hiScoreDisplay.textContent = `Hi Score: ${hiScore}`;
+            livesDisplay.textContent = 'LIVES';
+            livesCount.textContent = lives === Infinity ? '∞' : lives;
+            hiScoreDisplay.textContent = 'HI SCORE';
+            hiScoreCount.textContent = hiScore;
             titleDisplay.textContent = currentMode === 'survival' ? 'Survival Mode' : 'Endurance Mode';
             setCanvasSize();
         }
 
-        // Function to save current state
         function saveState() {
             const key = `${currentMode}-${currentMap}`;
             gameStates[key] = { level, lives, hiScore };
         }
 
-        // Function to load state
         function loadState(mode, map) {
             const key = `${mode}-${map}`;
             level = gameStates[key].level;
@@ -246,55 +279,37 @@
             updateDisplay();
         }
 
-        // HSL to RGB conversion
-        function hslToRgb(h, s, l) {
-            s /= 100;
-            l /= 100;
-            const c = (1 - Math.abs(2 * l - 1)) * s;
-            const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-            const m = l - c / 2;
-            let r = 0, g = 0, b = 0;
-
-            if (0 <= h && h < 60) { r = c; g = x; b = 0; }
-            else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
-            else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
-            else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
-            else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
-            else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
-
-            r = Math.round((r + m) * 255);
-            g = Math.round((g + m) * 255);
-            b = Math.round((b + m) * 255);
-
-            return { r, g, b };
-        }
-
-        // Invert RGB color
         function invertColor(rgb) {
             return { r: 255 - rgb.r, g: 255 - rgb.g, b: 255 - rgb.b };
         }
 
-        // Update background and button colors
         function updateColors() {
-            const backgroundRgb = hslToRgb(backgroundHue, backgroundSaturation, backgroundLightness);
-            document.body.style.backgroundColor = `rgb(${backgroundRgb.r}, ${backgroundRgb.g}, ${backgroundRgb.b})`;
-            const circleRgb = invertColor(backgroundRgb);
-            const colorStyle = `rgb(${circleRgb.r}, ${circleRgb.g}, ${circleRgb.b})`;
-            modeButton.style.backgroundColor = colorStyle;
-            mapButton.style.backgroundColor = colorStyle;
-            livesDisplay.style.backgroundColor = colorStyle;
-            hiScoreDisplay.style.backgroundColor = colorStyle;
-            livesWindow.style.backgroundColor = colorStyle;
-            hiScoreWindow.style.backgroundColor = colorStyle;
+            const currentColor = colors[currentColorIndex];
+            const nextColorIndex = (currentColorIndex + 1) % colors.length;
+            const nextColor = colors[nextColorIndex];
+
+            const r = Math.round(currentColor.r + (nextColor.r - currentColor.r) * colorProgress);
+            const g = Math.round(currentColor.g + (nextColor.g - currentColor.g) * colorProgress);
+            const b = Math.round(currentColor.b + (nextColor.b - currentColor.b) * colorProgress);
+
+            document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            const invertedColor = invertColor({ r, g, b });
+            const invertedStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
+
+            modeButton.style.backgroundColor = invertedStyle;
+            mapButton.style.backgroundColor = invertedStyle;
+            livesDisplay.style.backgroundColor = invertedStyle;
+            hiScoreDisplay.style.backgroundColor = invertedStyle;
+            livesWindow.style.backgroundColor = invertedStyle;
+            hiScoreWindow.style.backgroundColor = invertedStyle;
+
+            return invertedColor;
         }
 
-        // Draw the border and circle
-        function drawScene() {
+        function drawScene(invertedColor) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const backgroundRgb = hslToRgb(backgroundHue, backgroundSaturation, backgroundLightness);
-            const circleRgb = invertColor(backgroundRgb);
 
-            ctx.strokeStyle = `rgb(${circleRgb.r}, ${circleRgb.g}, ${circleRgb.b})`;
+            ctx.strokeStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
                 ctx.strokeRect(0, 0, canvas.width, canvas.height);
@@ -306,12 +321,11 @@
 
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
-            ctx.fillStyle = `rgb(${circleRgb.r}, ${circleRgb.g}, ${circleRgb.b})`;
+            ctx.fillStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
             ctx.fill();
             ctx.closePath();
         }
 
-        // Update physics and collisions
         function updatePhysics() {
             const currentTime = Date.now();
 
@@ -385,21 +399,21 @@
                 }
             }
 
-            backgroundHue = (backgroundHue + 0.5) % 360;
-            if (backgroundLightness < maxLightness) {
-                backgroundLightness += lightenRate;
-                if (backgroundLightness > maxLightness) backgroundLightness = maxLightness;
+            colorProgress += colorTransitionSpeed;
+            if (colorProgress >= 1) {
+                colorProgress = 0;
+                currentColorIndex = (currentColorIndex + 1) % colors.length;
             }
 
             if (isTrackingHits) {
                 wallHitsDisplay.textContent = `${wallHits}`;
                 wallHitsDisplay.style.visibility = 'visible';
             } else {
+                wallHitsDisplay.textContent = '0';
                 wallHitsDisplay.style.visibility = 'hidden';
             }
         }
 
-        // Handle countdown
         function startCountdown() {
             isCountingDown = true;
             countdown = 3;
@@ -420,7 +434,6 @@
             }, 1000);
         }
 
-        // Handle mouse/touch events
         function getMousePos(e) {
             const rect = canvas.getBoundingClientRect();
             return {
@@ -496,14 +509,12 @@
             circle.isDragging = false;
         }
 
-        // Mode button handler
         modeButton.addEventListener('click', () => {
             saveState();
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             loadState(currentMode, currentMap);
         });
 
-        // Map button handler
         mapButton.addEventListener('click', () => {
             saveState();
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
@@ -515,17 +526,14 @@
             setCanvasSize();
         });
 
-        // Lives button handler
         livesDisplay.addEventListener('click', () => {
             livesWindow.classList.add('active');
         });
 
-        // Hi Score button handler
         hiScoreDisplay.addEventListener('click', () => {
             hiScoreWindow.classList.add('active');
         });
 
-        // Close windows on screen tap
         document.addEventListener('click', (e) => {
             if (e.target !== livesDisplay && livesWindow.classList.contains('active')) {
                 livesWindow.classList.remove('active');
@@ -535,13 +543,11 @@
             }
         });
 
-        // Event listeners for mouse
         canvas.addEventListener('mousedown', startDragging);
         canvas.addEventListener('mousemove', drag);
         canvas.addEventListener('mouseup', stopDragging);
         canvas.addEventListener('click', handleTap);
 
-        // Event listeners for touch (mobile)
         canvas.addEventListener('touchstart', (e) => {
             startDragging(e);
             handleTap(e);
@@ -549,15 +555,13 @@
         canvas.addEventListener('touchmove', drag);
         canvas.addEventListener('touchend', stopDragging);
 
-        // Animation loop
         function animate() {
             updatePhysics();
-            updateColors();
-            drawScene();
+            const invertedColor = updateColors();
+            drawScene(invertedColor);
             requestAnimationFrame(animate);
         }
 
-        // Start the animation
         updateDisplay();
         animate();
     </script>
