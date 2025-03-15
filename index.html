@@ -85,14 +85,14 @@
         }
         #modeButton {
             position: absolute;
-            bottom: 20px; /* Reverted from 25px */
             z-index: 15;
+            /* Bottom set dynamically */
             /* Left set dynamically */
         }
         #mapButton {
             position: absolute;
-            bottom: 20px; /* Reverted from 25px */
             z-index: 15;
+            /* Bottom set dynamically */
             /* Right set dynamically */
         }
         button {
@@ -139,10 +139,10 @@
     <div id="wallHits" style="visibility: hidden;">0</div>
     <div id="livesCount">3</div>
     <button id="lives">LIVES</button>
-    <div id="hiScoreCount">0</div> <!-- Changed from 1 to 0 -->
+    <div id="hiScoreCount">0</div>
     <button id="hiScore">HI SCORE</button>
-    <button id="modeButton">Mode</button>
-    <button id="mapButton">Map</button>
+    <button id="modeButton">MODE</button> <!-- Changed to all caps -->
+    <button id="mapButton">MAP</button>   <!-- Changed to all caps -->
     <canvas id="canvas"></canvas>
     <div id="livesWindow">MEAF yourself Leroy</div>
     <div id="hiScoreWindow">eat my MEAF LERoYYY!</div>
@@ -203,13 +203,13 @@
         let level = 1;
         let isTrackingHits = false;
         let lives = 3;
-        let hiScore = 0; // Changed from 1 to 0
+        let hiScore = 0;
 
         let currentMode = 'survival';
         let currentMap = 'rectangle';
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0 }, // Changed hiScore from 1 to 0
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0 },
             'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0 },
             'survival-circle': { level: 1, lives: 3, hiScore: 0 },
             'endurance-circle': { level: 1, lives: Infinity, hiScore: 0 }
@@ -219,11 +219,11 @@
             const wallHitsTop = parseInt(window.getComputedStyle(wallHitsDisplay).top) || 80;
             const wallHitsHeight = wallHitsDisplay.offsetHeight || 32;
             const wallHitsBottom = wallHitsTop + wallHitsHeight;
-            const buttonBottom = parseInt(window.getComputedStyle(modeButton).bottom) || 20; // Reverted to 20
             const buttonHeight = modeButton.offsetHeight || 36;
-            const buttonTop = window.innerHeight - buttonBottom - buttonHeight;
+            const bottomButtonGap = 80; // Match top gap of LIVES and HI SCORE
+            const canvasShrink = 50; // Pixels to raise canvas bottom
 
-            const availableHeight = buttonTop - wallHitsBottom;
+            const availableHeight = window.innerHeight - wallHitsBottom - buttonHeight - bottomButtonGap - canvasShrink;
             canvas.height = availableHeight - 2 * borderWidth;
             canvas.width = window.innerWidth * 0.9;
             const canvasLeft = (window.innerWidth - canvas.width) / 2;
@@ -233,7 +233,9 @@
             livesDisplay.style.left = `${canvasLeft}px`;
             hiScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
             modeButton.style.left = `${canvasLeft}px`;
+            modeButton.style.bottom = `${bottomButtonGap}px`;
             mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
+            mapButton.style.bottom = `${bottomButtonGap}px`;
 
             const livesLeft = canvasLeft + (livesDisplay.offsetWidth / 2);
             livesCount.style.left = `${livesLeft}px`;
@@ -453,9 +455,10 @@
                 if (isTrackingHits && !isCountingDown) {
                     isTrackingHits = false;
                     if (wallHits === level) {
-                        level++;
+                        const completedLevel = level; // Level just beaten
+                        level++; // Move to next level
                         if (currentMode === 'survival') lives = 3;
-                        if (level > hiScore) hiScore = level; // Corrected logic
+                        if (completedLevel > hiScore) hiScore = completedLevel; // Set hiScore to beaten level
                     } else if (currentMode === 'survival') {
                         lives--;
                         if (lives <= 0) {
