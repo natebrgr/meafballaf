@@ -186,7 +186,7 @@
 
             // Align elements with border edges
             attemptsDisplay.style.left = `${canvasLeft}px`; // Left edge of border
-            highScoreDisplay.style.right = `${canvasLeft + canvas.width - highScoreDisplay.offsetWidth}px`; // Right edge of border
+            highScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`; // Right edge of border
             modeButton.style.left = `${canvasLeft}px`; // Left edge of border
             mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`; // Right edge of border
 
