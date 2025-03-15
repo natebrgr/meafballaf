@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Throwable Bouncy Circle Game</title>
     <style>
         body {
@@ -86,14 +86,24 @@
         #modeButton {
             position: absolute;
             z-index: 15;
-            bottom: calc(50px + env(safe-area-inset-bottom)); /* Snug to canvas bottom with safe area fallback */
+            /* Bottom set dynamically */
             /* Left set dynamically */
         }
         #mapButton {
             position: absolute;
             z-index: 15;
-            bottom: calc(50px + env(safe-area-inset-bottom)); /* Snug to canvas bottom with safe area fallback */
+            /* Bottom set dynamically */
             /* Right set dynamically */
+        }
+        #playButton {
+            position: absolute;
+            z-index: 20;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 12px 24px;
+            font-size: 1.5em;
+            display: none; /* Hidden by default */
         }
         button {
             padding: 8px 16px;
@@ -144,6 +154,7 @@
     <button id="modeButton">MODE</button>
     <button id="mapButton">MAP</button>
     <canvas id="canvas"></canvas>
+    <button id="playButton">PLAY</button>
     <div id="livesWindow">MEAF yourself Leroy</div>
     <div id="hiScoreWindow">eat my MEAF LERoYYY!</div>
     <script>
@@ -159,6 +170,7 @@
         const titleDisplay = document.getElementById('title');
         const modeButton = document.getElementById('modeButton');
         const mapButton = document.getElementById('mapButton');
+        const playButton = document.getElementById('playButton');
         const livesWindow = document.getElementById('livesWindow');
         const hiScoreWindow = document.getElementById('hiScoreWindow');
 
@@ -204,15 +216,16 @@
         let isTrackingHits = false;
         let lives = 3;
         let hiScore = 0;
+        let isPaused = false;
 
         let currentMode = 'survival';
         let currentMap = 'rectangle';
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0 },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0 },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0 },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0 }
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false },
+            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false },
+            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false },
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false }
         };
 
         function setCanvasSize() {
@@ -220,14 +233,10 @@
             const wallHitsHeight = wallHitsDisplay.offsetHeight || 32;
             const wallHitsBottom = wallHitsTop + wallHitsHeight;
             const buttonHeight = modeButton.offsetHeight || 36;
-            const canvasShrink = 50; // Pixels to raise canvas bottom
-            const snugGap = 5; // Small gap to keep buttons snug against canvas bottom border
+            const canvasShrink = 50;
+            const snugGap = 5;
 
-            // Use document.documentElement.clientHeight as a fallback for better iOS compatibility
-            const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-
-            // Calculate available height for canvas, reserving space for buttons and gap
-            const availableHeight = viewportHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
+            const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
             canvas.height = availableHeight - 2 * borderWidth;
             canvas.width = window.innerWidth * 0.9;
             const canvasLeft = (window.innerWidth - canvas.width) / 2;
@@ -235,10 +244,15 @@
             canvas.style.top = `${canvasTop}px`;
             canvas.style.left = `${canvasLeft}px`;
 
+            const canvasBottom = canvasTop + canvas.height + (2 * borderWidth);
+            const buttonBottom = window.innerHeight - canvasBottom - buttonHeight - snugGap;
+            modeButton.style.bottom = `${buttonBottom}px`;
+            modeButton.style.left = `${canvasLeft}px`;
+            mapButton.style.bottom = `${buttonBottom}px`;
+            mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
+
             livesDisplay.style.left = `${canvasLeft}px`;
             hiScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
-            modeButton.style.left = `${canvasLeft}px`;
-            mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
 
             const livesLeft = canvasLeft + (livesDisplay.offsetWidth / 2);
             livesCount.style.left = `${livesLeft}px`;
@@ -250,8 +264,10 @@
             hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
             hiScoreCount.style.transform = 'translateX(-50%)';
 
-            circle.x = canvas.width / 2;
-            circle.y = canvas.height / 2;
+            if (!isPaused) {
+                circle.x = canvas.width / 2;
+                circle.y = canvas.height / 2;
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -270,18 +286,64 @@
             hiScoreCount.textContent = hiScore;
             titleDisplay.textContent = currentMode === 'survival' ? 'Survival Mode' : 'Endurance Mode';
             setCanvasSize();
+
+            const key = `${currentMode}-${currentMap}`;
+            if (gameStates[key].isPaused && !isCountingDown) {
+                playButton.style.display = 'block';
+            } else {
+                playButton.style.display = 'none';
+            }
         }
 
         function saveState() {
             const key = `${currentMode}-${currentMap}`;
-            gameStates[key] = { level, lives, hiScore };
+            gameStates[key] = {
+                level,
+                lives,
+                hiScore,
+                circle: {
+                    x: circle.x,
+                    y: circle.y,
+                    dx: circle.dx,
+                    dy: circle.dy,
+                    isDragging: circle.isDragging,
+                    lastX: circle.lastX,
+                    lastY: circle.lastY,
+                    lastTime: circle.lastTime
+                },
+                wallHits,
+                isTrackingHits,
+                isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 // Pause if game was active
+            };
         }
 
         function loadState(mode, map) {
             const key = `${mode}-${map}`;
-            level = gameStates[key].level;
-            lives = gameStates[key].lives;
-            hiScore = gameStates[key].hiScore;
+            const state = gameStates[key];
+            level = state.level;
+            lives = state.lives;
+            hiScore = state.hiScore;
+            wallHits = state.wallHits;
+            isTrackingHits = state.isTrackingHits;
+            isPaused = state.isPaused;
+
+            if (state.circle.x !== undefined) {
+                circle.x = state.circle.x;
+                circle.y = state.circle.y;
+                circle.dx = state.circle.dx;
+                circle.dy = state.circle.dy;
+                circle.isDragging = state.circle.isDragging;
+                circle.lastX = state.circle.lastX;
+                circle.lastY = state.circle.lastY;
+                circle.lastTime = state.circle.lastTime;
+            } else {
+                circle.x = canvas.width / 2;
+                circle.y = canvas.height / 2;
+                circle.dx = 0;
+                circle.dy = 0;
+                circle.isDragging = false;
+            }
+
             updateDisplay();
         }
 
@@ -306,6 +368,7 @@
             mapButton.style.backgroundColor = invertedStyle;
             livesDisplay.style.backgroundColor = invertedStyle;
             hiScoreDisplay.style.backgroundColor = invertedStyle;
+            playButton.style.backgroundColor = invertedStyle;
             livesWindow.style.backgroundColor = invertedStyle;
             hiScoreWindow.style.backgroundColor = invertedStyle;
 
@@ -333,6 +396,8 @@
         }
 
         function updatePhysics() {
+            if (isPaused || isCountingDown) return;
+
             const currentTime = Date.now();
 
             if (!circle.isDragging) {
@@ -472,13 +537,14 @@
                     saveState();
                     updateDisplay();
                     startCountdown();
-                } else if (!isCountingDown) {
+                } else if (!isCountingDown && !isPaused) {
                     startCountdown();
                 }
             }
         }
 
         function startDragging(e) {
+            if (isPaused) return;
             e.preventDefault();
             const pos = getMousePos(e);
             const dist = Math.sqrt(
@@ -495,6 +561,7 @@
         }
 
         function drag(e) {
+            if (isPaused) return;
             e.preventDefault();
             if (circle.isDragging) {
                 const pos = getMousePos(e);
@@ -513,6 +580,7 @@
         }
 
         function stopDragging() {
+            if (isPaused) return;
             circle.isDragging = false;
         }
 
@@ -526,11 +594,13 @@
             saveState();
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             loadState(currentMode, currentMap);
-            circle.x = canvas.width / 2;
-            circle.y = canvas.height / 2;
-            circle.dx = 0;
-            circle.dy = 0;
-            setCanvasSize();
+        });
+
+        playButton.addEventListener('click', () => {
+            isPaused = false;
+            const key = `${currentMode}-${currentMap}`;
+            gameStates[key].isPaused = false;
+            playButton.style.display = 'none';
         });
 
         livesDisplay.addEventListener('click', () => {
