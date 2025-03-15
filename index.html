@@ -30,7 +30,7 @@
             top: 10px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 1.5em; /* Smaller mode text */
+            font-size: 1.5em;
         }
         #level {
             top: 40px;
@@ -50,14 +50,15 @@
             left: 50%;
             transform: translateX(-50%);
             font-size: 2em;
+            visibility: hidden; /* Use visibility instead of display: none */
         }
         #attempts {
-            top: 40px; /* Aligned with level */
+            top: 40px;
             left: 20px;
             font-size: 1em;
         }
         #highScore {
-            top: 40px; /* Aligned with level */
+            top: 40px;
             right: 20px;
             font-size: 1em;
         }
@@ -91,7 +92,7 @@
     <div id="title">Survival Mode</div>
     <div id="level">Level: 1</div>
     <div id="countdown" style="opacity: 0;"></div>
-    <div id="wallHits" style="display: none;"></div>
+    <div id="wallHits" style="visibility: hidden;"></div>
     <div id="attempts">Attempts: 3</div>
     <div id="highScore">High Score: 1</div>
     <button id="modeButton">Mode</button>
@@ -168,10 +169,14 @@
 
         // Function to set canvas size and position
         function setCanvasSize() {
-            const wallHitsRect = wallHitsDisplay.getBoundingClientRect();
-            const wallHitsBottom = wallHitsRect.bottom;
-            const buttonRect = modeButton.getBoundingClientRect();
-            const buttonTop = buttonRect.top;
+            // Use static values as fallback if bounding rects are unreliable
+            const wallHitsTop = parseInt(window.getComputedStyle(wallHitsDisplay).top) || 80; // CSS top value
+            const wallHitsHeight = wallHitsDisplay.offsetHeight || 32; // Approximate 2em height if not rendered
+            const wallHitsBottom = wallHitsTop + wallHitsHeight;
+            const buttonBottom = parseInt(window.getComputedStyle(modeButton).bottom) || 20; // CSS bottom value
+            const buttonHeight = modeButton.offsetHeight || 36; // Approximate button height
+            const buttonTop = window.innerHeight - buttonBottom - buttonHeight;
+
             const availableHeight = buttonTop - wallHitsBottom;
             canvas.height = availableHeight - 2 * borderWidth; // Account for border
             canvas.width = window.innerWidth * 0.9; // 90% of window width
@@ -183,10 +188,13 @@
             circle.y = canvas.height / 2;
         }
 
-        // Initialize canvas size after DOM is ready and after render
+        // Initialize canvas size after DOM is ready and force a reflow
         document.addEventListener('DOMContentLoaded', () => {
+            // Force a reflow to ensure layout is calculated
+            wallHitsDisplay.style.visibility = 'hidden'; // Ensure it has a size
+            void wallHitsDisplay.offsetHeight; // Trigger reflow
             setCanvasSize();
-            // Force a recalculation after initial render
+            // Recalculate after initial render
             requestAnimationFrame(() => {
                 setCanvasSize();
             });
@@ -357,9 +365,9 @@
 
             if (isTrackingHits) {
                 wallHitsDisplay.textContent = `${wallHits}`;
-                wallHitsDisplay.style.display = 'block';
+                wallHitsDisplay.style.visibility = 'visible'; // Show when tracking
             } else {
-                wallHitsDisplay.style.display = 'none';
+                wallHitsDisplay.style.visibility = 'hidden'; // Hide when not tracking
             }
         }
 
