@@ -265,7 +265,6 @@
             hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
             hiScoreCount.style.transform = 'translateX(-50%)';
 
-            // Only reset circle position on initial load or if not paused/counting
             if (!gameStates[`${currentMode}-${currentMap}`].circle.x && !isPaused && !isCountingDown && !circle.isDragging) {
                 circle.x = canvas.width / 2;
                 circle.y = canvas.height / 2;
@@ -290,17 +289,17 @@
             setCanvasSize();
 
             const key = `${currentMode}-${currentMap}`;
-            if (gameStates[key].isPaused && !isCountingDown) {
+            if (gameStates[key].isPaused) {
                 playButton.style.display = 'block';
+                countdownDisplay.style.opacity = 0; // Hide countdown when paused
             } else {
                 playButton.style.display = 'none';
-            }
-
-            if (isCountingDown) {
-                countdownDisplay.style.opacity = 1;
-                countdownDisplay.textContent = countdown;
-            } else {
-                countdownDisplay.style.opacity = 0;
+                if (isCountingDown) {
+                    countdownDisplay.style.opacity = 1;
+                    countdownDisplay.textContent = countdown;
+                } else {
+                    countdownDisplay.style.opacity = 0;
+                }
             }
         }
 
@@ -322,12 +321,13 @@
                 },
                 wallHits,
                 isTrackingHits,
-                isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 || circle.isDragging,
+                isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 || circle.isDragging || isCountingDown,
                 isCountingDown,
                 countdown
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
+                countdownInterval = null;
             }
         }
 
@@ -360,10 +360,7 @@
                 circle.isDragging = false;
             }
 
-            if (isCountingDown) {
-                startCountdown(true);
-            }
-
+            // Do not resume countdown here; wait for "PLAY"
             updateDisplay();
         }
 
@@ -629,6 +626,10 @@
             const key = `${currentMode}-${currentMap}`;
             gameStates[key].isPaused = false;
             playButton.style.display = 'none';
+            if (gameStates[key].isCountingDown) {
+                startCountdown(true); // Resume countdown from saved state
+            }
+            updateDisplay();
         });
 
         livesDisplay.addEventListener('click', () => {
