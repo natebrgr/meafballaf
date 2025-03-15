@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Throwable Bouncy Circle Game</title>
     <style>
         body {
@@ -86,13 +86,13 @@
         #modeButton {
             position: absolute;
             z-index: 15;
-            /* Bottom set dynamically */
+            bottom: calc(50px + env(safe-area-inset-bottom)); /* Snug to canvas bottom with safe area fallback */
             /* Left set dynamically */
         }
         #mapButton {
             position: absolute;
             z-index: 15;
-            /* Bottom set dynamically */
+            bottom: calc(50px + env(safe-area-inset-bottom)); /* Snug to canvas bottom with safe area fallback */
             /* Right set dynamically */
         }
         button {
@@ -223,8 +223,11 @@
             const canvasShrink = 50; // Pixels to raise canvas bottom
             const snugGap = 5; // Small gap to keep buttons snug against canvas bottom border
 
+            // Use document.documentElement.clientHeight as a fallback for better iOS compatibility
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
             // Calculate available height for canvas, reserving space for buttons and gap
-            const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
+            const availableHeight = viewportHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
             canvas.height = availableHeight - 2 * borderWidth;
             canvas.width = window.innerWidth * 0.9;
             const canvasLeft = (window.innerWidth - canvas.width) / 2;
@@ -232,18 +235,10 @@
             canvas.style.top = `${canvasTop}px`;
             canvas.style.left = `${canvasLeft}px`;
 
-            // Calculate canvas bottom edge (top + height)
-            const canvasBottom = canvasTop + canvas.height + (2 * borderWidth);
-
-            // Position buttons snug against the canvas bottom border
-            const buttonBottom = window.innerHeight - canvasBottom - buttonHeight - snugGap;
-            modeButton.style.bottom = `${buttonBottom}px`;
-            modeButton.style.left = `${canvasLeft}px`;
-            mapButton.style.bottom = `${buttonBottom}px`;
-            mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
-
             livesDisplay.style.left = `${canvasLeft}px`;
             hiScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
+            modeButton.style.left = `${canvasLeft}px`;
+            mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
 
             const livesLeft = canvasLeft + (livesDisplay.offsetWidth / 2);
             livesCount.style.left = `${livesLeft}px`;
