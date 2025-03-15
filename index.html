@@ -98,12 +98,12 @@
         #playButton {
             position: absolute;
             z-index: 20;
-            top: 50%;
+            /* Bottom set dynamically */
             left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 12px 24px;
-            font-size: 1.5em;
-            display: none; /* Hidden by default */
+            transform: translateX(-50%);
+            padding: 8px 16px;
+            font-size: 1em;
+            display: none;
         }
         button {
             padding: 8px 16px;
@@ -211,6 +211,7 @@
 
         let isCountingDown = false;
         let countdown = 3;
+        let countdownInterval = null;
         let wallHits = 0;
         let level = 1;
         let isTrackingHits = false;
@@ -222,10 +223,10 @@
         let currentMap = 'rectangle';
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false }
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3 },
+            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3 },
+            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3 },
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3 }
         };
 
         function setCanvasSize() {
@@ -250,6 +251,7 @@
             modeButton.style.left = `${canvasLeft}px`;
             mapButton.style.bottom = `${buttonBottom}px`;
             mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
+            playButton.style.bottom = `${buttonBottom}px`; // Align with MODE and MAP
 
             livesDisplay.style.left = `${canvasLeft}px`;
             hiScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
@@ -264,7 +266,7 @@
             hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
             hiScoreCount.style.transform = 'translateX(-50%)';
 
-            if (!isPaused) {
+            if (!isPaused && !circle.isDragging) {
                 circle.x = canvas.width / 2;
                 circle.y = canvas.height / 2;
             }
@@ -293,6 +295,13 @@
             } else {
                 playButton.style.display = 'none';
             }
+
+            if (isCountingDown) {
+                countdownDisplay.style.opacity = 1;
+                countdownDisplay.textContent = countdown;
+            } else {
+                countdownDisplay.style.opacity = 0;
+            }
         }
 
         function saveState() {
@@ -313,8 +322,13 @@
                 },
                 wallHits,
                 isTrackingHits,
-                isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 // Pause if game was active
+                isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 || circle.isDragging,
+                isCountingDown,
+                countdown
             };
+            if (isCountingDown) {
+                clearInterval(countdownInterval);
+            }
         }
 
         function loadState(mode, map) {
@@ -326,6 +340,8 @@
             wallHits = state.wallHits;
             isTrackingHits = state.isTrackingHits;
             isPaused = state.isPaused;
+            isCountingDown = state.isCountingDown;
+            countdown = state.countdown;
 
             if (state.circle.x !== undefined) {
                 circle.x = state.circle.x;
@@ -342,6 +358,10 @@
                 circle.dx = 0;
                 circle.dy = 0;
                 circle.isDragging = false;
+            }
+
+            if (isCountingDown) {
+                startCountdown(true); // Resume existing countdown
             }
 
             updateDisplay();
@@ -396,7 +416,7 @@
         }
 
         function updatePhysics() {
-            if (isPaused || isCountingDown) return;
+            if (isPaused) return;
 
             const currentTime = Date.now();
 
@@ -485,22 +505,29 @@
             }
         }
 
-        function startCountdown() {
-            isCountingDown = true;
-            countdown = 3;
-            wallHits = 0;
-            isTrackingHits = true;
+        function startCountdown(isResuming = false) {
+            if (!isResuming) {
+                isCountingDown = true;
+                countdown = 3;
+                wallHits = 0;
+                isTrackingHits = true;
+            } else {
+                isCountingDown = true;
+            }
             countdownDisplay.style.opacity = 1;
             countdownDisplay.textContent = countdown;
 
-            const countdownInterval = setInterval(() => {
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
                 countdown--;
                 if (countdown > 0) {
                     countdownDisplay.textContent = countdown;
                 } else {
                     countdownDisplay.style.opacity = 0;
                     clearInterval(countdownInterval);
+                    countdownInterval = null;
                     isCountingDown = false;
+                    updateDisplay();
                 }
             }, 1000);
         }
