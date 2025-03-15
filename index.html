@@ -46,33 +46,33 @@
             transition: opacity 0.5s ease;
         }
         #wallHits {
-            top: 80px; /* Below level text */
+            top: 80px; /* Defines top of border */
             left: 50%;
             transform: translateX(-50%);
             font-size: 2em;
-            visibility: hidden; /* Use visibility instead of display: none */
+            visibility: hidden; /* Takes up space but hidden */
         }
         #attempts {
-            top: 40px;
-            left: 20px;
+            top: 80px; /* Align with wallHits */
             font-size: 1em;
+            /* Left set dynamically */
         }
         #highScore {
-            top: 40px;
-            right: 20px;
+            top: 80px; /* Align with wallHits */
             font-size: 1em;
+            /* Right set dynamically */
         }
         #modeButton {
             position: absolute;
             bottom: 20px;
-            left: 20px;
             z-index: 15; /* Top layer: buttons */
+            /* Left set dynamically */
         }
         #mapButton {
             position: absolute;
             bottom: 20px;
-            right: 20px;
             z-index: 15; /* Top layer: buttons */
+            /* Right set dynamically */
         }
         button {
             padding: 8px 16px;
@@ -167,37 +167,40 @@
             'endurance-circle': { level: 1, attempts: Infinity, highScore: 0 }
         };
 
-        // Function to set canvas size and position
+        // Function to set canvas size and align elements
         function setCanvasSize() {
-            // Use static values as fallback if bounding rects are unreliable
-            const wallHitsTop = parseInt(window.getComputedStyle(wallHitsDisplay).top) || 80; // CSS top value
-            const wallHitsHeight = wallHitsDisplay.offsetHeight || 32; // Approximate 2em height if not rendered
+            // Static fallback values for initial layout
+            const wallHitsTop = parseInt(window.getComputedStyle(wallHitsDisplay).top) || 80;
+            const wallHitsHeight = wallHitsDisplay.offsetHeight || 32;
             const wallHitsBottom = wallHitsTop + wallHitsHeight;
-            const buttonBottom = parseInt(window.getComputedStyle(modeButton).bottom) || 20; // CSS bottom value
-            const buttonHeight = modeButton.offsetHeight || 36; // Approximate button height
+            const buttonBottom = parseInt(window.getComputedStyle(modeButton).bottom) || 20;
+            const buttonHeight = modeButton.offsetHeight || 36;
             const buttonTop = window.innerHeight - buttonBottom - buttonHeight;
 
             const availableHeight = buttonTop - wallHitsBottom;
-            canvas.height = availableHeight - 2 * borderWidth; // Account for border
-            canvas.width = window.innerWidth * 0.9; // 90% of window width
-            canvas.style.top = `${wallHitsBottom + (availableHeight - canvas.height) / 2}px`; // Center vertically
-            canvas.style.left = `${(window.innerWidth - canvas.width) / 2}px`; // Center horizontally
+            canvas.height = availableHeight - 2 * borderWidth;
+            canvas.width = window.innerWidth * 0.9;
+            const canvasLeft = (window.innerWidth - canvas.width) / 2;
+            canvas.style.top = `${wallHitsBottom + (availableHeight - canvas.height) / 2}px`;
+            canvas.style.left = `${canvasLeft}px`;
+
+            // Align elements with border edges
+            attemptsDisplay.style.left = `${canvasLeft}px`; // Left edge of border
+            highScoreDisplay.style.right = `${canvasLeft + canvas.width - highScoreDisplay.offsetWidth}px`; // Right edge of border
+            modeButton.style.left = `${canvasLeft}px`; // Left edge of border
+            mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`; // Right edge of border
 
             // Ensure circle stays centered in the canvas
             circle.x = canvas.width / 2;
             circle.y = canvas.height / 2;
         }
 
-        // Initialize canvas size after DOM is ready and force a reflow
+        // Initialize canvas size and alignment
         document.addEventListener('DOMContentLoaded', () => {
-            // Force a reflow to ensure layout is calculated
-            wallHitsDisplay.style.visibility = 'hidden'; // Ensure it has a size
-            void wallHitsDisplay.offsetHeight; // Trigger reflow
+            wallHitsDisplay.style.visibility = 'hidden';
+            void wallHitsDisplay.offsetHeight; // Force reflow
             setCanvasSize();
-            // Recalculate after initial render
-            requestAnimationFrame(() => {
-                setCanvasSize();
-            });
+            requestAnimationFrame(() => setCanvasSize());
         });
         window.addEventListener('resize', setCanvasSize);
 
@@ -207,7 +210,7 @@
             attemptsDisplay.textContent = `Attempts: ${attempts === Infinity ? '∞' : attempts}`;
             highScoreDisplay.textContent = `High Score: ${highScore}`;
             titleDisplay.textContent = currentMode === 'survival' ? 'Survival Mode' : 'Endurance Mode';
-            setCanvasSize(); // Ensure canvas updates with text changes
+            setCanvasSize(); // Update canvas and alignments
         }
 
         // Function to save current state
@@ -365,9 +368,9 @@
 
             if (isTrackingHits) {
                 wallHitsDisplay.textContent = `${wallHits}`;
-                wallHitsDisplay.style.visibility = 'visible'; // Show when tracking
+                wallHitsDisplay.style.visibility = 'visible';
             } else {
-                wallHitsDisplay.style.visibility = 'hidden'; // Hide when not tracking
+                wallHitsDisplay.style.visibility = 'hidden';
             }
         }
 
@@ -484,7 +487,7 @@
             circle.y = canvas.height / 2;
             circle.dx = 0;
             circle.dy = 0;
-            setCanvasSize(); // Adjust canvas size on map change
+            setCanvasSize();
         });
 
         // Event listeners for mouse
