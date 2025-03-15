@@ -35,8 +35,8 @@
         }
         #level, #countdown, #wallHits, #lives, #hiScore, #title {
             position: absolute;
-            color: #e0e0e0; /* Soft white */
-            text-shadow: 0 0 5px #fff; /* White glow */
+            color: #e0e0e0;
+            text-shadow: 0 0 5px #fff;
             font-weight: bold;
             z-index: 2;
         }
@@ -77,21 +77,21 @@
             /* Right set dynamically */
         }
         #livesCount, #hiScoreCount {
-            color: #e0e0e0; /* Soft white */
-            text-shadow: 0 0 5px #fff; /* White glow */
+            color: #e0e0e0;
+            text-shadow: 0 0 5px #fff;
             font-size: 1.8em;
             position: absolute;
             z-index: 2;
         }
         #modeButton {
             position: absolute;
-            bottom: 25px; /* Increased from 20px */
+            bottom: 20px; /* Reverted from 25px */
             z-index: 15;
             /* Left set dynamically */
         }
         #mapButton {
             position: absolute;
-            bottom: 25px; /* Increased from 20px */
+            bottom: 20px; /* Reverted from 25px */
             z-index: 15;
             /* Right set dynamically */
         }
@@ -101,8 +101,8 @@
             font-weight: bold;
             font-family: Arial, sans-serif;
             cursor: pointer;
-            color: #e0e0e0; /* Soft white, matching HI SCORE and LIVES */
-            text-shadow: 0 0 5px #fff; /* White glow */
+            color: #e0e0e0;
+            text-shadow: 0 0 5px #fff;
             border: none;
             border-radius: 5px;
             filter: drop-shadow(0 0 5px #fff);
@@ -118,8 +118,8 @@
             transform: translate(-50%, -50%) scale(0);
             padding: 20px;
             font-size: 1.5em;
-            color: #e0e0e0; /* Soft white */
-            text-shadow: 0 0 5px #fff; /* White glow */
+            color: #e0e0e0;
+            text-shadow: 0 0 5px #fff;
             border-radius: 10px;
             opacity: 0;
             transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.5s ease;
@@ -139,7 +139,7 @@
     <div id="wallHits" style="visibility: hidden;">0</div>
     <div id="livesCount">3</div>
     <button id="lives">LIVES</button>
-    <div id="hiScoreCount">1</div>
+    <div id="hiScoreCount">0</div> <!-- Changed from 1 to 0 -->
     <button id="hiScore">HI SCORE</button>
     <button id="modeButton">Mode</button>
     <button id="mapButton">Map</button>
@@ -203,12 +203,13 @@
         let level = 1;
         let isTrackingHits = false;
         let lives = 3;
-        let hiScore = 1;
+        let hiScore = 0; // Changed from 1 to 0
+
         let currentMode = 'survival';
         let currentMap = 'rectangle';
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 1 },
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0 }, // Changed hiScore from 1 to 0
             'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0 },
             'survival-circle': { level: 1, lives: 3, hiScore: 0 },
             'endurance-circle': { level: 1, lives: Infinity, hiScore: 0 }
@@ -218,7 +219,7 @@
             const wallHitsTop = parseInt(window.getComputedStyle(wallHitsDisplay).top) || 80;
             const wallHitsHeight = wallHitsDisplay.offsetHeight || 32;
             const wallHitsBottom = wallHitsTop + wallHitsHeight;
-            const buttonBottom = parseInt(window.getComputedStyle(modeButton).bottom) || 25;
+            const buttonBottom = parseInt(window.getComputedStyle(modeButton).bottom) || 20; // Reverted to 20
             const buttonHeight = modeButton.offsetHeight || 36;
             const buttonTop = window.innerHeight - buttonBottom - buttonHeight;
 
@@ -454,7 +455,7 @@
                     if (wallHits === level) {
                         level++;
                         if (currentMode === 'survival') lives = 3;
-                        if (level > hiScore) hiScore = level;
+                        if (level > hiScore) hiScore = level; // Corrected logic
                     } else if (currentMode === 'survival') {
                         lives--;
                         if (lives <= 0) {
