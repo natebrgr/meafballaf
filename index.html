@@ -222,10 +222,9 @@
         let currentMode = 'survival';
         let currentMap = 'rectangle';
 
-        // Trail array to store past positions
         const trail = [];
-        const maxTrailLength = 20; // Max segments, adjusted by velocity
-        const trailFadeRate = 0.05; // How fast trail fades
+        const maxTrailLength = 20;
+        const trailFadeRate = 0.05;
 
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
@@ -270,13 +269,6 @@
             hiScoreCount.style.left = `${hiScoreLeft}px`;
             hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
             hiScoreCount.style.transform = 'translateX(-50%)';
-
-            // Only set initial position if no saved state and not in play
-            const state = gameStates[`${currentMode}-${currentMap}`];
-            if (!state.circle.x && !state.isTrackingHits && !state.isCountingDown) {
-                circle.x = canvas.width / 2;
-                circle.y = canvas.height / 2;
-            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -352,14 +344,9 @@
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime;
-            } else {
-                circle.x = canvas.width / 2;
-                circle.y = canvas.height / 2;
-                circle.dx = 0;
-                circle.dy = 0;
-                circle.isDragging = false;
             }
 
+            trail.length = 0;
             updateDisplay();
         }
 
@@ -404,9 +391,8 @@
                 ctx.stroke();
             }
 
-            // Draw trail
             const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
-            const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 10)); // Scale trail by velocity
+            const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
             for (let i = 0; i < trail.length; i++) {
                 const segment = trail[i];
                 ctx.beginPath();
@@ -416,7 +402,6 @@
                 ctx.closePath();
             }
 
-            // Draw circle
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
@@ -436,11 +421,10 @@
                 circle.dx *= friction;
                 circle.dy *= friction;
 
-                // Update trail
                 const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
-                const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 10));
+                const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
                 trail.unshift({ x: circle.x, y: circle.y, opacity: 1 });
-                if (trail.length > trailLength) trail.pop();
+                while (trail.length > trailLength) trail.pop();
                 for (let i = 0; i < trail.length; i++) {
                     trail[i].opacity -= trailFadeRate;
                     if (trail[i].opacity <= 0) trail.splice(i, 1);
@@ -606,6 +590,7 @@
                 circle.lastTime = Date.now();
                 circle.dx = 0;
                 circle.dy = 0;
+                trail.length = 0;
             }
         }
 
@@ -637,12 +622,14 @@
             saveState();
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             loadState(currentMode, currentMap);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
 
         mapButton.addEventListener('click', () => {
             saveState();
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             loadState(currentMode, currentMap);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
 
         playButton.addEventListener('click', () => {
@@ -653,6 +640,7 @@
                 if (gameStates[key].isCountingDown) {
                     startCountdown(true);
                 }
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
                 isPaused = true;
                 saveState();
@@ -695,6 +683,10 @@
             drawScene(invertedColor);
             requestAnimationFrame(animate);
         }
+
+        // Set initial position once at startup and never reset it
+        circle.x = window.innerWidth * 0.45; // Approximate center based on window
+        circle.y = window.innerHeight * 0.5;
 
         updateDisplay();
         animate();
