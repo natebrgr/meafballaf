@@ -227,10 +227,10 @@
         const trailFadeRate = 0.05;
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 }
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
+            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
+            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 }
         };
 
         function setCanvasSize() {
@@ -291,6 +291,10 @@
             playButton.textContent = isPaused ? 'RESUME' : 'PAUSE';
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
+
+            // Fix: Update wall hits immediately, even when paused
+            wallHitsDisplay.textContent = isTrackingHits ? `${wallHits}` : '0';
+            wallHitsDisplay.style.visibility = isTrackingHits ? 'visible' : 'hidden';
         }
 
         function saveState() {
@@ -309,6 +313,7 @@
                     lastY: circle.lastY,
                     lastTime: circle.lastTime
                 },
+                trail: [...trail], // Fix: Save the trail state
                 wallHits,
                 isTrackingHits,
                 isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 || circle.isDragging || isCountingDown,
@@ -346,7 +351,14 @@
                 circle.lastTime = state.lastTime;
             }
 
-            trail.length = 0;
+            // Fix: Restore trail only if returning to the same paused mode/map
+            if (mode === currentMode && map === currentMap && state.isPaused && state.trail && state.trail.length > 0) {
+                trail.length = 0;
+                trail.push(...state.trail);
+            } else {
+                trail.length = 0;
+            }
+
             updateDisplay();
         }
 
@@ -684,8 +696,7 @@
             requestAnimationFrame(animate);
         }
 
-        // Set initial position once at startup and never reset it
-        circle.x = window.innerWidth * 0.45; // Approximate center based on window
+        circle.x = window.innerWidth * 0.45;
         circle.y = window.innerHeight * 0.5;
 
         updateDisplay();
