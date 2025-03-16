@@ -57,7 +57,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 4em;
-            transition: opacity 0.5s ease; /* Still used for normal fade, not mid-switch */
+            transition: opacity 0.5s ease;
         }
         #wallHits {
             top: 80px;
@@ -102,7 +102,7 @@
             transform: translateX(-50%);
             padding: 8px 16px;
             font-size: 1em;
-            display: block; /* Always visible now */
+            display: block;
         }
         button {
             padding: 8px 16px;
@@ -211,7 +211,7 @@
         let isCountingDown = false;
         let countdown = 3;
         let countdownInterval = null;
-        let countdownOpacity = 0; // Track opacity manually
+        let countdownOpacity = 0;
         let wallHits = 0;
         let level = 1;
         let isTrackingHits = false;
@@ -221,6 +221,11 @@
 
         let currentMode = 'survival';
         let currentMap = 'rectangle';
+
+        // Trail array to store past positions
+        const trail = [];
+        const maxTrailLength = 20; // Max segments, adjusted by velocity
+        const trailFadeRate = 0.05; // How fast trail fades
 
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
@@ -266,7 +271,9 @@
             hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
             hiScoreCount.style.transform = 'translateX(-50%)';
 
-            if (!gameStates[`${currentMode}-${currentMap}`].circle.x && !isPaused && !isCountingDown && !circle.isDragging) {
+            // Only set initial position if no saved state and not in play
+            const state = gameStates[`${currentMode}-${currentMap}`];
+            if (!state.circle.x && !state.isTrackingHits && !state.isCountingDown) {
                 circle.x = canvas.width / 2;
                 circle.y = canvas.height / 2;
             }
@@ -289,9 +296,8 @@
             titleDisplay.textContent = currentMode === 'survival' ? 'Survival Mode' : 'Endurance Mode';
             setCanvasSize();
 
-            const key = `${currentMode}-${currentMap}`;
             playButton.textContent = isPaused ? 'RESUME' : 'PAUSE';
-            countdownDisplay.style.opacity = gameStates[key].countdownOpacity;
+            countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
         }
 
@@ -316,7 +322,7 @@
                 isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 || circle.isDragging || isCountingDown,
                 isCountingDown,
                 countdown,
-                countdownOpacity: parseFloat(countdownDisplay.style.opacity) || 0
+                countdownOpacity
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -342,10 +348,10 @@
                 circle.y = state.circle.y;
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
-                circle.isDragging = state.circle.isDragging;
-                circle.lastX = state.circle.lastX;
-                circle.lastY = state.circle.lastY;
-                circle.lastTime = state.circle.lastTime;
+                circle.isDragging = state.isDragging;
+                circle.lastX = state.lastX;
+                circle.lastY = state.lastY;
+                circle.lastTime = state.lastTime;
             } else {
                 circle.x = canvas.width / 2;
                 circle.y = canvas.height / 2;
@@ -398,6 +404,19 @@
                 ctx.stroke();
             }
 
+            // Draw trail
+            const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
+            const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 10)); // Scale trail by velocity
+            for (let i = 0; i < trail.length; i++) {
+                const segment = trail[i];
+                ctx.beginPath();
+                ctx.arc(segment.x, segment.y, circle.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b}, ${segment.opacity})`;
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            // Draw circle
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
@@ -416,6 +435,16 @@
                 circle.y += circle.dy;
                 circle.dx *= friction;
                 circle.dy *= friction;
+
+                // Update trail
+                const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
+                const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 10));
+                trail.unshift({ x: circle.x, y: circle.y, opacity: 1 });
+                if (trail.length > trailLength) trail.pop();
+                for (let i = 0; i < trail.length; i++) {
+                    trail[i].opacity -= trailFadeRate;
+                    if (trail[i].opacity <= 0) trail.splice(i, 1);
+                }
 
                 let walls;
                 if (currentMap === 'rectangle') {
