@@ -282,7 +282,7 @@
             hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
             hiScoreCount.style.transform = 'translateX(-50%)';
 
-            sighhhDisplay.style.top = `${wallHitsBottom + 10}px`; // Below wallHits, inside canvas
+            sighhhDisplay.style.top = `${wallHitsBottom + 10}px`;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -491,7 +491,7 @@
                                 if (currentMode === 'survival' && wallHits > level) {
                                     const state = gameStates[`${currentMode}-${currentMap}`];
                                     state.showSighhh = true;
-                                    state.sighhhText = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras Run';
+                                    state.sighhhText = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
                                     updateDisplay();
                                     clearTimeout(sighhhTimeout);
                                     sighhhTimeout = setTimeout(() => {
@@ -597,14 +597,22 @@
                     isTrackingHits = false;
                     const previousWallHits = wallHits;
                     const previousLives = lives;
+                    const state = gameStates[`${currentMode}-${currentMap}`];
                     if (wallHits === level) {
                         const completedLevel = level;
                         level++;
-                        if (currentMode === 'survival') lives = 3;
+                        if (currentMode === 'survival') {
+                            if (lives === 1) {
+                                lives = 3;
+                                state.showSighhh = true;
+                                state.sighhhText = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
+                            } else {
+                                lives = 3;
+                                state.showSighhh = true;
+                                state.sighhhText = 'yee haw BII';
+                            }
+                        }
                         if (completedLevel > hiScore) hiScore = completedLevel;
-                        const state = gameStates[`${currentMode}-${currentMap}`];
-                        state.showSighhh = true;
-                        state.sighhhText = 'yee haw BII';
                         updateDisplay();
                         clearTimeout(sighhhTimeout);
                         sighhhTimeout = setTimeout(() => {
@@ -613,26 +621,26 @@
                         }, 3000);
                     } else if (currentMode === 'survival') {
                         lives--;
+                        if (previousLives === 3 && lives === 2) {
+                            state.showSighhh = true;
+                            state.sighhhText = 'sighhh';
+                        } else if (previousLives === 2 && lives === 1) {
+                            state.showSighhh = true;
+                            state.sighhhText = 'SighhhAFF';
+                        }
                         if (lives <= 0) {
                             level = 1;
                             lives = 3;
                         }
-                    }
-                    wallHits = 0;
-                    wallHitsDisplay.style.visibility = 'hidden';
-                    if (currentMode === 'survival' && previousWallHits < level && previousWallHits !== level) {
-                        const state = gameStates[`${currentMode}-${currentMap}`];
-                        state.showSighhh = true;
-                        state.sighhhText = previousLives === 3 ? 'sighhh' : previousLives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras Run';
                         updateDisplay();
                         clearTimeout(sighhhTimeout);
                         sighhhTimeout = setTimeout(() => {
                             state.showSighhh = false;
                             updateDisplay();
                         }, 3000);
-                    } else if (previousWallHits !== level) {
-                        gameStates[`${currentMode}-${currentMap}`].showSighhh = false;
                     }
+                    wallHits = 0;
+                    wallHitsDisplay.style.visibility = 'hidden';
                     saveState();
                     updateDisplay();
                     startCountdown();
