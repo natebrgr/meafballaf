@@ -77,11 +77,12 @@
             /* Right set dynamically */
         }
         #sighhh {
-            top: 0;
             left: 50%;
             transform: translateX(-50%);
             font-size: 2em;
             visibility: hidden;
+            z-index: 10; /* Above canvas (5), below circle (drawn last) */
+            /* Top set dynamically */
         }
         #livesCount, #hiScoreCount {
             color: #e0e0e0;
@@ -235,11 +236,13 @@
         const maxTrailLength = 20;
         const trailFadeRate = 0.05;
 
+        let sighhhTimeout = null;
+
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false }
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false, sighhhText: 'sighhh' },
+            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false, sighhhText: 'sighhh' },
+            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false, sighhhText: 'sighhh' },
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false, sighhhText: 'sighhh' }
         };
 
         function setCanvasSize() {
@@ -278,6 +281,8 @@
             hiScoreCount.style.left = `${hiScoreLeft}px`;
             hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
             hiScoreCount.style.transform = 'translateX(-50%)';
+
+            sighhhDisplay.style.top = `${wallHitsBottom + 10}px`; // Below wallHits, inside canvas
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -301,11 +306,8 @@
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
 
-            wallHitsDisplay.textContent = isTrackingHits ? `${wallHits}` : '0';
-            wallHitsDisplay.style.visibility = isTrackingHits ? 'visible' : 'hidden';
-
-            // Update "sighhh" visibility
             const state = gameStates[`${currentMode}-${currentMap}`];
+            sighhhDisplay.textContent = state.sighhhText;
             sighhhDisplay.style.visibility = state.showSighhh ? 'visible' : 'hidden';
         }
 
@@ -332,7 +334,8 @@
                 isCountingDown,
                 countdown,
                 countdownOpacity,
-                showSighhh: wallHits > level // Set based on current condition
+                showSighhh: gameStates[key].showSighhh, // Preserve current visibility
+                sighhhText: gameStates[key].sighhhText  // Preserve current text
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -399,7 +402,6 @@
             livesWindow.style.backgroundColor = invertedStyle;
             hiScoreWindow.style.backgroundColor = invertedStyle;
 
-            // Move color transition logic here to run constantly
             colorProgress += colorTransitionSpeed;
             if (colorProgress >= 1) {
                 colorProgress = 0;
@@ -484,7 +486,21 @@
                         if (!contact.inContact) {
                             contact.inContact = true;
                             contact.time = currentTime;
-                            if (isTrackingHits) wallHits++;
+                            if (isTrackingHits) {
+                                wallHits++;
+                                // Check for "sighhh" when wallHits > level (Survival only)
+                                if (currentMode === 'survival' && wallHits > level) {
+                                    const state = gameStates[`${currentMode}-${currentMap}`];
+                                    state.showSighhh = true;
+                                    state.sighhhText = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras Run';
+                                    updateDisplay();
+                                    clearTimeout(sighhhTimeout);
+                                    sighhhTimeout = setTimeout(() => {
+                                        state.showSighhh = false;
+                                        updateDisplay();
+                                    }, 3000);
+                                }
+                            }
                         }
                     } else {
                         if (contact.inContact) {
@@ -522,6 +538,15 @@
                         circle.dy = -Math.sin(angle) * speed * bounciness;
                     }
                 }
+            }
+
+            // Update wall hits display in real-time
+            if (isTrackingHits) {
+                wallHitsDisplay.textContent = `${wallHits}`;
+                wallHitsDisplay.style.visibility = 'visible';
+            } else {
+                wallHitsDisplay.textContent = '0';
+                wallHitsDisplay.style.visibility = 'hidden';
             }
         }
 
@@ -572,6 +597,7 @@
             if (dist < circle.radius) {
                 if (isTrackingHits && !isCountingDown) {
                     isTrackingHits = false;
+                    const previousWallHits = wallHits; // Capture hits before reset
                     if (wallHits === level) {
                         const completedLevel = level;
                         level++;
@@ -584,12 +610,29 @@
                             lives = 3;
                         }
                     }
-                    // Reset "sighhh" when starting a new game
-                    gameStates[`${currentMode}-${currentMap}`].showSighhh = false;
+                    // Reset wall hits and hide counter immediately
+                    wallHits = 0;
+                    wallHitsDisplay.style.visibility = 'hidden';
+                    // Check for "sighhh" when wallHits < level (Survival only)
+                    if (currentMode === 'survival' && previousWallHits < level) {
+                        const state = gameStates[`${currentMode}-${currentMap}`];
+                        state.showSighhh = true;
+                        state.sighhhText = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras Run';
+                        updateDisplay();
+                        clearTimeout(sighhhTimeout);
+                        sighhhTimeout = setTimeout(() => {
+                            state.showSighhh = false;
+                            updateDisplay();
+                        }, 3000);
+                    } else {
+                        gameStates[`${currentMode}-${currentMap}`].showSighhh = false;
+                    }
                     saveState();
                     updateDisplay();
                     startCountdown();
                 } else if (!isCountingDown) {
+                    wallHits = 0; // Reset on first tap too
+                    wallHitsDisplay.style.visibility = 'hidden';
                     startCountdown();
                 }
             }
