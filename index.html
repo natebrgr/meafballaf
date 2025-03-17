@@ -334,8 +334,8 @@
                 isCountingDown,
                 countdown,
                 countdownOpacity,
-                showSighhh: gameStates[key].showSighhh, // Preserve current visibility
-                sighhhText: gameStates[key].sighhhText  // Preserve current text
+                showSighhh: gameStates[key].showSighhh,
+                sighhhText: gameStates[key].sighhhText
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -488,7 +488,6 @@
                             contact.time = currentTime;
                             if (isTrackingHits) {
                                 wallHits++;
-                                // Check for "sighhh" when wallHits > level (Survival only)
                                 if (currentMode === 'survival' && wallHits > level) {
                                     const state = gameStates[`${currentMode}-${currentMap}`];
                                     state.showSighhh = true;
@@ -540,7 +539,6 @@
                 }
             }
 
-            // Update wall hits display in real-time
             if (isTrackingHits) {
                 wallHitsDisplay.textContent = `${wallHits}`;
                 wallHitsDisplay.style.visibility = 'visible';
@@ -597,12 +595,22 @@
             if (dist < circle.radius) {
                 if (isTrackingHits && !isCountingDown) {
                     isTrackingHits = false;
-                    const previousWallHits = wallHits; // Capture hits before reset
+                    const previousWallHits = wallHits;
+                    const previousLives = lives;
                     if (wallHits === level) {
                         const completedLevel = level;
                         level++;
                         if (currentMode === 'survival') lives = 3;
                         if (completedLevel > hiScore) hiScore = completedLevel;
+                        const state = gameStates[`${currentMode}-${currentMap}`];
+                        state.showSighhh = true;
+                        state.sighhhText = 'yee haw BII';
+                        updateDisplay();
+                        clearTimeout(sighhhTimeout);
+                        sighhhTimeout = setTimeout(() => {
+                            state.showSighhh = false;
+                            updateDisplay();
+                        }, 3000);
                     } else if (currentMode === 'survival') {
                         lives--;
                         if (lives <= 0) {
@@ -610,28 +618,26 @@
                             lives = 3;
                         }
                     }
-                    // Reset wall hits and hide counter immediately
                     wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
-                    // Check for "sighhh" when wallHits < level (Survival only)
-                    if (currentMode === 'survival' && previousWallHits < level) {
+                    if (currentMode === 'survival' && previousWallHits < level && previousWallHits !== level) {
                         const state = gameStates[`${currentMode}-${currentMap}`];
                         state.showSighhh = true;
-                        state.sighhhText = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras Run';
+                        state.sighhhText = previousLives === 3 ? 'sighhh' : previousLives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras Run';
                         updateDisplay();
                         clearTimeout(sighhhTimeout);
                         sighhhTimeout = setTimeout(() => {
                             state.showSighhh = false;
                             updateDisplay();
                         }, 3000);
-                    } else {
+                    } else if (previousWallHits !== level) {
                         gameStates[`${currentMode}-${currentMap}`].showSighhh = false;
                     }
                     saveState();
                     updateDisplay();
                     startCountdown();
                 } else if (!isCountingDown) {
-                    wallHits = 0; // Reset on first tap too
+                    wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
                     startCountdown();
                 }
