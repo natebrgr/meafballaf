@@ -38,7 +38,7 @@
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
             font-weight: bold;
-            z-index: 2;
+            z-index: 2; /* Lowered from 10 to 2 so canvas (5) is above */
         }
         #title {
             top: 10px;
@@ -81,7 +81,6 @@
             transform: translateX(-50%);
             font-size: 2em;
             visibility: hidden;
-            z-index: 10; /* Above canvas (5), below circle (drawn last) */
             /* Top set dynamically */
         }
         #livesCount, #hiScoreCount {
@@ -237,7 +236,7 @@
         const trailFadeRate = 0.05;
 
         let sighhhTimeout = null;
-        let shownTexts = new Set(); // Track shown texts in current game
+        let shownTexts = new Set();
 
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false, sighhhText: 'sighhh' },
@@ -310,6 +309,10 @@
             const state = gameStates[`${currentMode}-${currentMap}`];
             sighhhDisplay.textContent = state.sighhhText;
             sighhhDisplay.style.visibility = state.showSighhh ? 'visible' : 'hidden';
+
+            // Sync wallHits display with state
+            wallHitsDisplay.textContent = `${wallHits}`;
+            wallHitsDisplay.style.visibility = isTrackingHits && !isPaused ? 'visible' : 'hidden';
         }
 
         function saveState() {
@@ -350,7 +353,7 @@
             level = state.level;
             lives = state.lives;
             hiScore = state.hiScore;
-            wallHits = state.wallHits;
+            wallHits = state.wallHits; // Ensure wallHits loads from new state
             isTrackingHits = state.isTrackingHits;
             isPaused = state.isPaused;
             isCountingDown = state.isCountingDown;
@@ -501,7 +504,7 @@
                                         sighhhTimeout = setTimeout(() => {
                                             state.showSighhh = false;
                                             updateDisplay();
-                                        }, 3000);
+                                        }, 1500); // 1.5 seconds
                                     }
                                 }
                             }
@@ -544,7 +547,7 @@
                 }
             }
 
-            if (isTrackingHits) {
+            if (isTrackingHits && !isPaused) {
                 wallHitsDisplay.textContent = `${wallHits}`;
                 wallHitsDisplay.style.visibility = 'visible';
             } else {
@@ -560,7 +563,7 @@
                 wallHits = 0;
                 isTrackingHits = true;
                 countdownOpacity = 1;
-                shownTexts.clear(); // Reset shown texts at game start
+                shownTexts.clear();
             } else {
                 isCountingDown = true;
             }
@@ -610,15 +613,15 @@
                         if (currentMode === 'survival') {
                             lives = 3;
                             state.showSighhh = true;
-                            state.sighhhText = 'yee haw BII'; // Win always shows, no suppression
+                            state.sighhhText = 'yee haw BII';
+                            updateDisplay();
+                            clearTimeout(sighhhTimeout);
+                            sighhhTimeout = setTimeout(() => {
+                                state.showSighhh = false;
+                                updateDisplay();
+                            }, 1500); // 1.5 seconds
                         }
                         if (completedLevel > hiScore) hiScore = completedLevel;
-                        updateDisplay();
-                        clearTimeout(sighhhTimeout);
-                        sighhhTimeout = setTimeout(() => {
-                            state.showSighhh = false;
-                            updateDisplay();
-                        }, 3000);
                     } else if (currentMode === 'survival') {
                         lives--;
                         let text = '';
@@ -640,7 +643,7 @@
                             sighhhTimeout = setTimeout(() => {
                                 state.showSighhh = false;
                                 updateDisplay();
-                            }, 3000);
+                            }, 1500); // 1.5 seconds
                         }
                     }
                     wallHits = 0;
