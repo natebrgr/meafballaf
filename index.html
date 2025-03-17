@@ -237,6 +237,7 @@
         const trailFadeRate = 0.05;
 
         let sighhhTimeout = null;
+        let shownTexts = new Set(); // Track shown texts in current game
 
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false, sighhhText: 'sighhh' },
@@ -490,14 +491,18 @@
                                 wallHits++;
                                 if (currentMode === 'survival' && wallHits > level) {
                                     const state = gameStates[`${currentMode}-${currentMap}`];
-                                    state.showSighhh = true;
-                                    state.sighhhText = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
-                                    updateDisplay();
-                                    clearTimeout(sighhhTimeout);
-                                    sighhhTimeout = setTimeout(() => {
-                                        state.showSighhh = false;
+                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
+                                    if (!shownTexts.has(text)) {
+                                        state.showSighhh = true;
+                                        state.sighhhText = text;
+                                        shownTexts.add(text);
                                         updateDisplay();
-                                    }, 3000);
+                                        clearTimeout(sighhhTimeout);
+                                        sighhhTimeout = setTimeout(() => {
+                                            state.showSighhh = false;
+                                            updateDisplay();
+                                        }, 3000);
+                                    }
                                 }
                             }
                         }
@@ -555,6 +560,7 @@
                 wallHits = 0;
                 isTrackingHits = true;
                 countdownOpacity = 1;
+                shownTexts.clear(); // Reset shown texts at game start
             } else {
                 isCountingDown = true;
             }
@@ -604,7 +610,7 @@
                         if (currentMode === 'survival') {
                             lives = 3;
                             state.showSighhh = true;
-                            state.sighhhText = 'yee haw BII'; // Win always gets "yee haw BII"
+                            state.sighhhText = 'yee haw BII'; // Win always shows, no suppression
                         }
                         if (completedLevel > hiScore) hiScore = completedLevel;
                         updateDisplay();
@@ -615,24 +621,27 @@
                         }, 3000);
                     } else if (currentMode === 'survival') {
                         lives--;
+                        let text = '';
                         if (previousLives === 3 && lives === 2) {
-                            state.showSighhh = true;
-                            state.sighhhText = 'sighhh';
+                            text = 'sighhh';
                         } else if (previousLives === 2 && lives === 1) {
-                            state.showSighhh = true;
-                            state.sighhhText = 'SighhhAFF';
+                            text = 'SighhhAFF';
                         } else if (lives <= 0) {
                             level = 1;
                             lives = 3;
-                            state.showSighhh = true;
-                            state.sighhhText = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN'; // Loss reset
+                            text = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
                         }
-                        updateDisplay();
-                        clearTimeout(sighhhTimeout);
-                        sighhhTimeout = setTimeout(() => {
-                            state.showSighhh = false;
+                        if (text && !shownTexts.has(text)) {
+                            state.showSighhh = true;
+                            state.sighhhText = text;
+                            shownTexts.add(text);
                             updateDisplay();
-                        }, 3000);
+                            clearTimeout(sighhhTimeout);
+                            sighhhTimeout = setTimeout(() => {
+                                state.showSighhh = false;
+                                updateDisplay();
+                            }, 3000);
+                        }
                     }
                     wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
