@@ -38,7 +38,7 @@
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
             font-weight: bold;
-            z-index: 2; /* Lowered from 10 to 2 so canvas (5) is above */
+            z-index: 2;
         }
         #title {
             top: 10px;
@@ -310,9 +310,9 @@
             sighhhDisplay.textContent = state.sighhhText;
             sighhhDisplay.style.visibility = state.showSighhh ? 'visible' : 'hidden';
 
-            // Sync wallHits display with state
+            // Show wallHits even when paused, based on state
             wallHitsDisplay.textContent = `${wallHits}`;
-            wallHitsDisplay.style.visibility = isTrackingHits && !isPaused ? 'visible' : 'hidden';
+            wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
         }
 
         function saveState() {
@@ -353,7 +353,7 @@
             level = state.level;
             lives = state.lives;
             hiScore = state.hiScore;
-            wallHits = state.wallHits; // Ensure wallHits loads from new state
+            wallHits = state.wallHits;
             isTrackingHits = state.isTrackingHits;
             isPaused = state.isPaused;
             isCountingDown = state.isCountingDown;
@@ -504,7 +504,7 @@
                                         sighhhTimeout = setTimeout(() => {
                                             state.showSighhh = false;
                                             updateDisplay();
-                                        }, 1500); // 1.5 seconds
+                                        }, 1500);
                                     }
                                 }
                             }
@@ -550,7 +550,7 @@
             if (isTrackingHits && !isPaused) {
                 wallHitsDisplay.textContent = `${wallHits}`;
                 wallHitsDisplay.style.visibility = 'visible';
-            } else {
+            } else if (!isTrackingHits) {
                 wallHitsDisplay.textContent = '0';
                 wallHitsDisplay.style.visibility = 'hidden';
             }
@@ -619,7 +619,7 @@
                             sighhhTimeout = setTimeout(() => {
                                 state.showSighhh = false;
                                 updateDisplay();
-                            }, 1500); // 1.5 seconds
+                            }, 1500);
                         }
                         if (completedLevel > hiScore) hiScore = completedLevel;
                     } else if (currentMode === 'survival') {
@@ -643,7 +643,7 @@
                             sighhhTimeout = setTimeout(() => {
                                 state.showSighhh = false;
                                 updateDisplay();
-                            }, 1500); // 1.5 seconds
+                            }, 1500);
                         }
                     }
                     wallHits = 0;
