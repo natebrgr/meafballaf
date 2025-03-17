@@ -33,7 +33,7 @@
             background: transparent;
             filter: drop-shadow(0 0 5px #fff);
         }
-        #level, #countdown, #wallHits, #lives, #hiScore, #title {
+        #level, #countdown, #wallHits, #lives, #hiScore, #title, #sighhh {
             position: absolute;
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
@@ -75,6 +75,13 @@
             top: 80px;
             font-size: 1em;
             /* Right set dynamically */
+        }
+        #sighhh {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2em;
+            visibility: hidden;
         }
         #livesCount, #hiScoreCount {
             color: #e0e0e0;
@@ -156,6 +163,7 @@
     <button id="playButton">PAUSE</button>
     <div id="livesWindow">MEAF yourself Leroy</div>
     <div id="hiScoreWindow">eat my MEAF LERoYYY!</div>
+    <div id="sighhh">sighhh</div>
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -172,6 +180,7 @@
         const playButton = document.getElementById('playButton');
         const livesWindow = document.getElementById('livesWindow');
         const hiScoreWindow = document.getElementById('hiScoreWindow');
+        const sighhhDisplay = document.getElementById('sighhh');
 
         const borderWidth = 2;
 
@@ -227,10 +236,10 @@
         const trailFadeRate = 0.05;
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 }
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false },
+            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false },
+            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false },
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false }
         };
 
         function setCanvasSize() {
@@ -292,9 +301,12 @@
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
 
-            // Fix: Update wall hits immediately, even when paused
             wallHitsDisplay.textContent = isTrackingHits ? `${wallHits}` : '0';
             wallHitsDisplay.style.visibility = isTrackingHits ? 'visible' : 'hidden';
+
+            // Update "sighhh" visibility
+            const state = gameStates[`${currentMode}-${currentMap}`];
+            sighhhDisplay.style.visibility = state.showSighhh ? 'visible' : 'hidden';
         }
 
         function saveState() {
@@ -313,13 +325,14 @@
                     lastY: circle.lastY,
                     lastTime: circle.lastTime
                 },
-                trail: [...trail], // Fix: Save the trail state
+                trail: [...trail],
                 wallHits,
                 isTrackingHits,
                 isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 || circle.isDragging || isCountingDown,
                 isCountingDown,
                 countdown,
-                countdownOpacity
+                countdownOpacity,
+                showSighhh: wallHits > level // Set based on current condition
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -351,7 +364,6 @@
                 circle.lastTime = state.lastTime;
             }
 
-            // Fix: Restore trail only if returning to the same paused mode/map
             if (mode === currentMode && map === currentMap && state.isPaused && state.trail && state.trail.length > 0) {
                 trail.length = 0;
                 trail.push(...state.trail);
@@ -386,6 +398,13 @@
             playButton.style.backgroundColor = invertedStyle;
             livesWindow.style.backgroundColor = invertedStyle;
             hiScoreWindow.style.backgroundColor = invertedStyle;
+
+            // Move color transition logic here to run constantly
+            colorProgress += colorTransitionSpeed;
+            if (colorProgress >= 1) {
+                colorProgress = 0;
+                currentColorIndex = (currentColorIndex + 1) % colors.length;
+            }
 
             return invertedColor;
         }
@@ -504,20 +523,6 @@
                     }
                 }
             }
-
-            colorProgress += colorTransitionSpeed;
-            if (colorProgress >= 1) {
-                colorProgress = 0;
-                currentColorIndex = (currentColorIndex + 1) % colors.length;
-            }
-
-            if (isTrackingHits) {
-                wallHitsDisplay.textContent = `${wallHits}`;
-                wallHitsDisplay.style.visibility = 'visible';
-            } else {
-                wallHitsDisplay.textContent = '0';
-                wallHitsDisplay.style.visibility = 'hidden';
-            }
         }
 
         function startCountdown(isResuming = false) {
@@ -579,6 +584,8 @@
                             lives = 3;
                         }
                     }
+                    // Reset "sighhh" when starting a new game
+                    gameStates[`${currentMode}-${currentMap}`].showSighhh = false;
                     saveState();
                     updateDisplay();
                     startCountdown();
