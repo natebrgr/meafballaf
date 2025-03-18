@@ -310,9 +310,22 @@
             sighhhDisplay.textContent = state.sighhhText;
             sighhhDisplay.style.visibility = state.showSighhh ? 'visible' : 'hidden';
 
-            // Show wallHits even when paused, based on state
             wallHitsDisplay.textContent = `${wallHits}`;
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
+        }
+
+        function showText(text, state) {
+            if (!shownTexts.has(text)) {
+                state.showSighhh = true;
+                state.sighhhText = text;
+                shownTexts.add(text);
+                updateDisplay();
+                clearTimeout(sighhhTimeout);
+                sighhhTimeout = setTimeout(() => {
+                    state.showSighhh = false;
+                    updateDisplay();
+                }, 2000); // 2 seconds
+            }
         }
 
         function saveState() {
@@ -495,17 +508,7 @@
                                 if (currentMode === 'survival' && wallHits > level) {
                                     const state = gameStates[`${currentMode}-${currentMap}`];
                                     const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
-                                    if (!shownTexts.has(text)) {
-                                        state.showSighhh = true;
-                                        state.sighhhText = text;
-                                        shownTexts.add(text);
-                                        updateDisplay();
-                                        clearTimeout(sighhhTimeout);
-                                        sighhhTimeout = setTimeout(() => {
-                                            state.showSighhh = false;
-                                            updateDisplay();
-                                        }, 1500);
-                                    }
+                                    showText(text, state);
                                 }
                             }
                         }
@@ -612,14 +615,7 @@
                         level++;
                         if (currentMode === 'survival') {
                             lives = 3;
-                            state.showSighhh = true;
-                            state.sighhhText = 'yee haw BII';
-                            updateDisplay();
-                            clearTimeout(sighhhTimeout);
-                            sighhhTimeout = setTimeout(() => {
-                                state.showSighhh = false;
-                                updateDisplay();
-                            }, 1500);
+                            showText('yee haw BII', state);
                         }
                         if (completedLevel > hiScore) hiScore = completedLevel;
                     } else if (currentMode === 'survival') {
@@ -634,17 +630,7 @@
                             lives = 3;
                             text = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
                         }
-                        if (text && !shownTexts.has(text)) {
-                            state.showSighhh = true;
-                            state.sighhhText = text;
-                            shownTexts.add(text);
-                            updateDisplay();
-                            clearTimeout(sighhhTimeout);
-                            sighhhTimeout = setTimeout(() => {
-                                state.showSighhh = false;
-                                updateDisplay();
-                            }, 1500);
-                        }
+                        if (text) showText(text, state);
                     }
                     wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
