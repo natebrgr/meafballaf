@@ -195,9 +195,9 @@
             const canvasShrink = 50;
             const snugGap = 5;
 
-            const availableHeight = Math.max(window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap, 100); // Minimum height
+            const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
             canvas.height = availableHeight - 2 * borderWidth;
-            canvas.width = Math.min(window.innerWidth * 0.9, window.innerWidth - 20); // Ensure fits screen
+            canvas.width = window.innerWidth * 0.9;
             const canvasLeft = (window.innerWidth - canvas.width) / 2;
             const canvasTop = wallHitsBottom + (availableHeight - canvas.height) / 2;
             canvas.style.top = `${canvasTop}px`;
@@ -225,16 +225,11 @@
             hiScoreCount.style.transform = 'translateX(-50%)';
 
             sighhhDisplay.style.top = `${wallHitsBottom + 10}px`;
-
-            // Ensure circle stays within bounds
-            circle.x = Math.max(circle.radius, Math.min(canvas.width - circle.radius, circle.x));
-            circle.y = Math.max(circle.radius, Math.min(canvas.height - circle.radius, circle.y));
-
-            console.log(`Canvas: ${canvas.width}x${canvas.height}, Circle: (${circle.x}, ${circle.y})`);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             wallHitsDisplay.style.visibility = 'hidden';
+            void wallHitsDisplay.offsetHeight;
             setCanvasSize();
             requestAnimationFrame(() => setCanvasSize());
         });
@@ -270,19 +265,33 @@
                 sighhhTimer = setTimeout(() => {
                     sighhhVisible = false;
                     updateDisplay();
-                }, 2000);
+                }, 2000); // 2 seconds
             }
         }
 
         function saveState() {
             const key = `${currentMode}-${currentMap}`;
             gameStates[key] = {
-                level, lives, hiScore,
-                circle: { x: circle.x, y: circle.y, dx: circle.dx, dy: circle.dy, isDragging: circle.isDragging, lastX: circle.lastX, lastY: circle.lastY, lastTime: circle.lastTime },
+                level,
+                lives,
+                hiScore,
+                circle: {
+                    x: circle.x,
+                    y: circle.y,
+                    dx: circle.dx,
+                    dy: circle.dy,
+                    isDragging: circle.isDragging,
+                    lastX: circle.lastX,
+                    lastY: circle.lastY,
+                    lastTime: circle.lastTime
+                },
                 trail: [...trail],
-                wallHits, isTrackingHits,
+                wallHits,
+                isTrackingHits,
                 isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 || circle.isDragging || isCountingDown,
-                isCountingDown, countdown, countdownOpacity
+                isCountingDown,
+                countdown,
+                countdownOpacity
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -312,9 +321,6 @@
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime;
-            } else {
-                circle.x = canvas.width / 2;
-                circle.y = canvas.height / 2;
             }
 
             if (mode === currentMode && map === currentMap && state.isPaused && state.trail && state.trail.length > 0) {
@@ -364,7 +370,6 @@
         function drawScene(invertedColor) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw map border
             ctx.strokeStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
@@ -375,7 +380,6 @@
                 ctx.stroke();
             }
 
-            // Draw trail
             const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
             const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
             for (let i = 0; i < trail.length; i++) {
@@ -387,16 +391,11 @@
                 ctx.closePath();
             }
 
-            // Draw circle
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
             ctx.fill();
             ctx.closePath();
-
-            // Debug: Test rendering
-            // ctx.fillStyle = 'red';
-            // ctx.fillRect(10, 10, 20, 20);
         }
 
         function updatePhysics() {
@@ -488,6 +487,7 @@
                     }
                 }
             }
+
             if (isTrackingHits && !isPaused) {
                 wallHitsDisplay.textContent = `${wallHits}`;
                 wallHitsDisplay.style.visibility = 'visible';
@@ -505,7 +505,7 @@
                 isTrackingHits = true;
                 countdownOpacity = 1;
                 shownTexts.clear();
-                sighhhVisible = false;
+                sighhhVisible = false; // Reset text on new game
             } else {
                 isCountingDown = true;
             }
@@ -540,7 +540,9 @@
             if (isPaused) return;
             e.preventDefault();
             const pos = getMousePos(e);
-            const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
+            const dist = Math.sqrt(
+                (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
+            );
             if (dist < circle.radius) {
                 if (isTrackingHits && !isCountingDown) {
                     isTrackingHits = false;
@@ -557,9 +559,15 @@
                     } else if (currentMode === 'survival') {
                         lives--;
                         let text = '';
-                        if (previousLives === 3 && lives === 2) text = 'sighhh';
-                        else if (previousLives === 2 && lives === 1) text = 'SighhhAFF';
-                        else if (lives <= 0) { level = 1; lives = 3; text = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN'; }
+                        if (previousLives === 3 && lives === 2) {
+                            text = 'sighhh';
+                        } else if (previousLives === 2 && lives === 1) {
+                            text = 'SighhhAFF';
+                        } else if (lives <= 0) {
+                            level = 1;
+                            lives = 3;
+                            text = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
+                        }
                         if (text) showText(text);
                     }
                     wallHits = 0;
@@ -579,7 +587,9 @@
             if (isPaused) return;
             e.preventDefault();
             const pos = getMousePos(e);
-            const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
+            const dist = Math.sqrt(
+                (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
+            );
             if (dist < circle.radius) {
                 circle.isDragging = true;
                 circle.lastX = pos.x;
@@ -634,7 +644,9 @@
                 isPaused = false;
                 const key = `${currentMode}-${currentMap}`;
                 gameStates[key].isPaused = false;
-                if (gameStates[key].isCountingDown) startCountdown(true);
+                if (gameStates[key].isCountingDown) {
+                    startCountdown(true);
+                }
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
                 isPaused = true;
@@ -643,18 +655,32 @@
             updateDisplay();
         });
 
-        livesDisplay.addEventListener('click', () => livesWindow.classList.add('active'));
-        hiScoreDisplay.addEventListener('click', () => hiScoreWindow.classList.add('active'));
+        livesDisplay.addEventListener('click', () => {
+            livesWindow.classList.add('active');
+        });
+
+        hiScoreDisplay.addEventListener('click', () => {
+            hiScoreWindow.classList.add('active');
+        });
+
         document.addEventListener('click', (e) => {
-            if (e.target !== livesDisplay && livesWindow.classList.contains('active')) livesWindow.classList.remove('active');
-            if (e.target !== hiScoreDisplay && hiScoreWindow.classList.contains('active')) hiScoreWindow.classList.remove('active');
+            if (e.target !== livesDisplay && livesWindow.classList.contains('active')) {
+                livesWindow.classList.remove('active');
+            }
+            if (e.target !== hiScoreDisplay && hiScoreWindow.classList.contains('active')) {
+                hiScoreWindow.classList.remove('active');
+            }
         });
 
         canvas.addEventListener('mousedown', startDragging);
         canvas.addEventListener('mousemove', drag);
         canvas.addEventListener('mouseup', stopDragging);
         canvas.addEventListener('click', handleTap);
-        canvas.addEventListener('touchstart', (e) => { startDragging(e); handleTap(e); });
+
+        canvas.addEventListener('touchstart', (e) => {
+            startDragging(e);
+            handleTap(e);
+        });
         canvas.addEventListener('touchmove', drag);
         canvas.addEventListener('touchend', stopDragging);
 
@@ -662,14 +688,12 @@
             updatePhysics();
             const invertedColor = updateColors();
             drawScene(invertedColor);
-            updateDisplay();
             requestAnimationFrame(animate);
         }
 
-        // Initialize circle position
         circle.x = window.innerWidth * 0.45;
         circle.y = window.innerHeight * 0.5;
-        setCanvasSize(); // Ensure canvas is sized before drawing
+
         updateDisplay();
         animate();
     </script>
