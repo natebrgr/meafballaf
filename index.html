@@ -237,12 +237,15 @@
 
         let sighhhTimeout = null;
         let shownTexts = new Set();
+        let currentSighhhText = '';
+        let sighhhVisible = false;
+        let sighhhTimer = null;
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false, sighhhText: 'sighhh' },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false, sighhhText: 'sighhh' },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false, sighhhText: 'sighhh' },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, showSighhh: false, sighhhText: 'sighhh' }
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
+            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
+            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 }
         };
 
         function setCanvasSize() {
@@ -306,23 +309,22 @@
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
 
-            const state = gameStates[`${currentMode}-${currentMap}`];
-            sighhhDisplay.textContent = state.sighhhText;
-            sighhhDisplay.style.visibility = state.showSighhh ? 'visible' : 'hidden';
+            sighhhDisplay.textContent = currentSighhhText;
+            sighhhDisplay.style.visibility = sighhhVisible ? 'visible' : 'hidden';
 
             wallHitsDisplay.textContent = `${wallHits}`;
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
         }
 
-        function showText(text, state) {
+        function showText(text) {
             if (!shownTexts.has(text)) {
-                state.showSighhh = true;
-                state.sighhhText = text;
                 shownTexts.add(text);
+                currentSighhhText = text;
+                sighhhVisible = true;
                 updateDisplay();
-                clearTimeout(sighhhTimeout);
-                sighhhTimeout = setTimeout(() => {
-                    state.showSighhh = false;
+                clearTimeout(sighhhTimer);
+                sighhhTimer = setTimeout(() => {
+                    sighhhVisible = false;
                     updateDisplay();
                 }, 2000); // 2 seconds
             }
@@ -350,9 +352,7 @@
                 isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 || circle.isDragging || isCountingDown,
                 isCountingDown,
                 countdown,
-                countdownOpacity,
-                showSighhh: gameStates[key].showSighhh,
-                sighhhText: gameStates[key].sighhhText
+                countdownOpacity
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -506,9 +506,8 @@
                             if (isTrackingHits) {
                                 wallHits++;
                                 if (currentMode === 'survival' && wallHits > level) {
-                                    const state = gameStates[`${currentMode}-${currentMap}`];
                                     const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
-                                    showText(text, state);
+                                    showText(text);
                                 }
                             }
                         }
@@ -567,6 +566,7 @@
                 isTrackingHits = true;
                 countdownOpacity = 1;
                 shownTexts.clear();
+                sighhhVisible = false; // Reset text on new game
             } else {
                 isCountingDown = true;
             }
@@ -609,13 +609,12 @@
                     isTrackingHits = false;
                     const previousWallHits = wallHits;
                     const previousLives = lives;
-                    const state = gameStates[`${currentMode}-${currentMap}`];
                     if (wallHits === level) {
                         const completedLevel = level;
                         level++;
                         if (currentMode === 'survival') {
                             lives = 3;
-                            showText('yee haw BII', state);
+                            showText('yee haw BII');
                         }
                         if (completedLevel > hiScore) hiScore = completedLevel;
                     } else if (currentMode === 'survival') {
@@ -630,7 +629,7 @@
                             lives = 3;
                             text = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
                         }
-                        if (text) showText(text, state);
+                        if (text) showText(text);
                     }
                     wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
@@ -750,6 +749,7 @@
             updatePhysics();
             const invertedColor = updateColors();
             drawScene(invertedColor);
+            updateDisplay(); // Ensure display updates every frame
             requestAnimationFrame(animate);
         }
 
