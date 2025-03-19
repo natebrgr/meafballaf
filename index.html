@@ -133,6 +133,7 @@
             dx: 0,
             dy: 0,
             isDragging: false,
+            wasDraggingWhenPaused: false,
             lastX: 0,
             lastY: 0,
             lastTime: 0,
@@ -285,6 +286,7 @@
                     dx: circle.dx,
                     dy: circle.dy,
                     isDragging: circle.isDragging,
+                    wasDraggingWhenPaused: circle.wasDraggingWhenPaused,
                     lastX: circle.lastX,
                     lastY: circle.lastY,
                     lastTime: circle.lastTime
@@ -292,7 +294,7 @@
                 trail: [...trail],
                 wallHits,
                 isTrackingHits,
-                isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 || circle.isDragging || isCountingDown,
+                isPaused: true,
                 isCountingDown,
                 countdown,
                 countdownOpacity
@@ -322,16 +324,15 @@
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
                 circle.isDragging = state.isDragging;
+                circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime;
             }
 
-            if (mode === currentMode && map === currentMap && state.isPaused && state.trail && state.trail.length > 0) {
-                trail.length = 0;
+            trail.length = 0;
+            if (mode === currentMode && map === currentMap && state.trail && state.trail.length > 0) {
                 trail.push(...state.trail);
-            } else {
-                trail.length = 0;
             }
 
             updateDisplay();
@@ -402,12 +403,11 @@
             ctx.closePath();
 
             const offset = circle.radius + 20;
-            const greenColor = '#00ff00'; // Fixed green for level numbers
-            let counterColor = '#e0e0e0'; // Default soft white
+            const greenColor = '#00ff00';
+            let counterColor = '#e0e0e0';
             if (wallHits === level) counterColor = greenColor;
             else if (wallHits > level) counterColor = 'red';
 
-            // Draw wall hit counters (above, below, left, right)
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -416,27 +416,31 @@
             ctx.shadowBlur = 6;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            ctx.fillText(wallHits, circle.x, circle.y - offset); // Above
-            ctx.fillText(wallHits, circle.x, circle.y + offset); // Below
-            ctx.fillText(wallHits, circle.x - offset, circle.y); // Left
-            ctx.fillText(wallHits, circle.x + offset, circle.y); // Right
+            ctx.fillText(wallHits, circle.x, circle.y - offset);
+            ctx.fillText(wallHits, circle.x, circle.y + offset);
+            ctx.fillText(wallHits, circle.x - offset, circle.y);
+            ctx.fillText(wallHits, circle.x + offset, circle.y);
 
-            // Draw level numbers (diagonal positions: 45°, 135°, 225°, 315°)
             ctx.fillStyle = greenColor;
-            const diagonalOffset = offset * Math.sqrt(2) / 2; // For 45° angles
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset); // Top-right (45°)
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset); // Top-left (135°)
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset); // Bottom-left (225°)
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset); // Bottom-right (315°)
+            const diagonalOffset = offset * Math.sqrt(2) / 2;
+            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset);
+            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset);
+            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset);
+            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset);
 
-            // Reset shadow
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
         }
 
         function updatePhysics() {
-            if (isPaused) return;
+            if (isPaused) {
+                if (circle.isDragging) {
+                    circle.dx = 0;
+                    circle.dy = 0;
+                }
+                return;
+            }
 
             const currentTime = Date.now();
 
@@ -615,7 +619,7 @@
                                 showText('yee haw BII');
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
-                            wallHits = 0; // Reset wallHits on win
+                            wallHits = 0;
                         } else if (currentMode === 'survival') {
                             lives--;
                             let text = '';
@@ -644,7 +648,6 @@
         }
 
         function startDragging(e) {
-            if (isPaused) return;
             e.preventDefault();
             const pos = getMousePos(e);
             const dist = Math.sqrt(
@@ -657,30 +660,36 @@
                 circle.lastTime = Date.now();
                 circle.dx = 0;
                 circle.dy = 0;
-                trail.length = 0;
+                if (!isPaused) trail.length = 0;
             }
         }
 
         function drag(e) {
-            if (isPaused || !circle.isDragging) return;
+            if (!circle.isDragging) return;
             e.preventDefault();
             const pos = getMousePos(e);
             circle.x = pos.x;
             circle.y = pos.y;
-            const currentTime = Date.now();
-            const dt = (currentTime - circle.lastTime) / 1000;
-            if (dt > 0) {
-                circle.dx = (pos.x - circle.lastX) / dt;
-                circle.dy = (pos.y - circle.lastY) / dt;
+            
+            if (!isPaused) {
+                const currentTime = Date.now();
+                const dt = (currentTime - circle.lastTime) / 1000;
+                if (dt > 0) {
+                    circle.dx = (pos.x - circle.lastX) / dt;
+                    circle.dy = (pos.y - circle.lastY) / dt;
+                }
+                circle.lastTime = currentTime;
             }
             circle.lastX = pos.x;
             circle.lastY = pos.y;
-            circle.lastTime = currentTime;
         }
 
         function stopDragging() {
-            if (isPaused) return;
+            if (!circle.isDragging) return;
             circle.isDragging = false;
+            if (isPaused) {
+                circle.wasDraggingWhenPaused = false;
+            }
         }
 
         modeButton.addEventListener('touchend', (e) => {
@@ -724,26 +733,24 @@
                 isPaused = false;
                 const key = `${currentMode}-${currentMap}`;
                 gameStates[key].isPaused = false;
-                const wasDragging = gameStates[key].circle.isDragging;
-                if (wasDragging && e.touches.length > 0) {
+                
+                if (circle.isDragging && circle.wasDraggingWhenPaused) {
                     const pos = getMousePos(e);
-                    circle.x = pos.x;
-                    circle.y = pos.y;
                     circle.lastX = pos.x;
                     circle.lastY = pos.y;
                     circle.lastTime = Date.now();
                     circle.dx = 0;
                     circle.dy = 0;
-                    circle.isDragging = true;
-                    trail.length = 0;
-                } else if (e.touches.length === 0) {
+                } else {
                     circle.isDragging = false;
                 }
+                
                 if (gameStates[key].isCountingDown) {
                     startCountdown(true);
                 }
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
+                circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
                 saveState();
             }
@@ -797,26 +804,24 @@
                 isPaused = false;
                 const key = `${currentMode}-${currentMap}`;
                 gameStates[key].isPaused = false;
-                const wasDragging = gameStates[key].circle.isDragging;
-                if (wasDragging && e.buttons) {
+                
+                if (circle.isDragging && circle.wasDraggingWhenPaused) {
                     const pos = getMousePos(e);
-                    circle.x = pos.x;
-                    circle.y = pos.y;
                     circle.lastX = pos.x;
                     circle.lastY = pos.y;
                     circle.lastTime = Date.now();
                     circle.dx = 0;
                     circle.dy = 0;
-                    circle.isDragging = true;
-                    trail.length = 0;
-                } else if (!e.buttons) {
+                } else {
                     circle.isDragging = false;
                 }
+                
                 if (gameStates[key].isCountingDown) {
                     startCountdown(true);
                 }
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
+                circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
                 saveState();
             }
