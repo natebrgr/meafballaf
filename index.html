@@ -324,7 +324,7 @@
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
                 circle.isDragging = state.isDragging;
-                circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
+                circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused; // Preserve this state
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime;
@@ -714,7 +714,7 @@
             e.preventDefault();
             e.stopPropagation();
             saveState();
-            circle.isDragging = false;
+            // Don't reset isDragging here, let it persist
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             sighhhVisible = false;
             if (sighhhTimer) {
@@ -731,7 +731,7 @@
             e.preventDefault();
             e.stopPropagation();
             saveState();
-            circle.isDragging = false;
+            // Don't reset isDragging here, let it persist
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             sighhhVisible = false;
             if (sighhhTimer) {
@@ -761,6 +761,7 @@
                     circle.dy = 0;
                 } else {
                     circle.isDragging = false;
+                    circle.wasDraggingWhenPaused = false; // Reset only when resuming without dragging
                 }
                 
                 if (gameStates[key].isCountingDown) {
@@ -789,7 +790,7 @@
 
         modeButton.addEventListener('click', () => {
             saveState();
-            circle.isDragging = false;
+            // Don't reset isDragging here, let it persist
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             sighhhVisible = false;
             if (sighhhTimer) {
@@ -804,7 +805,7 @@
 
         mapButton.addEventListener('click', () => {
             saveState();
-            circle.isDragging = false;
+            // Don't reset isDragging here, let it persist
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             sighhhVisible = false;
             if (sighhhTimer) {
@@ -832,6 +833,7 @@
                     circle.dy = 0;
                 } else {
                     circle.isDragging = false;
+                    circle.wasDraggingWhenPaused = false; // Reset only when resuming without dragging
                 }
                 
                 if (gameStates[key].isCountingDown) {
