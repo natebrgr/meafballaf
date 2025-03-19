@@ -1,809 +1,814 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Throwable Bouncy Circle Game</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-            transition: background-color 0.5s ease;
-            position: relative;
-        }
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.9) 100%);
-            pointer-events: none;
-            z-index: 1;
-        }
-        canvas {
-            position: absolute;
-            z-index: 5;
-            background: transparent;
-            filter: drop-shadow(0 0 5px #fff);
-        }
-        #level, #countdown, #wallHits, #lives, #hiScore, #title, #sighhh {
-            position: absolute;
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
-            font-weight: bold;
-            z-index: 2;
-        }
-        #title { top: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5em; }
-        #level { top: 40px; left: 50%; transform: translateX(-50%); font-size: 2em; }
-        #countdown { top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 4em; transition: opacity 0.5s ease; }
-        #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
-        #lives { top: 80px; font-size: 1em; }
-        #hiScore { top: 80px; font-size: 1em; }
-        #sighhh { left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
-        #livesCount, #hiScoreCount {
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
-            font-size: 1.8em;
-            position: absolute;
-            z-index: 2;
-        }
-        #modeButton, #mapButton { position: absolute; z-index: 15; }
-        #playButton { position: absolute; z-index: 20; left: 50%; transform: translateX(-50%); padding: 8px 16px; font-size: 1em; display: block; }
-        button {
-            padding: 8px 16px;
-            font-size: 1em;
-            font-weight: bold;
-            font-family: Arial, sans-serif;
-            cursor: pointer;
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
-            border: none;
-            border-radius: 5px;
-            filter: drop-shadow(0 0 5px #fff);
-            transition: background-color 0.5s ease;
-            z-index: 25; /* Higher z-index than canvas */
-            pointer-events: auto; /* Ensure buttons receive touch events */
-        }
-        button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
-        #livesWindow, #hiScoreWindow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            padding: 20px;
-            font-size: 1.5em;
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
-            border-radius: 10px;
-            opacity: 0;
-            transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.5s ease;
-            z-index: 20;
-            filter: drop-shadow(0 0 5px #fff);
-        }
-        #livesWindow.active, #hiScoreWindow.active { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-    </style>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Throwable Bouncy Circle Game</title>
+ <style>
+ body {
+ margin: 0;
+ overflow: hidden;
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ height: 100vh;
+ font-family: Arial, sans-serif;
+ transition: background-color 0.5s ease;
+ position: relative;
+ }
+ body::before {
+ content: '';
+ position: fixed;
+ top: 0;
+ left: 0;
+ width: 100%;
+ height: 100%;
+ background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.9) 100%);
+ pointer-events: none;
+ z-index: 1;
+ }
+ canvas {
+ position: absolute;
+ z-index: 5;
+ background: transparent;
+ filter: drop-shadow(0 0 5px #fff);
+ }
+ #level, #countdown, #wallHits, #lives, #hiScore, #title, #sighhh {
+ position: absolute;
+ color: #e0e0e0;
+ text-shadow: 0 0 5px #fff;
+ font-weight: bold;
+ z-index: 2;
+ }
+ #title { top: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5em; }
+ #level { top: 40px; left: 50%; transform: translateX(-50%); font-size: 2em; }
+ #countdown { top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 4em; transition: opacity 0.5s ease; }
+ #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
+ #lives { top: 80px; font-size: 1em; }
+ #hiScore { top: 80px; font-size: 1em; }
+ #sighhh { left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
+ #livesCount, #hiScoreCount {
+ color: #e0e0e0;
+ text-shadow: 0 0 5px #fff;
+ font-size: 1.8em;
+ position: absolute;
+ z-index: 2;
+ }
+ #modeButton, #mapButton { position: absolute; z-index: 15; }
+ #playButton { position: absolute; z-index: 20; left: 50%; transform: translateX(-50%); padding: 8px 16px; font-size: 1em; display: block; }
+ button {
+ padding: 8px 16px;
+ font-size: 1em;
+ font-weight: bold;
+ font-family: Arial, sans-serif;
+ cursor: pointer;
+ color: #e0e0e0;
+ text-shadow: 0 0 5px #fff;
+ border: none;
+ border-radius: 5px;
+ filter: drop-shadow(0 0 5px #fff);
+ transition: background-color 0.5s ease;
+ z-index: 25; /* Higher z-index than canvas */
+ pointer-events: auto; /* Ensure buttons receive touch events */
+ }
+ button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
+ #livesWindow, #hiScoreWindow {
+ position: absolute;
+ top: 50%;
+ left: 50%;
+ transform: translate(-50%, -50%) scale(0);
+ padding: 20px;
+ font-size: 1.5em;
+ color: #e0e0e0;
+ text-shadow: 0 0 5px #fff;
+ border-radius: 10px;
+ opacity: 0;
+ transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.5s ease;
+ z-index: 20;
+ filter: drop-shadow(0 0 5px #fff);
+ }
+ #livesWindow.active, #hiScoreWindow.active { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+ </style>
 </head>
 <body>
-    <div id="title">Survival Mode</div>
-    <div id="level">Level: 1</div>
-    <div id="countdown" style="opacity: 0;"></div>
-    <div id="wallHits" style="visibility: hidden;">0</div>
-    <div id="livesCount">3</div>
-    <button id="lives">LIVES</button>
-    <div id="hiScoreCount">0</div>
-    <button id="hiScore">HI SCORE</button>
-    <button id="modeButton">MODE</button>
-    <button id="mapButton">MAP</button>
-    <canvas id="canvas"></canvas>
-    <button id="playButton">PAUSE</button>
-    <div id="livesWindow">MEAF yourself Leroy</div>
-    <div id="hiScoreWindow">eat my MEAF LERoYYY!</div>
-    <div id="sighhh">sighhh</div>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const levelDisplay = document.getElementById('level');
-        const countdownDisplay = document.getElementById('countdown');
-        const wallHitsDisplay = document.getElementById('wallHits');
-        const livesDisplay = document.getElementById('lives');
-        const hiScoreDisplay = document.getElementById('hiScore');
-        const livesCount = document.getElementById('livesCount');
-        const hiScoreCount = document.getElementById('hiScoreCount');
-        const titleDisplay = document.getElementById('title');
-        const modeButton = document.getElementById('modeButton');
-        const mapButton = document.getElementById('mapButton');
-        const playButton = document.getElementById('playButton');
-        const livesWindow = document.getElementById('livesWindow');
-        const hiScoreWindow = document.getElementById('hiScoreWindow');
-        const sighhhDisplay = document.getElementById('sighhh');
-
-        const borderWidth = 2;
-
-        const circle = {
-            x: 0,
-            y: 0,
-            radius: 30,
-            dx: 0,
-            dy: 0,
-            isDragging: false,
-            lastX: 0,
-            lastY: 0,
-            lastTime: 0,
-            wallContact: {
-                left: { time: 0, inContact: false },
-                right: { time: 0, inContact: false },
-                top: { time: 0, inContact: false },
-                bottom: { time: 0, inContact: false },
-                boundary: { time: 0, inContact: false }
-            }
-        };
-
-        const gravity = 0.5;
-        const friction = 0.98;
-        const bounciness = 0.9;
-        const bounceTimeWindow = 100;
-
-        const colors = [
-            { r: 0, g: 0, b: 0 },
-            { r: 5, g: 5, b: 25 },
-            { r: 15, g: 5, b: 25 }
-        ];
-        let currentColorIndex = 0;
-        let colorProgress = 0;
-        const colorTransitionSpeed = 0.01;
-
-        let isCountingDown = false;
-        let countdown = 3;
-        let countdownInterval = null;
-        let countdownOpacity = 0;
-        let wallHits = 0;
-        let level = 1;
-        let isTrackingHits = false;
-        let lives = 3;
-        let hiScore = 0;
-        let isPaused = false;
-
-        let currentMode = 'survival';
-        let currentMap = 'rectangle';
-
-        const trail = [];
-        const maxTrailLength = 20;
-        const trailFadeRate = 0.05;
-
-        let shownTexts = new Set();
-        let currentSighhhText = '';
-        let sighhhVisible = false;
-        let sighhhTimer = null;
-
-        const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 }
-        };
-
-        function setCanvasSize() {
-            const wallHitsTop = parseInt(window.getComputedStyle(wallHitsDisplay).top) || 80;
-            const wallHitsHeight = wallHitsDisplay.offsetHeight || 32;
-            const wallHitsBottom = wallHitsTop + wallHitsHeight;
-            const buttonHeight = modeButton.offsetHeight || 36;
-            const canvasShrink = 50;
-            const snugGap = 5;
-
-            const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
-            canvas.height = availableHeight - 2 * borderWidth;
-            canvas.width = window.innerWidth * 0.9;
-            const canvasLeft = (window.innerWidth - canvas.width) / 2;
-            const canvasTop = wallHitsBottom + (availableHeight - canvas.height) / 2;
-            canvas.style.top = `${canvasTop}px`;
-            canvas.style.left = `${canvasLeft}px`;
-
-            const canvasBottom = canvasTop + canvas.height + (2 * borderWidth);
-            const buttonBottom = window.innerHeight - canvasBottom - buttonHeight - snugGap;
-            modeButton.style.bottom = `${buttonBottom}px`;
-            modeButton.style.left = `${canvasLeft}px`;
-            mapButton.style.bottom = `${buttonBottom}px`;
-            mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
-            playButton.style.bottom = `${buttonBottom}px`;
-
-            livesDisplay.style.left = `${canvasLeft}px`;
-            hiScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
-
-            const livesLeft = canvasLeft + (livesDisplay.offsetWidth / 2);
-            livesCount.style.left = `${livesLeft}px`;
-            livesCount.style.top = `${80 - livesCount.offsetHeight - 5}px`;
-            livesCount.style.transform = 'translateX(-50%)';
-
-            const hiScoreLeft = (canvasLeft + canvas.width) - (hiScoreDisplay.offsetWidth / 2);
-            hiScoreCount.style.left = `${hiScoreLeft}px`;
-            hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
-            hiScoreCount.style.transform = 'translateX(-50%)';
-
-            sighhhDisplay.style.top = `${wallHitsBottom + 10}px`;
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            wallHitsDisplay.style.visibility = 'hidden';
-            void wallHitsDisplay.offsetHeight;
-            setCanvasSize();
-            requestAnimationFrame(() => setCanvasSize());
-        });
-        window.addEventListener('resize', setCanvasSize);
-
-        function updateDisplay() {
-            levelDisplay.textContent = `Level: ${level}`;
-            livesDisplay.textContent = 'LIVES';
-            livesCount.textContent = lives === Infinity ? '∞' : lives;
-            hiScoreDisplay.textContent = 'HI SCORE';
-            hiScoreCount.textContent = hiScore;
-            titleDisplay.textContent = currentMode === 'survival' ? 'Survival Mode' : 'Endurance Mode';
-            setCanvasSize();
-
-            playButton.textContent = isPaused ? 'RESUME' : 'PAUSE';
-            countdownDisplay.style.opacity = countdownOpacity;
-            countdownDisplay.textContent = countdown;
-
-            sighhhDisplay.textContent = currentSighhhText;
-            sighhhDisplay.style.visibility = sighhhVisible ? 'visible' : 'hidden';
-
-            wallHitsDisplay.textContent = `${wallHits}`;
-            wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
-        }
-
-        function showText(text) {
-            if (!shownTexts.has(text)) {
-                shownTexts.add(text);
-                currentSighhhText = text;
-                sighhhVisible = true;
-                updateDisplay();
-                if (sighhhTimer) {
-                    clearTimeout(sighhhTimer);
-                }
-                sighhhTimer = setTimeout(() => {
-                    sighhhVisible = false;
-                    updateDisplay();
-                }, 2000);
-            }
-        }
-
-        function saveState() {
-            const key = `${currentMode}-${currentMap}`;
-            gameStates[key] = {
-                level,
-                lives,
-                hiScore,
-                circle: {
-                    x: circle.x,
-                    y: circle.y,
-                    dx: circle.dx,
-                    dy: circle.dy,
-                    isDragging: circle.isDragging,
-                    lastX: circle.lastX,
-                    lastY: circle.lastY,
-                    lastTime: circle.lastTime
-                },
-                trail: [...trail],
-                wallHits,
-                isTrackingHits,
-                isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 || circle.isDragging || isCountingDown,
-                isCountingDown,
-                countdown,
-                countdownOpacity
-            };
-            if (isCountingDown) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
-        }
-
-        function loadState(mode, map) {
-            const key = `${mode}-${map}`;
-            const state = gameStates[key];
-            level = state.level;
-            lives = state.lives;
-            hiScore = state.hiScore;
-            wallHits = state.wallHits;
-            isTrackingHits = state.isTrackingHits;
-            isPaused = state.isPaused;
-            isCountingDown = state.isCountingDown;
-            countdown = state.countdown;
-            countdownOpacity = state.countdownOpacity;
-
-            if (state.circle.x !== undefined) {
-                circle.x = state.circle.x;
-                circle.y = state.circle.y;
-                circle.dx = state.circle.dx;
-                circle.dy = state.circle.dy;
-                circle.isDragging = state.isDragging;
-                circle.lastX = state.lastX;
-                circle.lastY = state.lastY;
-                circle.lastTime = state.lastTime;
-            }
-
-            if (mode === currentMode && map === currentMap && state.isPaused && state.trail && state.trail.length > 0) {
-                trail.length = 0;
-                trail.push(...state.trail);
-            } else {
-                trail.length = 0;
-            }
-
-            updateDisplay();
-        }
-
-        function invertColor(rgb) {
-            return { r: 255 - rgb.r, g: 255 - rgb.g, b: 255 - rgb.b };
-        }
-
-        function updateColors() {
-            const currentColor = colors[currentColorIndex];
-            const nextColorIndex = (currentColorIndex + 1) % colors.length;
-            const nextColor = colors[nextColorIndex];
-
-            const r = Math.round(currentColor.r + (nextColor.r - currentColor.r) * colorProgress);
-            const g = Math.round(currentColor.g + (nextColor.g - currentColor.g) * colorProgress);
-            const b = Math.round(currentColor.b + (nextColor.b - currentColor.b) * colorProgress);
-
-            document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-            const invertedColor = invertColor({ r, g, b });
-            const invertedStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
-
-            modeButton.style.backgroundColor = invertedStyle;
-            mapButton.style.backgroundColor = invertedStyle;
-            livesDisplay.style.backgroundColor = invertedStyle;
-            hiScoreDisplay.style.backgroundColor = invertedStyle;
-            playButton.style.backgroundColor = invertedStyle;
-            livesWindow.style.backgroundColor = invertedStyle;
-            hiScoreWindow.style.backgroundColor = invertedStyle;
-
-            colorProgress += colorTransitionSpeed;
-            if (colorProgress >= 1) {
-                colorProgress = 0;
-                currentColorIndex = (currentColorIndex + 1) % colors.length;
-            }
-
-            return invertedColor;
-        }
-
-        function drawScene(invertedColor) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ctx.strokeStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
-            ctx.lineWidth = borderWidth * 2;
-            if (currentMap === 'rectangle') {
-                ctx.strokeRect(0, 0, canvas.width, canvas.height);
-            } else {
-                ctx.beginPath();
-                ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - borderWidth, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-
-            const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
-            const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
-            for (let i = 0; i < trail.length; i++) {
-                const segment = trail[i];
-                ctx.beginPath();
-                ctx.arc(segment.x, segment.y, circle.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b}, ${segment.opacity})`;
-                ctx.fill();
-                ctx.closePath();
-            }
-
-            ctx.beginPath();
-            ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
-            ctx.fillStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
-            ctx.fill();
-            ctx.closePath();
-        }
-
-        function updatePhysics() {
-            if (isPaused) return;
-
-            const currentTime = Date.now();
-
-            if (!circle.isDragging) {
-                circle.dy += gravity;
-                circle.x += circle.dx;
-                circle.y += circle.dy;
-                circle.dx *= friction;
-                circle.dy *= friction;
-
-                const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
-                const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
-                trail.unshift({ x: circle.x, y: circle.y, opacity: 1 });
-                while (trail.length > trailLength) trail.pop();
-                for (let i = 0; i < trail.length; i++) {
-                    trail[i].opacity -= trailFadeRate;
-                    if (trail[i].opacity <= 0) trail.splice(i, 1);
-                }
-
-                let walls;
-                if (currentMap === 'rectangle') {
-                    walls = [
-                        { name: 'right', edge: canvas.width, pos: circle.x + circle.radius, velocity: circle.dx, isContact: circle.x + circle.radius >= canvas.width },
-                        { name: 'left', edge: 0, pos: circle.x - circle.radius, velocity: circle.dx, isContact: circle.x - circle.radius <= 0 },
-                        { name: 'bottom', edge: canvas.height, pos: circle.y + circle.radius, velocity: circle.dy, isContact: circle.y + circle.radius >= canvas.height },
-                        { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, isContact: circle.y - circle.radius <= 0 }
-                    ];
-                } else {
-                    const centerX = canvas.width / 2;
-                    const centerY = canvas.height / 2;
-                    const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
-                    const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
-                    const isContact = distFromCenter + circle.radius >= radius;
-                    walls = [{ name: 'boundary', edge: radius, pos: distFromCenter + circle.radius, velocity: 0, isContact }];
-                }
-
-                walls.forEach(wall => {
-                    const contact = circle.wallContact[wall.name];
-                    if (wall.isContact) {
-                        if (!contact.inContact) {
-                            contact.inContact = true;
-                            contact.time = currentTime;
-                            if (isTrackingHits) {
-                                wallHits++;
-                                if (currentMode === 'survival' && wallHits > level) {
-                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
-                                    showText(text);
-                                }
-                            }
-                        }
-                    } else {
-                        if (contact.inContact) {
-                            contact.inContact = false;
-                        }
-                    }
-                });
-
-                if (currentMap === 'rectangle') {
-                    if (circle.x + circle.radius > canvas.width) {
-                        circle.x = canvas.width - circle.radius;
-                        circle.dx = -circle.dx * bounciness;
-                    } else if (circle.x - circle.radius < 0) {
-                        circle.x = circle.radius;
-                        circle.dx = -circle.dx * bounciness;
-                    }
-                    if (circle.y + circle.radius > canvas.height) {
-                        circle.y = canvas.height - circle.radius;
-                        circle.dy = -circle.dy * bounciness;
-                    } else if (circle.y - circle.radius < 0) {
-                        circle.y = circle.radius;
-                        circle.dy = -circle.dy * bounciness;
-                    }
-                } else {
-                    const centerX = canvas.width / 2;
-                    const centerY = canvas.height / 2;
-                    const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
-                    const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
-                    if (distFromCenter + circle.radius >= radius) {
-                        const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
-                        circle.x = centerX + Math.cos(angle) * (radius - circle.radius);
-                        circle.y = centerY + Math.sin(angle) * (radius - circle.radius);
-                        const speed = Math.sqrt(circle.dx ** 2 + circle.dy ** 2);
-                        circle.dx = -Math.cos(angle) * speed * bounciness;
-                        circle.dy = -Math.sin(angle) * speed * bounciness;
-                    }
-                }
-            }
-
-            if (isTrackingHits && !isPaused) {
-                wallHitsDisplay.textContent = `${wallHits}`;
-                wallHitsDisplay.style.visibility = 'visible';
-            } else if (!isTrackingHits) {
-                wallHitsDisplay.textContent = '0';
-                wallHitsDisplay.style.visibility = 'hidden';
-            }
-        }
-
-        function startCountdown(isResuming = false) {
-            if (!isResuming) {
-                isCountingDown = true;
-                countdown = 3;
-                wallHits = 0;
-                isTrackingHits = true;
-                countdownOpacity = 1;
-                shownTexts.clear();
-                sighhhVisible = false;
-            } else {
-                isCountingDown = true;
-            }
-            countdownDisplay.style.opacity = countdownOpacity;
-            countdownDisplay.textContent = countdown;
-
-            if (countdownInterval) clearInterval(countdownInterval);
-            countdownInterval = setInterval(() => {
-                countdown--;
-                if (countdown > 0) {
-                    countdownDisplay.textContent = countdown;
-                } else {
-                    countdownOpacity = 0;
-                    countdownDisplay.style.opacity = countdownOpacity;
-                    clearInterval(countdownInterval);
-                    countdownInterval = null;
-                    isCountingDown = false;
-                    updateDisplay();
-                }
-            }, 1000);
-        }
-
-        function getMousePos(e) {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                x: (e.clientX || e.touches[0].clientX) - rect.left,
-                y: (e.clientY || e.touches[0].clientY) - rect.top
-            };
-        }
-
-        function handleTap(e) {
-            if (isPaused) return;
-            e.preventDefault();
-            const pos = getMousePos(e);
-            const dist = Math.sqrt(
-                (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
-            );
-            if (dist < circle.radius) {
-                if (isTrackingHits) {
-                    if (isCountingDown) {
-                        if (wallHits === level) {
-                            isTrackingHits = false;
-                            isCountingDown = false;
-                            clearInterval(countdownInterval);
-                            countdownInterval = null;
-                            countdownOpacity = 0;
-                            countdownDisplay.style.opacity = countdownOpacity;
-                            const completedLevel = level;
-                            level++;
-                            if (currentMode === 'survival') {
-                                lives = 3;
-                                showText('yee haw BII');
-                            }
-                            if (completedLevel > hiScore) hiScore = completedLevel;
-                            wallHits = 0;
-                            wallHitsDisplay.style.visibility = 'hidden';
-                            saveState();
-                            updateDisplay();
-                            startCountdown();
-                        }
-                    } else {
-                        isTrackingHits = false;
-                        const previousWallHits = wallHits;
-                        const previousLives = lives;
-                        if (wallHits === level) {
-                            const completedLevel = level;
-                            level++;
-                            if (currentMode === 'survival') {
-                                lives = 3;
-                                showText('yee haw BII');
-                            }
-                            if (completedLevel > hiScore) hiScore = completedLevel;
-                        } else if (currentMode === 'survival') {
-                            lives--;
-                            let text = '';
-                            if (previousLives === 3 && lives === 2) {
-                                text = 'sighhh';
-                            } else if (previousLives === 2 && lives === 1) {
-                                text = 'SighhhAFF';
-                            } else if (lives <= 0) {
-                                level = 1;
-                                lives = 3;
-                                text = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
-                            }
-                            if (text) showText(text);
-                        }
-                        wallHits = 0;
-                        wallHitsDisplay.style.visibility = 'hidden';
-                        saveState();
-                        updateDisplay();
-                        startCountdown();
-                    }
-                } else if (!isCountingDown) {
-                    wallHits = 0;
-                    wallHitsDisplay.style.visibility = 'hidden';
-                    startCountdown();
-                }
-            }
-        }
-
-        function startDragging(e) {
-            if (isPaused) return;
-            e.preventDefault();
-            const pos = getMousePos(e);
-            const dist = Math.sqrt(
-                (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
-            );
-            if (dist < circle.radius) {
-                circle.isDragging = true;
-                circle.lastX = pos.x;
-                circle.lastY = pos.y;
-                circle.lastTime = Date.now();
-                circle.dx = 0;
-                circle.dy = 0;
-                trail.length = 0;
-            }
-        }
-
-        function drag(e) {
-            if (isPaused) return;
-            e.preventDefault();
-            if (circle.isDragging) {
-                const pos = getMousePos(e);
-                circle.x = pos.x;
-                circle.y = pos.y;
-                const currentTime = Date.now();
-                const dt = (currentTime - circle.lastTime) / 1000;
-                if (dt > 0) {
-                    circle.dx = (pos.x - circle.lastX) / dt;
-                    circle.dy = (pos.y - circle.lastY) / dt;
-                }
-                circle.lastX = pos.x;
-                circle.lastY = pos.y;
-                circle.lastTime = currentTime;
-            }
-        }
-
-        function stopDragging() {
-            if (isPaused) return;
-            circle.isDragging = false;
-        }
-
-        modeButton.addEventListener('touchstart', (e) => {
-            e.stopPropagation(); // Prevent canvas from consuming the touch
-            saveState();
-            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-            sighhhVisible = false;
-            if (sighhhTimer) {
-                clearTimeout(sighhhTimer);
-                sighhhTimer = null;
-            }
-            shownTexts.clear();
-            loadState(currentMode, currentMap);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            updateDisplay();
-        });
-
-        mapButton.addEventListener('touchstart', (e) => {
-            e.stopPropagation(); // Prevent canvas from consuming the touch
-            saveState();
-            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-            sighhhVisible = false;
-            if (sighhhTimer) {
-                clearTimeout(sighhhTimer);
-                sighhhTimer = null;
-            }
-            shownTexts.clear();
-            loadState(currentMode, currentMap);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            updateDisplay();
-        });
-
-        playButton.addEventListener('touchstart', (e) => {
-            e.stopPropagation(); // Prevent canvas from consuming the touch
-            if (isPaused) {
-                isPaused = false;
-                const key = `${currentMode}-${currentMap}`;
-                gameStates[key].isPaused = false;
-                if (gameStates[key].isCountingDown) {
-                    startCountdown(true);
-                }
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            } else {
-                isPaused = true;
-                saveState();
-            }
-            updateDisplay();
-        });
-
-        livesDisplay.addEventListener('touchstart', (e) => {
-            e.stopPropagation(); // Prevent canvas from consuming the touch
-            livesWindow.classList.add('active');
-        });
-
-        hiScoreDisplay.addEventListener('touchstart', (e) => {
-            e.stopPropagation(); // Prevent canvas from consuming the touch
-            hiScoreWindow.classList.add('active');
-        });
-
-        // Keep click events for desktop compatibility
-        modeButton.addEventListener('click', () => {
-            saveState();
-            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-            sighhhVisible = false;
-            if (sighhhTimer) {
-                clearTimeout(sighhhTimer);
-                sighhhTimer = null;
-            }
-            shownTexts.clear();
-            loadState(currentMode, currentMap);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            updateDisplay();
-        });
-
-        mapButton.addEventListener('click', () => {
-            saveState();
-            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-            sighhhVisible = false;
-            if (sighhhTimer) {
-                clearTimeout(sighhhTimer);
-                sighhhTimer = null;
-            }
-            shownTexts.clear();
-            loadState(currentMode, currentMap);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            updateDisplay();
-        });
-
-        playButton.addEventListener('click', () => {
-            if (isPaused) {
-                isPaused = false;
-                const key = `${currentMode}-${currentMap}`;
-                gameStates[key].isPaused = false;
-                if (gameStates[key].isCountingDown) {
-                    startCountdown(true);
-                }
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            } else {
-                isPaused = true;
-                saveState();
-            }
-            updateDisplay();
-        });
-
-        livesDisplay.addEventListener('click', () => {
-            livesWindow.classList.add('active');
-        });
-
-        hiScoreDisplay.addEventListener('click', () => {
-            hiScoreWindow.classList.add('active');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (e.target !== livesDisplay && livesWindow.classList.contains('active')) {
-                livesWindow.classList.remove('active');
-            }
-            if (e.target !== hiScoreDisplay && hiScoreWindow.classList.contains('active')) {
-                hiScoreWindow.classList.remove('active');
-            }
-        });
-
-        document.addEventListener('touchstart', (e) => {
-            if (e.target !== livesDisplay && livesWindow.classList.contains('active')) {
-                livesWindow.classList.remove('active');
-            }
-            if (e.target !== hiScoreDisplay && hiScoreWindow.classList.contains('active')) {
-                hiScoreWindow.classList.remove('active');
-            }
-        });
-
-        canvas.addEventListener('mousedown', startDragging);
-        canvas.addEventListener('mousemove', drag);
-        canvas.addEventListener('mouseup', stopDragging);
-        canvas.addEventListener('click', handleTap);
-
-        canvas.addEventListener('touchstart', (e) => {
-            startDragging(e);
-            handleTap(e);
-        });
-        canvas.addEventListener('touchmove', drag);
-        canvas.addEventListener('touchend', stopDragging);
-
-        function animate() {
-            updatePhysics();
-            const invertedColor = updateColors();
-            drawScene(invertedColor);
-            requestAnimationFrame(animate);
-        }
-
-        circle.x = window.innerWidth * 0.45;
-        circle.y = window.innerHeight * 0.5;
-
-        updateDisplay();
-        animate();
-    </script>
+ <div id="title">Survival Mode</div>
+ <div id="level">Level: 1</div>
+ <div id="countdown" style="opacity: 0;"></div>
+ <div id="wallHits" style="visibility: hidden;">0</div>
+ <div id="livesCount">3</div>
+ <button id="lives">LIVES</button>
+ <div id="hiScoreCount">0</div>
+ <button id="hiScore">HI SCORE</button>
+ <button id="modeButton">MODE</button>
+ <button id="mapButton">MAP</button>
+ <canvas id="canvas"></canvas>
+ <button id="playButton">PAUSE</button>
+ <div id="livesWindow">MEAF yourself Leroy</div>
+ <div id="hiScoreWindow">eat my MEAF LERoYYY!</div>
+ <div id="sighhh">sighhh</div>
+ <script>
+ const canvas = document.getElementById('canvas');
+ const ctx = canvas.getContext('2d');
+ const levelDisplay = document.getElementById('level');
+ const countdownDisplay = document.getElementById('countdown');
+ const wallHitsDisplay = document.getElementById('wallHits');
+ const livesDisplay = document.getElementById('lives');
+ const hiScoreDisplay = document.getElementById('hiScore');
+ const livesCount = document.getElementById('livesCount');
+ const hiScoreCount = document.getElementById('hiScoreCount');
+ const titleDisplay = document.getElementById('title');
+ const modeButton = document.getElementById('modeButton');
+ const mapButton = document.getElementById('mapButton');
+ const playButton = document.getElementById('playButton');
+ const livesWindow = document.getElementById('livesWindow');
+ const hiScoreWindow = document.getElementById('hiScoreWindow');
+ const sighhhDisplay = document.getElementById('sighhh');
+
+ const borderWidth = 2;
+
+ const circle = {
+ x: 0,
+ y: 0,
+ radius: 30,
+ dx: 0,
+ dy: 0,
+ isDragging: false,
+ lastX: 0,
+ lastY: 0,
+ lastTime: 0,
+ wallContact: {
+ left: { time: 0, inContact: false },
+ right: { time: 0, inContact: false },
+ top: { time: 0, inContact: false },
+ bottom: { time: 0, inContact: false },
+ boundary: { time: 0, inContact: false }
+ }
+ };
+
+ const gravity = 0.5;
+ const friction = 0.98;
+ const bounciness = 0.9;
+ const bounceTimeWindow = 100;
+
+ const colors = [
+ { r: 0, g: 0, b: 0 },
+ { r: 5, g: 5, b: 25 },
+ { r: 15, g: 5, b: 25 }
+ ];
+ let currentColorIndex = 0;
+ let colorProgress = 0;
+ const colorTransitionSpeed = 0.01;
+
+ let isCountingDown = false;
+ let countdown = 3;
+ let countdownInterval = null;
+ let countdownOpacity = 0;
+ let wallHits = 0;
+ let level = 1;
+ let isTrackingHits = false;
+ let lives = 3;
+ let hiScore = 0;
+ let isPaused = false;
+
+ let currentMode = 'survival';
+ let currentMap = 'rectangle';
+
+ const trail = [];
+ const maxTrailLength = 20;
+ const trailFadeRate = 0.05;
+
+ let shownTexts = new Set();
+ let currentSighhhText = '';
+ let sighhhVisible = false;
+ let sighhhTimer = null;
+
+ const gameStates = {
+ 'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
+ 'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
+ 'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
+ 'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 }
+ };
+
+ function setCanvasSize() {
+ const wallHitsTop = parseInt(window.getComputedStyle(wallHitsDisplay).top) || 80;
+ const wallHitsHeight = wallHitsDisplay.offsetHeight || 32;
+ const wallHitsBottom = wallHitsTop + wallHitsHeight;
+ const buttonHeight = modeButton.offsetHeight || 36;
+ const canvasShrink = 50;
+ const snugGap = 5;
+
+ const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
+ canvas.height = availableHeight - 2 * borderWidth;
+ canvas.width = window.innerWidth * 0.9;
+ const canvasLeft = (window.innerWidth - canvas.width) / 2;
+ const canvasTop = wallHitsBottom + (availableHeight - canvas.height) / 2;
+ canvas.style.top = `${canvasTop}px`;
+ canvas.style.left = `${canvasLeft}px`;
+
+ const canvasBottom = canvasTop + canvas.height + (2 * borderWidth);
+ const buttonBottom = window.innerHeight - canvasBottom - buttonHeight - snugGap;
+ modeButton.style.bottom = `${buttonBottom}px`;
+ modeButton.style.left = `${canvasLeft}px`;
+ mapButton.style.bottom = `${buttonBottom}px`;
+ mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
+ playButton.style.bottom = `${buttonBottom}px`;
+
+ livesDisplay.style.left = `${canvasLeft}px`;
+ hiScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
+
+ const livesLeft = canvasLeft + (livesDisplay.offsetWidth / 2);
+ livesCount.style.left = `${livesLeft}px`;
+ livesCount.style.top = `${80 - livesCount.offsetHeight - 5}px`;
+ livesCount.style.transform = 'translateX(-50%)';
+
+ const hiScoreLeft = (canvasLeft + canvas.width) - (hiScoreDisplay.offsetWidth / 2);
+ hiScoreCount.style.left = `${hiScoreLeft}px`;
+ hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
+ hiScoreCount.style.transform = 'translateX(-50%)';
+
+ sighhhDisplay.style.top = `${wallHitsBottom + 10}px`;
+ }
+
+ document.addEventListener('DOMContentLoaded', () => {
+ wallHitsDisplay.style.visibility = 'hidden';
+ void wallHitsDisplay.offsetHeight;
+ setCanvasSize();
+ requestAnimationFrame(() => setCanvasSize());
+ });
+ window.addEventListener('resize', setCanvasSize);
+
+ function updateDisplay() {
+ levelDisplay.textContent = `Level: ${level}`;
+ livesDisplay.textContent = 'LIVES';
+ livesCount.textContent = lives === Infinity ? '∞' : lives;
+ hiScoreDisplay.textContent = 'HI SCORE';
+ hiScoreCount.textContent = hiScore;
+ titleDisplay.textContent = currentMode === 'survival' ? 'Survival Mode' : 'Endurance Mode';
+ setCanvasSize();
+
+ playButton.textContent = isPaused ? 'RESUME' : 'PAUSE';
+ countdownDisplay.style.opacity = countdownOpacity;
+ countdownDisplay.textContent = countdown;
+
+ sighhhDisplay.textContent = currentSighhhText;
+ sighhhDisplay.style.visibility = sighhhVisible ? 'visible' : 'hidden';
+
+ wallHitsDisplay.textContent = `${wallHits}`;
+ wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
+ }
+
+ function showText(text) {
+ if (!shownTexts.has(text)) {
+ shownTexts.add(text);
+ currentSighhhText = text;
+ sighhhVisible = true;
+ updateDisplay();
+ if (sighhhTimer) {
+ clearTimeout(sighhhTimer);
+ }
+ sighhhTimer = setTimeout(() => {
+ sighhhVisible = false;
+ updateDisplay();
+ }, 2000);
+ }
+ }
+
+ function saveState() {
+ const key = `${currentMode}-${currentMap}`;
+ gameStates[key] = {
+ level,
+ lives,
+ hiScore,
+ circle: {
+ x: circle.x,
+ y: circle.y,
+ dx: circle.dx,
+ dy: circle.dy,
+ isDragging: circle.isDragging,
+ lastX: circle.lastX,
+ lastY: circle.lastY,
+ lastTime: circle.lastTime
+ },
+ trail: [...trail],
+ wallHits,
+ isTrackingHits,
+ isPaused: isTrackingHits || circle.dx !== 0 || circle.dy !== 0 || circle.isDragging || isCountingDown,
+ isCountingDown,
+ countdown,
+ countdownOpacity
+ };
+ if (isCountingDown) {
+ clearInterval(countdownInterval);
+ countdownInterval = null;
+ }
+ }
+
+ function loadState(mode, map) {
+ const key = `${mode}-${map}`;
+ const state = gameStates[key];
+ level = state.level;
+ lives = state.lives;
+ hiScore = state.hiScore;
+ wallHits = state.wallHits;
+ isTrackingHits = state.isTrackingHits;
+ isPaused = state.isPaused;
+ isCountingDown = state.isCountingDown;
+ countdown = state.countdown;
+ countdownOpacity = state.countdownOpacity;
+
+ if (state.circle.x !== undefined) {
+ circle.x = state.circle.x;
+ circle.y = state.circle.y;
+ circle.dx = state.circle.dx;
+ circle.dy = state.circle.dy;
+ circle.isDragging = state.isDragging;
+ circle.lastX = state.lastX;
+ circle.lastY = state.lastY;
+ circle.lastTime = state.lastTime;
+ }
+
+ if (mode === currentMode && map === currentMap && state.isPaused && state.trail && state.trail.length > 0) {
+ trail.length = 0;
+ trail.push(...state.trail);
+ } else {
+ trail.length = 0;
+ }
+
+ updateDisplay();
+ }
+
+ function invertColor(rgb) {
+ return { r: 255 - rgb.r, g: 255 - rgb.g, b: 255 - rgb.b };
+ }
+
+ function updateColors() {
+ const currentColor = colors[currentColorIndex];
+ const nextColorIndex = (currentColorIndex + 1) % colors.length;
+ const nextColor = colors[nextColorIndex];
+
+ const r = Math.round(currentColor.r + (nextColor.r - currentColor.r) * colorProgress);
+ const g = Math.round(currentColor.g + (nextColor.g - currentColor.g) * colorProgress);
+ const b = Math.round(currentColor.b + (nextColor.b - currentColor.b) * colorProgress);
+
+ document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+ const invertedColor = invertColor({ r, g, b });
+ const invertedStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
+
+ modeButton.style.backgroundColor = invertedStyle;
+ mapButton.style.backgroundColor = invertedStyle;
+ livesDisplay.style.backgroundColor = invertedStyle;
+ hiScoreDisplay.style.backgroundColor = invertedStyle;
+ playButton.style.backgroundColor = invertedStyle;
+ livesWindow.style.backgroundColor = invertedStyle;
+ hiScoreWindow.style.backgroundColor = invertedStyle;
+
+ colorProgress += colorTransitionSpeed;
+ if (colorProgress >= 1) {
+ colorProgress = 0;
+ currentColorIndex = (currentColorIndex + 1) % colors.length;
+ }
+
+ return invertedColor;
+ }
+
+ function drawScene(invertedColor) {
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+ ctx.strokeStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
+ ctx.lineWidth = borderWidth * 2;
+ if (currentMap === 'rectangle') {
+ ctx.strokeRect(0, 0, canvas.width, canvas.height);
+ } else {
+ ctx.beginPath();
+ ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - borderWidth, 0, Math.PI * 2);
+ ctx.stroke();
+ }
+
+ const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
+ const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
+ for (let i = 0; i < trail.length; i++) {
+ const segment = trail[i];
+ ctx.beginPath();
+ ctx.arc(segment.x, segment.y, circle.radius, 0, Math.PI * 2);
+ ctx.fillStyle = `rgba(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b}, ${segment.opacity})`;
+ ctx.fill();
+ ctx.closePath();
+ }
+
+ ctx.beginPath();
+ ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+ ctx.fillStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
+ ctx.fill();
+ ctx.closePath();
+ }
+
+ function updatePhysics() {
+ if (isPaused) return;
+
+ const currentTime = Date.now();
+
+ if (!circle.isDragging) {
+ circle.dy += gravity;
+ circle.x += circle.dx;
+ circle.y += circle.dy;
+ circle.dx *= friction;
+ circle.dy *= friction;
+
+ const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
+ const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
+ trail.unshift({ x: circle.x, y: circle.y, opacity: 1 });
+ while (trail.length > trailLength) trail.pop();
+ for (let i = 0; i < trail.length; i++) {
+ trail[i].opacity -= trailFadeRate;
+ if (trail[i].opacity <= 0) trail.splice(i, 1);
+ }
+
+ let walls;
+ if (currentMap === 'rectangle') {
+ walls = [
+ { name: 'right', edge: canvas.width, pos: circle.x + circle.radius, velocity: circle.dx, isContact: circle.x + circle.radius >= canvas.width },
+ { name: 'left', edge: 0, pos: circle.x - circle.radius, velocity: circle.dx, isContact: circle.x - circle.radius <= 0 },
+ { name: 'bottom', edge: canvas.height, pos: circle.y + circle.radius, velocity: circle.dy, isContact: circle.y + circle.radius >= canvas.height },
+ { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, isContact: circle.y - circle.radius <= 0 }
+ ];
+ } else {
+ const centerX = canvas.width / 2;
+ const centerY = canvas.height / 2;
+ const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
+ const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
+ const isContact = distFromCenter + circle.radius >= radius;
+ walls = [{ name: 'boundary', edge: radius, pos: distFromCenter + circle.radius, velocity: 0, isContact }];
+ }
+
+ walls.forEach(wall => {
+ const contact = circle.wallContact[wall.name];
+ if (wall.isContact) {
+ if (!contact.inContact) {
+ contact.inContact = true;
+ contact.time = currentTime;
+ if (isTrackingHits) {
+ wallHits++;
+ if (currentMode === 'survival' && wallHits > level) {
+ const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
+ showText(text);
+ }
+ }
+ }
+ } else {
+ if (contact.inContact) {
+ contact.inContact = false;
+ }
+ }
+ });
+
+ if (currentMap === 'rectangle') {
+ if (circle.x + circle.radius > canvas.width) {
+ circle.x = canvas.width - circle.radius;
+ circle.dx = -circle.dx * bounciness;
+ } else if (circle.x - circle.radius < 0) {
+ circle.x = circle.radius;
+ circle.dx = -circle.dx * bounciness;
+ }
+ if (circle.y + circle.radius > canvas.height) {
+ circle.y = canvas.height - circle.radius;
+ circle.dy = -circle.dy * bounciness;
+ } else if (circle.y - circle.radius < 0) {
+ circle.y = circle.radius;
+ circle.dy = -circle.dy * bounciness;
+ }
+ } else {
+ const centerX = canvas.width / 2;
+ const centerY = canvas.height / 2;
+ const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
+ const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
+ if (distFromCenter + circle.radius >= radius) {
+ const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
+ circle.x = centerX + Math.cos(angle) * (radius - circle.radius);
+ circle.y = centerY + Math.sin(angle) * (radius - circle.radius);
+ const speed = Math.sqrt(circle.dx ** 2 + circle.dy ** 2);
+ circle.dx = -Math.cos(angle) * speed * bounciness;
+ circle.dy = -Math.sin(angle) * speed * bounciness;
+ }
+ }
+ }
+
+ if (isTrackingHits && !isPaused) {
+ wallHitsDisplay.textContent = `${wallHits}`;
+ wallHitsDisplay.style.visibility = 'visible';
+ } else if (!isTrackingHits) {
+ wallHitsDisplay.textContent = '0';
+ wallHitsDisplay.style.visibility = 'hidden';
+ }
+ }
+
+ function startCountdown(isResuming = false) {
+ if (!isResuming) {
+ isCountingDown = true;
+ countdown = 3;
+ wallHits = 0;
+ isTrackingHits = true;
+ countdownOpacity = 1;
+ shownTexts.clear();
+ sighhhVisible = false;
+ } else {
+ isCountingDown = true;
+ }
+ countdownDisplay.style.opacity = countdownOpacity;
+ countdownDisplay.textContent = countdown;
+
+ if (countdownInterval) clearInterval(countdownInterval);
+ countdownInterval = setInterval(() => {
+ countdown--;
+ if (countdown > 0) {
+ countdownDisplay.textContent = countdown;
+ } else {
+ countdownOpacity = 0;
+ countdownDisplay.style.opacity = countdownOpacity;
+ clearInterval(countdownInterval);
+ countdownInterval = null;
+ isCountingDown = false;
+ updateDisplay();
+ }
+ }, 1000);
+ }
+
+ function getMousePos(e) {
+ const rect = canvas.getBoundingClientRect();
+ return {
+ x: (e.clientX || e.touches[0].clientX) - rect.left,
+ y: (e.clientY || e.touches[0].clientY) - rect.top
+ };
+ }
+
+ function handleTap(e) {
+ if (isPaused) return;
+ e.preventDefault();
+ const pos = getMousePos(e);
+ const dist = Math.sqrt(
+ (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
+ );
+ if (dist < circle.radius) {
+ if (isTrackingHits) {
+ if (isCountingDown) {
+ if (wallHits === level) {
+ isTrackingHits = false;
+ isCountingDown = false;
+ clearInterval(countdownInterval);
+ countdownInterval = null;
+ countdownOpacity = 0;
+ countdownDisplay.style.opacity = countdownOpacity;
+ const completedLevel = level;
+ level++;
+ if (currentMode === 'survival') {
+ lives = 3;
+ showText('yee haw BII');
+ }
+ if (completedLevel > hiScore) hiScore = completedLevel;
+ wallHits = 0;
+ wallHitsDisplay.style.visibility = 'hidden';
+ saveState();
+ updateDisplay();
+ startCountdown();
+ }
+ } else {
+ isTrackingHits = false;
+ const previousWallHits = wallHits;
+ const previousLives = lives;
+ if (wallHits === level) {
+ const completedLevel = level;
+ level++;
+ if (currentMode === 'survival') {
+ lives = 3;
+ showText('yee haw BII');
+ }
+ if (completedLevel > hiScore) hiScore = completedLevel;
+ } else if (currentMode === 'survival') {
+ lives--;
+ let text = '';
+ if (previousLives === 3 && lives === 2) {
+ text = 'sighhh';
+ } else if (previousLives === 2 && lives === 1) {
+ text = 'SighhhAFF';
+ } else if (lives <= 0) {
+ level = 1;
+ lives = 3;
+ text = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
+ }
+ if (text) showText(text);
+ }
+ wallHits = 0;
+ wallHitsDisplay.style.visibility = 'hidden';
+ saveState();
+ updateDisplay();
+ startCountdown();
+ }
+ } else if (!isCountingDown) {
+ wallHits = 0;
+ wallHitsDisplay.style.visibility = 'hidden';
+ startCountdown();
+ }
+ }
+ }
+
+ function startDragging(e) {
+ if (isPaused) return;
+ e.preventDefault();
+ const pos = getMousePos(e);
+ const dist = Math.sqrt(
+ (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
+ );
+ if (dist < circle.radius) {
+ circle.isDragging = true;
+ circle.lastX = pos.x;
+ circle.lastY = pos.y;
+ circle.lastTime = Date.now();
+ circle.dx = 0;
+ circle.dy = 0;
+ trail.length = 0;
+ }
+ }
+
+ function drag(e) {
+ if (isPaused) return;
+ e.preventDefault();
+ if (circle.isDragging) {
+ const pos = getMousePos(e);
+ circle.x = pos.x;
+ circle.y = pos.y;
+ const currentTime = Date.now();
+ const dt = (currentTime - circle.lastTime) / 1000;
+ if (dt > 0) {
+ circle.dx = (pos.x - circle.lastX) / dt;
+ circle.dy = (pos.y - circle.lastY) / dt;
+ }
+ circle.lastX = pos.x;
+ circle.lastY = pos.y;
+ circle.lastTime = currentTime;
+ }
+ }
+
+ function stopDragging() {
+ if (isPaused) return;
+ circle.isDragging = false;
+ }
+
+ modeButton.addEventListener('touchend', (e) => {
+ e.preventDefault();
+ e.stopPropagation();
+ saveState();
+ currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+ sighhhVisible = false;
+ if (sighhhTimer) {
+ clearTimeout(sighhhTimer);
+ sighhhTimer = null;
+ }
+ shownTexts.clear();
+ loadState(currentMode, currentMap);
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+ updateDisplay();
+ });
+
+ mapButton.addEventListener('touchend', (e) => {
+ e.preventDefault();
+ e.stopPropagation();
+ saveState();
+ currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+ sighhhVisible = false;
+ if (sighhhTimer) {
+ clearTimeout(sighhhTimer);
+ sighhhTimer = null;
+ }
+ shownTexts.clear();
+ loadState(currentMode, currentMap);
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+ updateDisplay();
+ });
+
+ playButton.addEventListener('touchend', (e) => {
+ e.preventDefault();
+ e.stopPropagation();
+ if (isPaused) {
+ isPaused = false;
+ const key = `${currentMode}-${currentMap}`;
+ gameStates[key].isPaused = false;
+ if (gameStates[key].isCountingDown) {
+ startCountdown(true);
+ }
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+ } else {
+ isPaused = true;
+ saveState();
+ }
+ updateDisplay();
+ });
+
+ livesDisplay.addEventListener('touchend', (e) => {
+ e.preventDefault();
+ e.stopPropagation();
+ livesWindow.classList.add('active');
+ });
+
+ hiScoreDisplay.addEventListener('touchend', (e) => {
+ e.preventDefault();
+ e.stopPropagation();
+ hiScoreWindow.classList.add('active');
+ });
+
+ // Keep click events for desktop compatibility
+ modeButton.addEventListener('click', () => {
+ saveState();
+ currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+ sighhhVisible = false;
+ if (sighhhTimer) {
+ clearTimeout(sighhhTimer);
+ sighhhTimer = null;
+ }
+ shownTexts.clear();
+ loadState(currentMode, currentMap);
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+ updateDisplay();
+ });
+
+ mapButton.addEventListener('click', () => {
+ saveState();
+ currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+ sighhhVisible = false;
+ if (sighhhTimer) {
+ clearTimeout(sighhhTimer);
+ sighhhTimer = null;
+ }
+ shownTexts.clear();
+ loadState(currentMode, currentMap);
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+ updateDisplay();
+ });
+
+ playButton.addEventListener('click', () => {
+ if (isPaused) {
+ isPaused = false;
+ const key = `${currentMode}-${currentMap}`;
+ gameStates[key].isPaused = false;
+ if (gameStates[key].isCountingDown) {
+ startCountdown(true);
+ }
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+ } else {
+ isPaused = true;
+ saveState();
+ }
+ updateDisplay();
+ });
+
+ livesDisplay.addEventListener('click', () => {
+ livesWindow.classList.add('active');
+ });
+
+ hiScoreDisplay.addEventListener('click', () => {
+ hiScoreWindow.classList.add('active');
+ });
+
+ document.addEventListener('click', (e) => {
+ if (e.target !== livesDisplay && livesWindow.classList.contains('active')) {
+ livesWindow.classList.remove('active');
+ }
+ if (e.target !== hiScoreDisplay && hiScoreWindow.classList.contains('active')) {
+ hiScoreWindow.classList.remove('active');
+ }
+ });
+
+ document.addEventListener('touchend', (e) => {
+ if (e.target !== livesDisplay && livesWindow.classList.contains('active')) {
+ livesWindow.classList.remove('active');
+ }
+ if (e.target !== hiScoreDisplay && hiScoreWindow.classList.contains('active')) {
+ hiScoreWindow.classList.remove('active');
+ }
+ });
+
+ canvas.addEventListener('mousedown', startDragging);
+ canvas.addEventListener('mousemove', drag);
+ canvas.addEventListener('mouseup', stopDragging);
+ canvas.addEventListener('click', handleTap);
+
+ canvas.addEventListener('touchstart', (e) => {
+ startDragging(e);
+ handleTap(e);
+ });
+ canvas.addEventListener('touchmove', drag);
+ canvas.addEventListener('touchend', stopDragging);
+
+ function animate() {
+ updatePhysics();
+ const invertedColor = updateColors();
+ drawScene(invertedColor);
+ requestAnimationFrame(animate);
+ }
+
+ circle.x = window.innerWidth * 0.45;
+ circle.y = window.innerHeight * 0.5;
+
+ updateDisplay();
+ animate();
+ </script>
 </body>
 </html>
