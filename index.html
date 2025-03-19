@@ -132,8 +132,7 @@
             radius: 30,
             dx: 0,
             dy: 0,
-            rotation: 0,
-            angularVelocity: 0,
+            rotation: 0, // In radians
             isDragging: false,
             lastX: 0,
             lastY: 0,
@@ -149,9 +148,7 @@
 
         const gravity = 0.5;
         const friction = 0.98;
-        const angularFriction = 0.98;
-        const bounciness = 0.8; // Realistic bounce
-        const groundFriction = 0.05; // Subtle rolling friction
+        const bounciness = 0.8;
         const bounceTimeWindow = 100;
 
         const colors = [
@@ -289,7 +286,6 @@
                     dx: circle.dx,
                     dy: circle.dy,
                     rotation: circle.rotation,
-                    angularVelocity: circle.angularVelocity,
                     isDragging: circle.isDragging,
                     lastX: circle.lastX,
                     lastY: circle.lastY,
@@ -328,7 +324,6 @@
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
                 circle.rotation = state.circle.rotation || 0;
-                circle.angularVelocity = state.circle.angularVelocity || 0;
                 circle.isDragging = state.isDragging;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
@@ -461,17 +456,18 @@
 
             if (!circle.isDragging) {
                 circle.dy += gravity;
+                const oldX = circle.x;
+                const oldY = circle.y;
                 circle.x += circle.dx;
                 circle.y += circle.dy;
                 circle.dx *= friction;
                 circle.dy *= friction;
-                circle.rotation += circle.angularVelocity;
-                circle.angularVelocity *= angularFriction;
 
-                // Rolling on ground
-                if (circle.y + circle.radius >= canvas.height - 1) {
-                    const targetAngularVelocity = -circle.dx / circle.radius;
-                    circle.angularVelocity += (targetAngularVelocity - circle.angularVelocity) * groundFriction;
+                // Rolling on ground (rectangle map only)
+                if (currentMap === 'rectangle' && circle.y + circle.radius >= canvas.height) {
+                    circle.y = canvas.height - circle.radius;
+                    const distanceMoved = circle.x - oldX;
+                    circle.rotation -= distanceMoved / circle.radius; // Clockwise for positive dx
                 }
 
                 const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
@@ -525,13 +521,15 @@
 
                             // Bounce and spin
                             const vDotN = circle.dx * wall.normalX + circle.dy * wall.normalY;
-                            if (vDotN < 0) { // Moving into wall
+                            if (vDotN < 0) {
+                                const preDx = circle.dx;
+                                const preDy = circle.dy;
                                 circle.dx -= 2 * vDotN * wall.normalX * bounciness;
                                 circle.dy -= 2 * vDotN * wall.normalY * bounciness;
                                 const tangentX = -wall.normalY;
                                 const tangentY = wall.normalX;
-                                const vTangent = circle.dx * tangentX + circle.dy * tangentY;
-                                circle.angularVelocity += (vTangent / circle.radius) * 0.7; // Spin from tangential velocity
+                                const vTangent = preDx * tangentX + preDy * tangentY;
+                                circle.rotation -= (vTangent / circle.radius) * 0.5; // Spin from tangential velocity
                             }
 
                             // Position correction
@@ -575,7 +573,6 @@
                 shownTexts.clear();
                 sighhhVisible = false;
                 circle.rotation = 0;
-                circle.angularVelocity = 0;
             } else {
                 isCountingDown = true;
             }
@@ -690,7 +687,6 @@
                 circle.lastTime = Date.now();
                 circle.dx = 0;
                 circle.dy = 0;
-                circle.angularVelocity = 0;
                 trail.length = 0;
             }
         }
