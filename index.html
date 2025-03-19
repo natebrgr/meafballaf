@@ -68,8 +68,8 @@
             border-radius: 5px;
             filter: drop-shadow(0 0 5px #fff);
             transition: background-color 0.5s ease;
-            z-index: 25; /* Higher z-index than canvas */
-            pointer-events: auto; /* Ensure buttons receive touch events */
+            z-index: 25;
+            pointer-events: auto;
         }
         button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
         #livesWindow, #hiScoreWindow {
@@ -401,24 +401,35 @@
             ctx.fill();
             ctx.closePath();
 
-            // Draw wallHits counters around the circle
+            const offset = circle.radius + 20;
+            const greenColor = '#00ff00'; // Fixed green for level numbers
+            let counterColor = '#e0e0e0'; // Default soft white
+            if (wallHits === level) counterColor = greenColor;
+            else if (wallHits > level) counterColor = 'red';
+
+            // Draw wall hit counters (above, below, left, right)
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#e0e0e0'; // Soft white from buttons
+            ctx.fillStyle = counterColor;
             ctx.shadowColor = 'black';
             ctx.shadowBlur = 6;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-
-            const offset = circle.radius + 20; // Distance from circle edge
-            ctx.fillText(wallHits, circle.x, circle.y); // Center
             ctx.fillText(wallHits, circle.x, circle.y - offset); // Above
             ctx.fillText(wallHits, circle.x, circle.y + offset); // Below
             ctx.fillText(wallHits, circle.x - offset, circle.y); // Left
             ctx.fillText(wallHits, circle.x + offset, circle.y); // Right
 
-            // Reset shadow to avoid affecting other elements
+            // Draw level numbers (diagonal positions: 45°, 135°, 225°, 315°)
+            ctx.fillStyle = greenColor;
+            const diagonalOffset = offset * Math.sqrt(2) / 2; // For 45° angles
+            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset); // Top-right (45°)
+            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset); // Top-left (135°)
+            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset); // Bottom-left (225°)
+            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset); // Bottom-right (315°)
+
+            // Reset shadow
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
@@ -604,6 +615,7 @@
                                 showText('yee haw BII');
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
+                            wallHits = 0; // Reset wallHits on win
                         } else if (currentMode === 'survival') {
                             lives--;
                             let text = '';
@@ -618,7 +630,6 @@
                             }
                             if (text) showText(text);
                         }
-                        wallHits = 0;
                         wallHitsDisplay.style.visibility = 'hidden';
                         saveState();
                         updateDisplay();
