@@ -132,7 +132,6 @@
             radius: 30,
             dx: 0,
             dy: 0,
-            rotation: 0, // In radians
             isDragging: false,
             lastX: 0,
             lastY: 0,
@@ -285,7 +284,6 @@
                     y: circle.y,
                     dx: circle.dx,
                     dy: circle.dy,
-                    rotation: circle.rotation,
                     isDragging: circle.isDragging,
                     lastX: circle.lastX,
                     lastY: circle.lastY,
@@ -323,7 +321,6 @@
                 circle.y = state.circle.y;
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
-                circle.rotation = state.circle.rotation || 0;
                 circle.isDragging = state.isDragging;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
@@ -400,13 +397,13 @@
 
             ctx.save();
             ctx.translate(circle.x, circle.y);
-            ctx.rotate(circle.rotation);
             ctx.beginPath();
             ctx.arc(0, 0, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
             ctx.fill();
             ctx.closePath();
 
+            // Add 8-slice divider
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 2;
             for (let i = 0; i < 8; i++) {
@@ -456,20 +453,27 @@
 
             if (!circle.isDragging) {
                 circle.dy += gravity;
-                const oldX = circle.x;
-                const oldY = circle.y;
                 circle.x += circle.dx;
                 circle.y += circle.dy;
                 circle.dx *= friction;
                 circle.dy *= friction;
 
+                const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
+                const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
+                trail.unshift({ x: circle.x, y: circle.y, opacity: 1 });
+                while (trail.length > trailLength) trail.pop();
+                for (let i = 0; i < trail.length; i++) {
+                    trail[i].opacity -= trailFadeRate;
+                    if (trail[i].opacity <= 0) trail.splice(i, 1);
+                }
+
                 let walls;
                 if (currentMap === 'rectangle') {
                     walls = [
-                        { name: 'right', edge: canvas.width, pos: circle.x + circle.radius, velocity: circle.dx, normalX: -1, normalY: 0, tangentX: 0, tangentY: 1, isContact: circle.x + circle.radius >= canvas.width },
-                        { name: 'left', edge: 0, pos: circle.x - circle.radius, velocity: circle.dx, normalX: 1, normalY: 0, tangentX: 0, tangentY: -1, isContact: circle.x - circle.radius <= 0 },
-                        { name: 'bottom', edge: canvas.height, pos: circle.y + circle.radius, velocity: circle.dy, normalX: 0, normalY: -1, tangentX: -1, tangentY: 0, isContact: circle.y + circle.radius >= canvas.height },
-                        { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, normalX: 0, normalY: 1, tangentX: 1, tangentY: 0, isContact: circle.y - circle.radius <= 0 }
+                        { name: 'right', edge: canvas.width, pos: circle.x + circle.radius, velocity: circle.dx, normalX: -1, normalY: 0, isContact: circle.x + circle.radius >= canvas.width },
+                        { name: 'left', edge: 0, pos: circle.x - circle.radius, velocity: circle.dx, normalX: 1, normalY: 0, isContact: circle.x - circle.radius <= 0 },
+                        { name: 'bottom', edge: canvas.height, pos: circle.y + circle.radius, velocity: circle.dy, normalX: 0, normalY: -1, isContact: circle.y + circle.radius >= canvas.height },
+                        { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, normalX: 0, normalY: 1, isContact: circle.y - circle.radius <= 0 }
                     ];
                 } else {
                     const centerX = canvas.width / 2;
@@ -478,17 +482,13 @@
                     const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                     const isContact = distFromCenter + circle.radius >= radius;
                     const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
-                    const normalX = -Math.cos(angle);
-                    const normalY = -Math.sin(angle);
                     walls = [{
                         name: 'boundary',
                         edge: radius,
                         pos: distFromCenter + circle.radius,
                         velocity: 0,
-                        normalX,
-                        normalY,
-                        tangentX: -normalY,
-                        tangentY: normalX,
+                        normalX: -Math.cos(angle),
+                        normalY: -Math.sin(angle),
                         isContact
                     }];
                 }
@@ -507,25 +507,15 @@
                                 }
                             }
 
-                            // Bounce and spin
                             const vDotN = circle.dx * wall.normalX + circle.dy * wall.normalY;
                             if (vDotN < 0) {
-                                const preDx = circle.dx;
-                                const preDy = circle.dy;
                                 circle.dx -= 2 * vDotN * wall.normalX * bounciness;
                                 circle.dy -= 2 * vDotN * wall.normalY * bounciness;
-                                const vTangent = preDx * wall.tangentX + preDy * wall.tangentY;
-                                circle.rotation -= vTangent / circle.radius; // Spin from tangential velocity at contact
                             }
 
-                            // Position correction
                             if (wall.name === 'right') circle.x = canvas.width - circle.radius;
                             else if (wall.name === 'left') circle.x = circle.radius;
-                            else if (wall.name === 'bottom') {
-                                circle.y = canvas.height - circle.radius;
-                                const distanceMoved = circle.x - oldX;
-                                circle.rotation -= distanceMoved / circle.radius; // Rolling on ground
-                            }
+                            else if (wall.name === 'bottom') circle.y = canvas.height - circle.radius;
                             else if (wall.name === 'top') circle.y = circle.radius;
                             else if (wall.name === 'boundary') {
                                 const centerX = canvas.width / 2;
@@ -542,15 +532,6 @@
                         }
                     }
                 });
-
-                const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
-                const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
-                trail.unshift({ x: circle.x, y: circle.y, opacity: 1 });
-                while (trail.length > trailLength) trail.pop();
-                for (let i = 0; i < trail.length; i++) {
-                    trail[i].opacity -= trailFadeRate;
-                    if (trail[i].opacity <= 0) trail.splice(i, 1);
-                }
             }
 
             if (isTrackingHits && !isPaused) {
@@ -571,7 +552,6 @@
                 countdownOpacity = 1;
                 shownTexts.clear();
                 sighhhVisible = false;
-                circle.rotation = 0;
             } else {
                 isCountingDown = true;
             }
