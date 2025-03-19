@@ -294,7 +294,7 @@
                 trail: [...trail],
                 wallHits,
                 isTrackingHits,
-                isPaused: true,
+                isPaused,
                 isCountingDown,
                 countdown,
                 countdownOpacity
@@ -323,15 +323,19 @@
                 circle.y = state.circle.y;
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
-                circle.isDragging = state.isDragging;
-                circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused; // Preserve this state
+                circle.isDragging = state.isDragging; // Preserve isDragging from saved state
+                circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime;
+            } else {
+                // If no saved position, center the circle
+                circle.x = canvas.width / 2;
+                circle.y = canvas.height / 2;
             }
 
             trail.length = 0;
-            if (mode === currentMode && map === currentMap && state.trail && state.trail.length > 0) {
+            if (state.trail && state.trail.length > 0) {
                 trail.push(...state.trail);
             }
 
@@ -572,8 +576,8 @@
         function getMousePos(e) {
             const rect = canvas.getBoundingClientRect();
             return {
-                x: (e.clientX || e.touches[0].clientX) - rect.left,
-                y: (e.clientY || e.touches[0].clientY) - rect.top
+                x: (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left,
+                y: (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top
             };
         }
 
@@ -648,7 +652,7 @@
         }
 
         function startDragging(e) {
-            if (isPaused && !circle.wasDraggingWhenPaused) return; // Only allow dragging if was dragging when paused
+            if (isPaused && !circle.wasDraggingWhenPaused) return;
             e.preventDefault();
             const pos = getMousePos(e);
             const dist = Math.sqrt(
@@ -670,11 +674,10 @@
             e.preventDefault();
             let pos = getMousePos(e);
 
-            // Constrain circle within map boundaries
             if (currentMap === 'rectangle') {
                 pos.x = Math.max(circle.radius, Math.min(canvas.width - circle.radius, pos.x));
                 pos.y = Math.max(circle.radius, Math.min(canvas.height - circle.radius, pos.y));
-            } else { // circle map
+            } else {
                 const centerX = canvas.width / 2;
                 const centerY = canvas.height / 2;
                 const maxRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth - circle.radius;
@@ -690,7 +693,7 @@
 
             circle.x = pos.x;
             circle.y = pos.y;
-            
+
             if (!isPaused) {
                 const currentTime = Date.now();
                 const dt = (currentTime - circle.lastTime) / 1000;
@@ -702,25 +705,23 @@
             }
             circle.lastX = pos.x;
             circle.lastY = pos.y;
+
+            if (isPaused) saveState(); // Save state during drag while paused
         }
 
-        function stopDragging() {
+        function stopDragging(e) {
             if (!circle.isDragging) return;
             circle.isDragging = false;
-            // Don't reset wasDraggingWhenPaused here, keep it true if it was true
+            if (isPaused) saveState();
         }
 
         modeButton.addEventListener('touchend', (e) => {
             e.preventDefault();
             e.stopPropagation();
             saveState();
-            // Don't reset isDragging here, let it persist
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             sighhhVisible = false;
-            if (sighhhTimer) {
-                clearTimeout(sighhhTimer);
-                sighhhTimer = null;
-            }
+            if (sighhhTimer) clearTimeout(sighhhTimer);
             shownTexts.clear();
             loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -731,13 +732,9 @@
             e.preventDefault();
             e.stopPropagation();
             saveState();
-            // Don't reset isDragging here, let it persist
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             sighhhVisible = false;
-            if (sighhhTimer) {
-                clearTimeout(sighhhTimer);
-                sighhhTimer = null;
-            }
+            if (sighhhTimer) clearTimeout(sighhhTimer);
             shownTexts.clear();
             loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -751,8 +748,8 @@
                 isPaused = false;
                 const key = `${currentMode}-${currentMap}`;
                 gameStates[key].isPaused = false;
-                
-                if (circle.isDragging && circle.wasDraggingWhenPaused) {
+
+                if (circle.isDragging) {
                     const pos = getMousePos(e);
                     circle.lastX = pos.x;
                     circle.lastY = pos.y;
@@ -760,19 +757,17 @@
                     circle.dx = 0;
                     circle.dy = 0;
                 } else {
-                    circle.isDragging = false;
-                    circle.wasDraggingWhenPaused = false; // Reset only when resuming without dragging
+                    circle.wasDraggingWhenPaused = false;
                 }
-                
-                if (gameStates[key].isCountingDown) {
-                    startCountdown(true);
-                }
+
+                if (gameStates[key].isCountingDown) startCountdown(true);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
                 saveState();
             }
+            circle.isDragging = false; // Reset isDragging after pause/resume
             updateDisplay();
         });
 
@@ -790,13 +785,9 @@
 
         modeButton.addEventListener('click', () => {
             saveState();
-            // Don't reset isDragging here, let it persist
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             sighhhVisible = false;
-            if (sighhhTimer) {
-                clearTimeout(sighhhTimer);
-                sighhhTimer = null;
-            }
+            if (sighhhTimer) clearTimeout(sighhhTimer);
             shownTexts.clear();
             loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -805,13 +796,9 @@
 
         mapButton.addEventListener('click', () => {
             saveState();
-            // Don't reset isDragging here, let it persist
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             sighhhVisible = false;
-            if (sighhhTimer) {
-                clearTimeout(sighhhTimer);
-                sighhhTimer = null;
-            }
+            if (sighhhTimer) clearTimeout(sighhhTimer);
             shownTexts.clear();
             loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -823,8 +810,8 @@
                 isPaused = false;
                 const key = `${currentMode}-${currentMap}`;
                 gameStates[key].isPaused = false;
-                
-                if (circle.isDragging && circle.wasDraggingWhenPaused) {
+
+                if (circle.isDragging) {
                     const pos = getMousePos(e);
                     circle.lastX = pos.x;
                     circle.lastY = pos.y;
@@ -832,19 +819,17 @@
                     circle.dx = 0;
                     circle.dy = 0;
                 } else {
-                    circle.isDragging = false;
-                    circle.wasDraggingWhenPaused = false; // Reset only when resuming without dragging
+                    circle.wasDraggingWhenPaused = false;
                 }
-                
-                if (gameStates[key].isCountingDown) {
-                    startCountdown(true);
-                }
+
+                if (gameStates[key].isCountingDown) startCountdown(true);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
                 saveState();
             }
+            circle.isDragging = false; // Reset isDragging after pause/resume
             updateDisplay();
         });
 
