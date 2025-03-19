@@ -400,6 +400,21 @@
             ctx.fillStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
             ctx.fill();
             ctx.closePath();
+
+            // Draw wallHits on the circle
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'white';
+            ctx.shadowColor = 'black';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.fillText(wallHits, circle.x, circle.y);
+            // Reset shadow to avoid affecting other elements
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
         }
 
         function updatePhysics() {
@@ -654,7 +669,7 @@
             e.preventDefault();
             e.stopPropagation();
             saveState();
-            circle.isDragging = false; // Stop dragging on mode switch
+            circle.isDragging = false;
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             sighhhVisible = false;
             if (sighhhTimer) {
@@ -671,7 +686,7 @@
             e.preventDefault();
             e.stopPropagation();
             saveState();
-            circle.isDragging = false; // Stop dragging on map switch
+            circle.isDragging = false;
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             sighhhVisible = false;
             if (sighhhTimer) {
@@ -691,7 +706,7 @@
                 isPaused = false;
                 const key = `${currentMode}-${currentMap}`;
                 gameStates[key].isPaused = false;
-                const wasDragging = gameStates[key].circle.isDragging; // Check saved state
+                const wasDragging = gameStates[key].circle.isDragging;
                 if (wasDragging && e.touches.length > 0) {
                     const pos = getMousePos(e);
                     circle.x = pos.x;
@@ -729,10 +744,9 @@
             hiScoreWindow.classList.add('active');
         });
 
-        // Desktop compatibility
         modeButton.addEventListener('click', () => {
             saveState();
-            circle.isDragging = false; // Stop dragging on mode switch
+            circle.isDragging = false;
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             sighhhVisible = false;
             if (sighhhTimer) {
@@ -747,7 +761,7 @@
 
         mapButton.addEventListener('click', () => {
             saveState();
-            circle.isDragging = false; // Stop dragging on map switch
+            circle.isDragging = false;
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             sighhhVisible = false;
             if (sighhhTimer) {
@@ -765,7 +779,7 @@
                 isPaused = false;
                 const key = `${currentMode}-${currentMap}`;
                 gameStates[key].isPaused = false;
-                const wasDragging = gameStates[key].circle.isDragging; // Check saved state
+                const wasDragging = gameStates[key].circle.isDragging;
                 if (wasDragging && e.buttons) {
                     const pos = getMousePos(e);
                     circle.x = pos.x;
