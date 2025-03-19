@@ -707,9 +707,7 @@
         function stopDragging() {
             if (!circle.isDragging) return;
             circle.isDragging = false;
-            if (isPaused) {
-                circle.wasDraggingWhenPaused = false;
-            }
+            // Don't reset wasDraggingWhenPaused here, keep it true if it was true
         }
 
         modeButton.addEventListener('touchend', (e) => {
