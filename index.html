@@ -68,6 +68,7 @@
             border-radius: 5px;
             filter: drop-shadow(0 0 5px #fff);
             transition: background-color 0.5s ease;
+            pointer-events: auto; /* Ensure buttons can receive touch events */
         }
         button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
         #livesWindow, #hiScoreWindow {
@@ -131,6 +132,7 @@
             dx: 0,
             dy: 0,
             isDragging: false,
+            touchId: null, // Track which touch is dragging the circle
             lastX: 0,
             lastY: 0,
             lastTime: 0,
@@ -530,25 +532,25 @@
             }, 1000);
         }
 
-        function getMousePos(e) {
+        function getTouchPos(e, touch) {
             const rect = canvas.getBoundingClientRect();
             return {
-                x: (e.clientX || e.touches[0].clientX) - rect.left,
-                y: (e.clientY || e.touches[0].clientY) - rect.top
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
             };
         }
 
         function handleTap(e) {
             if (isPaused) return;
             e.preventDefault();
-            const pos = getMousePos(e);
+            const touch = e.type === 'touchstart' ? e.touches[0] : e;
+            const pos = getTouchPos(e, touch);
             const dist = Math.sqrt(
                 (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
             );
             if (dist < circle.radius) {
                 if (isTrackingHits) {
                     if (isCountingDown) {
-                        // Check for win condition during countdown
                         if (wallHits === level) {
                             isTrackingHits = false;
                             isCountingDown = false;
@@ -570,7 +572,6 @@
                             startCountdown();
                         }
                     } else {
-                        // Normal gameplay win/loss logic
                         isTrackingHits = false;
                         const previousWallHits = wallHits;
                         const previousLives = lives;
@@ -613,43 +614,59 @@
         function startDragging(e) {
             if (isPaused) return;
             e.preventDefault();
-            const pos = getMousePos(e);
-            const dist = Math.sqrt(
-                (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
-            );
-            if (dist < circle.radius) {
-                circle.isDragging = true;
-                circle.lastX = pos.x;
-                circle.lastY = pos.y;
-                circle.lastTime = Date.now();
-                circle.dx = 0;
-                circle.dy = 0;
-                trail.length = 0;
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                const pos = getTouchPos(e, touch);
+                const dist = Math.sqrt(
+                    (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
+                );
+                if (dist < circle.radius && !circle.isDragging) {
+                    circle.isDragging = true;
+                    circle.touchId = touch.identifier;
+                    circle.lastX = pos.x;
+                    circle.lastY = pos.y;
+                    circle.lastTime = Date.now();
+                    circle.dx = 0;
+                    circle.dy = 0;
+                    trail.length = 0;
+                    break;
+                }
             }
         }
 
         function drag(e) {
-            if (isPaused) return;
+            if (isPaused || !circle.isDragging) return;
             e.preventDefault();
-            if (circle.isDragging) {
-                const pos = getMousePos(e);
-                circle.x = pos.x;
-                circle.y = pos.y;
-                const currentTime = Date.now();
-                const dt = (currentTime - circle.lastTime) / 1000;
-                if (dt > 0) {
-                    circle.dx = (pos.x - circle.lastX) / dt;
-                    circle.dy = (pos.y - circle.lastY) / dt;
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                if (touch.identifier === circle.touchId) {
+                    const pos = getTouchPos(e, touch);
+                    circle.x = pos.x;
+                    circle.y = pos.y;
+                    const currentTime = Date.now();
+                    const dt = (currentTime - circle.lastTime) / 1000;
+                    if (dt > 0) {
+                        circle.dx = (pos.x - circle.lastX) / dt;
+                        circle.dy = (pos.y - circle.lastY) / dt;
+                    }
+                    circle.lastX = pos.x;
+                    circle.lastY = pos.y;
+                    circle.lastTime = currentTime;
+                    break;
                 }
-                circle.lastX = pos.x;
-                circle.lastY = pos.y;
-                circle.lastTime = currentTime;
             }
         }
 
-        function stopDragging() {
-            if (isPaused) return;
-            circle.isDragging = false;
+        function stopDragging(e) {
+            if (isPaused || !circle.isDragging) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === circle.touchId) {
+                    circle.isDragging = false;
+                    circle.touchId = null;
+                    break;
+                }
+            }
         }
 
         modeButton.addEventListener('click', () => {
@@ -713,11 +730,45 @@
             }
         });
 
-        canvas.addEventListener('mousedown', startDragging);
-        canvas.addEventListener('mousemove', drag);
-        canvas.addEventListener('mouseup', stopDragging);
+        // Mouse events for desktop
+        canvas.addEventListener('mousedown', (e) => {
+            if (isPaused) return;
+            e.preventDefault();
+            const pos = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
+            const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
+            if (dist < circle.radius) {
+                circle.isDragging = true;
+                circle.lastX = pos.x;
+                circle.lastY = pos.y;
+                circle.lastTime = Date.now();
+                circle.dx = 0;
+                circle.dy = 0;
+                trail.length = 0;
+            }
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (isPaused || !circle.isDragging) return;
+            e.preventDefault();
+            const pos = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
+            circle.x = pos.x;
+            circle.y = pos.y;
+            const currentTime = Date.now();
+            const dt = (currentTime - circle.lastTime) / 1000;
+            if (dt > 0) {
+                circle.dx = (pos.x - circle.lastX) / dt;
+                circle.dy = (pos.y - circle.lastY) / dt;
+            }
+            circle.lastX = pos.x;
+            circle.lastY = pos.y;
+            circle.lastTime = currentTime;
+        });
+        canvas.addEventListener('mouseup', () => {
+            if (isPaused) return;
+            circle.isDragging = false;
+        });
         canvas.addEventListener('click', handleTap);
 
+        // Touch events for mobile with multi-touch support
         canvas.addEventListener('touchstart', (e) => {
             startDragging(e);
             handleTap(e);
