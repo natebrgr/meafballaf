@@ -130,10 +130,10 @@
             x: 0,
             y: 0,
             radius: 30,
-            dx: 0, // Linear velocity x
-            dy: 0, // Linear velocity y
-            rotation: 0, // Angular position in radians
-            angularVelocity: 0, // Angular velocity in radians per second
+            dx: 0,
+            dy: 0,
+            rotation: 0,
+            angularVelocity: 0,
             isDragging: false,
             lastX: 0,
             lastY: 0,
@@ -148,11 +148,10 @@
         };
 
         const gravity = 0.5;
-        const friction = 0.98; // Linear friction
-        const angularFriction = 0.99; // Angular friction
-        const bounciness = 0.7; // Coefficient of restitution (less bouncy for realism)
-        const groundFriction = 0.1; // Friction when rolling on ground
-        const momentOfInertia = 0.5 * circle.radius * circle.radius; // I = (1/2) * m * r^2, m = 1
+        const friction = 0.98;
+        const angularFriction = 0.98;
+        const bounciness = 0.8; // Realistic bounce
+        const groundFriction = 0.05; // Subtle rolling friction
         const bounceTimeWindow = 100;
 
         const colors = [
@@ -459,19 +458,21 @@
             if (isPaused) return;
 
             const currentTime = Date.now();
-            const dt = 0.016; // Fixed timestep ~60 FPS
 
             if (!circle.isDragging) {
-                circle.dy += gravity * dt; // Apply gravity
-                circle.x += circle.dx * dt;
-                circle.y += circle.dy * dt;
-                circle.rotation += circle.angularVelocity * dt;
-                circle.rotation %= 2 * Math.PI;
-
-                // Apply air friction
+                circle.dy += gravity;
+                circle.x += circle.dx;
+                circle.y += circle.dy;
                 circle.dx *= friction;
                 circle.dy *= friction;
+                circle.rotation += circle.angularVelocity;
                 circle.angularVelocity *= angularFriction;
+
+                // Rolling on ground
+                if (circle.y + circle.radius >= canvas.height - 1) {
+                    const targetAngularVelocity = -circle.dx / circle.radius;
+                    circle.angularVelocity += (targetAngularVelocity - circle.angularVelocity) * groundFriction;
+                }
 
                 const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
                 const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
@@ -522,15 +523,15 @@
                                 }
                             }
 
-                            // Collision physics
-                            const vRelX = circle.dx + (-circle.angularVelocity * circle.radius * wall.normalY);
-                            const vRelY = circle.dy + (circle.angularVelocity * circle.radius * wall.normalX);
-                            const vDotN = vRelX * wall.normalX + vRelY * wall.normalY;
+                            // Bounce and spin
+                            const vDotN = circle.dx * wall.normalX + circle.dy * wall.normalY;
                             if (vDotN < 0) { // Moving into wall
-                                const impulseMag = -(1 + bounciness) * vDotN / (1 + (circle.radius * circle.radius) / momentOfInertia);
-                                circle.dx += impulseMag * wall.normalX;
-                                circle.dy += impulseMag * wall.normalY;
-                                circle.angularVelocity += (circle.radius / momentOfInertia) * (vRelX * wall.normalY - vRelY * wall.normalX);
+                                circle.dx -= 2 * vDotN * wall.normalX * bounciness;
+                                circle.dy -= 2 * vDotN * wall.normalY * bounciness;
+                                const tangentX = -wall.normalY;
+                                const tangentY = wall.normalX;
+                                const vTangent = circle.dx * tangentX + circle.dy * tangentY;
+                                circle.angularVelocity += (vTangent / circle.radius) * 0.7; // Spin from tangential velocity
                             }
 
                             // Position correction
@@ -553,15 +554,6 @@
                         }
                     }
                 });
-
-                // Ground friction when on bottom (rectangle map only)
-                if (currentMap === 'rectangle' && circle.y + circle.radius >= canvas.height - 1) {
-                    const targetAngularVelocity = -circle.dx / circle.radius; // Ideal rolling condition
-                    const deltaOmega = targetAngularVelocity - circle.angularVelocity;
-                    const frictionImpulse = groundFriction * dt;
-                    circle.angularVelocity += frictionImpulse * deltaOmega;
-                    circle.dx -= frictionImpulse * circle.radius * deltaOmega;
-                }
             }
 
             if (isTrackingHits && !isPaused) {
