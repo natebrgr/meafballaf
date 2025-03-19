@@ -629,22 +629,20 @@
         }
 
         function drag(e) {
-            if (isPaused) return;
+            if (isPaused || !circle.isDragging) return; // Stop dragging if paused or not dragging
             e.preventDefault();
-            if (circle.isDragging) {
-                const pos = getMousePos(e);
-                circle.x = pos.x;
-                circle.y = pos.y;
-                const currentTime = Date.now();
-                const dt = (currentTime - circle.lastTime) / 1000;
-                if (dt > 0) {
-                    circle.dx = (pos.x - circle.lastX) / dt;
-                    circle.dy = (pos.y - circle.lastY) / dt;
-                }
-                circle.lastX = pos.x;
-                circle.lastY = pos.y;
-                circle.lastTime = currentTime;
+            const pos = getMousePos(e);
+            circle.x = pos.x;
+            circle.y = pos.y;
+            const currentTime = Date.now();
+            const dt = (currentTime - circle.lastTime) / 1000;
+            if (dt > 0) {
+                circle.dx = (pos.x - circle.lastX) / dt;
+                circle.dy = (pos.y - circle.lastY) / dt;
             }
+            circle.lastX = pos.x;
+            circle.lastY = pos.y;
+            circle.lastTime = currentTime;
         }
 
         function stopDragging() {
@@ -656,6 +654,7 @@
             e.preventDefault();
             e.stopPropagation();
             saveState();
+            circle.isDragging = false; // Stop dragging on mode switch
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             sighhhVisible = false;
             if (sighhhTimer) {
@@ -672,6 +671,7 @@
             e.preventDefault();
             e.stopPropagation();
             saveState();
+            circle.isDragging = false; // Stop dragging on map switch
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             sighhhVisible = false;
             if (sighhhTimer) {
@@ -728,9 +728,10 @@
             hiScoreWindow.classList.add('active');
         });
 
-        // Keep click events for desktop compatibility
+        // Desktop compatibility
         modeButton.addEventListener('click', () => {
             saveState();
+            circle.isDragging = false; // Stop dragging on mode switch
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             sighhhVisible = false;
             if (sighhhTimer) {
@@ -745,6 +746,7 @@
 
         mapButton.addEventListener('click', () => {
             saveState();
+            circle.isDragging = false; // Stop dragging on map switch
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             sighhhVisible = false;
             if (sighhhTimer) {
