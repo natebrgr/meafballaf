@@ -147,7 +147,7 @@
 
         const gravity = 0.5;
         const friction = 0.98;
-        const bounciness = 0.8;
+        const bounciness = 0.9;
         const bounceTimeWindow = 100;
 
         const colors = [
@@ -395,32 +395,19 @@
                 ctx.closePath();
             }
 
-            ctx.save();
-            ctx.translate(circle.x, circle.y);
             ctx.beginPath();
-            ctx.arc(0, 0, circle.radius, 0, Math.PI * 2);
+            ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
             ctx.fill();
             ctx.closePath();
 
-            // Add 8-slice divider
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 2;
-            for (let i = 0; i < 8; i++) {
-                const angle = (i * Math.PI) / 4;
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.lineTo(circle.radius * Math.cos(angle), circle.radius * Math.sin(angle));
-                ctx.stroke();
-            }
-            ctx.restore();
-
             const offset = circle.radius + 20;
-            const greenColor = '#00ff00';
-            let counterColor = '#e0e0e0';
+            const greenColor = '#00ff00'; // Fixed green for level numbers
+            let counterColor = '#e0e0e0'; // Default soft white
             if (wallHits === level) counterColor = greenColor;
             else if (wallHits > level) counterColor = 'red';
 
+            // Draw wall hit counters (above, below, left, right)
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -434,13 +421,15 @@
             ctx.fillText(wallHits, circle.x - offset, circle.y); // Left
             ctx.fillText(wallHits, circle.x + offset, circle.y); // Right
 
+            // Draw level numbers (diagonal positions: 45°, 135°, 225°, 315°)
             ctx.fillStyle = greenColor;
-            const diagonalOffset = offset * Math.sqrt(2) / 2;
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset); // Top-right
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset); // Top-left
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset); // Bottom-left
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset); // Bottom-right
+            const diagonalOffset = offset * Math.sqrt(2) / 2; // For 45° angles
+            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset); // Top-right (45°)
+            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset); // Top-left (135°)
+            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset); // Bottom-left (225°)
+            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset); // Bottom-right (315°)
 
+            // Reset shadow
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
@@ -470,10 +459,10 @@
                 let walls;
                 if (currentMap === 'rectangle') {
                     walls = [
-                        { name: 'right', edge: canvas.width, pos: circle.x + circle.radius, velocity: circle.dx, normalX: -1, normalY: 0, isContact: circle.x + circle.radius >= canvas.width },
-                        { name: 'left', edge: 0, pos: circle.x - circle.radius, velocity: circle.dx, normalX: 1, normalY: 0, isContact: circle.x - circle.radius <= 0 },
-                        { name: 'bottom', edge: canvas.height, pos: circle.y + circle.radius, velocity: circle.dy, normalX: 0, normalY: -1, isContact: circle.y + circle.radius >= canvas.height },
-                        { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, normalX: 0, normalY: 1, isContact: circle.y - circle.radius <= 0 }
+                        { name: 'right', edge: canvas.width, pos: circle.x + circle.radius, velocity: circle.dx, isContact: circle.x + circle.radius >= canvas.width },
+                        { name: 'left', edge: 0, pos: circle.x - circle.radius, velocity: circle.dx, isContact: circle.x - circle.radius <= 0 },
+                        { name: 'bottom', edge: canvas.height, pos: circle.y + circle.radius, velocity: circle.dy, isContact: circle.y + circle.radius >= canvas.height },
+                        { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, isContact: circle.y - circle.radius <= 0 }
                     ];
                 } else {
                     const centerX = canvas.width / 2;
@@ -481,22 +470,13 @@
                     const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
                     const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                     const isContact = distFromCenter + circle.radius >= radius;
-                    const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
-                    walls = [{
-                        name: 'boundary',
-                        edge: radius,
-                        pos: distFromCenter + circle.radius,
-                        velocity: 0,
-                        normalX: -Math.cos(angle),
-                        normalY: -Math.sin(angle),
-                        isContact
-                    }];
+                    walls = [{ name: 'boundary', edge: radius, pos: distFromCenter + circle.radius, velocity: 0, isContact }];
                 }
 
                 walls.forEach(wall => {
                     const contact = circle.wallContact[wall.name];
                     if (wall.isContact) {
-                        if (!contact.inContact && (currentTime - contact.time) > bounceTimeWindow) {
+                        if (!contact.inContact) {
                             contact.inContact = true;
                             contact.time = currentTime;
                             if (isTrackingHits) {
@@ -506,25 +486,6 @@
                                     showText(text);
                                 }
                             }
-
-                            const vDotN = circle.dx * wall.normalX + circle.dy * wall.normalY;
-                            if (vDotN < 0) {
-                                circle.dx -= 2 * vDotN * wall.normalX * bounciness;
-                                circle.dy -= 2 * vDotN * wall.normalY * bounciness;
-                            }
-
-                            if (wall.name === 'right') circle.x = canvas.width - circle.radius;
-                            else if (wall.name === 'left') circle.x = circle.radius;
-                            else if (wall.name === 'bottom') circle.y = canvas.height - circle.radius;
-                            else if (wall.name === 'top') circle.y = circle.radius;
-                            else if (wall.name === 'boundary') {
-                                const centerX = canvas.width / 2;
-                                const centerY = canvas.height / 2;
-                                const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
-                                const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
-                                circle.x = centerX + Math.cos(angle) * (radius - circle.radius);
-                                circle.y = centerY + Math.sin(angle) * (radius - circle.radius);
-                            }
                         }
                     } else {
                         if (contact.inContact) {
@@ -532,6 +493,36 @@
                         }
                     }
                 });
+
+                if (currentMap === 'rectangle') {
+                    if (circle.x + circle.radius > canvas.width) {
+                        circle.x = canvas.width - circle.radius;
+                        circle.dx = -circle.dx * bounciness;
+                    } else if (circle.x - circle.radius < 0) {
+                        circle.x = circle.radius;
+                        circle.dx = -circle.dx * bounciness;
+                    }
+                    if (circle.y + circle.radius > canvas.height) {
+                        circle.y = canvas.height - circle.radius;
+                        circle.dy = -circle.dy * bounciness;
+                    } else if (circle.y - circle.radius < 0) {
+                        circle.y = circle.radius;
+                        circle.dy = -circle.dy * bounciness;
+                    }
+                } else {
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
+                    const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
+                    if (distFromCenter + circle.radius >= radius) {
+                        const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
+                        circle.x = centerX + Math.cos(angle) * (radius - circle.radius);
+                        circle.y = centerY + Math.sin(angle) * (radius - circle.radius);
+                        const speed = Math.sqrt(circle.dx ** 2 + circle.dy ** 2);
+                        circle.dx = -Math.cos(angle) * speed * bounciness;
+                        circle.dy = -Math.sin(angle) * speed * bounciness;
+                    }
+                }
             }
 
             if (isTrackingHits && !isPaused) {
@@ -624,7 +615,7 @@
                                 showText('yee haw BII');
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
-                            wallHits = 0;
+                            wallHits = 0; // Reset wallHits on win
                         } else if (currentMode === 'survival') {
                             lives--;
                             let text = '';
