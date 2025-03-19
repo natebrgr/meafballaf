@@ -401,16 +401,23 @@
             ctx.fill();
             ctx.closePath();
 
-            // Draw wallHits on the circle
+            // Draw wallHits counters around the circle
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = 'white';
+            ctx.fillStyle = '#e0e0e0'; // Soft white from buttons
             ctx.shadowColor = 'black';
             ctx.shadowBlur = 6;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            ctx.fillText(wallHits, circle.x, circle.y);
+
+            const offset = circle.radius + 20; // Distance from circle edge
+            ctx.fillText(wallHits, circle.x, circle.y); // Center
+            ctx.fillText(wallHits, circle.x, circle.y - offset); // Above
+            ctx.fillText(wallHits, circle.x, circle.y + offset); // Below
+            ctx.fillText(wallHits, circle.x - offset, circle.y); // Left
+            ctx.fillText(wallHits, circle.x + offset, circle.y); // Right
+
             // Reset shadow to avoid affecting other elements
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
