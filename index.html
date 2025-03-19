@@ -350,8 +350,7 @@
                 circle.y = canvas.height / 2;
             }
 
-            constrainCircle(); // Ensure position is valid after loading
-
+            constrainCircle();
             trail.length = 0;
             if (state.trail && state.trail.length > 0) {
                 trail.push(...state.trail);
@@ -773,10 +772,18 @@
             e.stopPropagation();
             if (isPaused) {
                 isPaused = false;
-                circle.isDragging = false;
-                constrainCircle(); // Ensure circle stays on screen
-                circle.dx = 0; // Reset velocity to prevent instant movement
-                circle.dy = 0;
+                if (circle.isDragging) {
+                    const pos = getMousePos(e);
+                    circle.lastX = pos.x;
+                    circle.lastY = pos.y;
+                    circle.lastTime = Date.now();
+                    circle.dx = 0;
+                    circle.dy = 0;
+                } else {
+                    constrainCircle();
+                    circle.dx = 0;
+                    circle.dy = 0;
+                }
                 if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
@@ -829,13 +836,21 @@
             updateDisplay();
         });
 
-        playButton.addEventListener('click', () => {
+        playButton.addEventListener('click', (e) => {
             if (isPaused) {
                 isPaused = false;
-                circle.isDragging = false;
-                constrainCircle(); // Ensure circle stays on screen
-                circle.dx = 0; // Reset velocity to prevent instant movement
-                circle.dy = 0;
+                if (circle.isDragging) {
+                    const pos = getMousePos(e);
+                    circle.lastX = pos.x;
+                    circle.lastY = pos.y;
+                    circle.lastTime = Date.now();
+                    circle.dx = 0;
+                    circle.dy = 0;
+                } else {
+                    constrainCircle();
+                    circle.dx = 0;
+                    circle.dy = 0;
+                }
                 if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
