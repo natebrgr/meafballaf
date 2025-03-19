@@ -132,6 +132,7 @@
             radius: 30,
             dx: 0,
             dy: 0,
+            rotation: 0, // New property for rotation angle (in radians)
             isDragging: false,
             lastX: 0,
             lastY: 0,
@@ -284,6 +285,7 @@
                     y: circle.y,
                     dx: circle.dx,
                     dy: circle.dy,
+                    rotation: circle.rotation, // Save rotation
                     isDragging: circle.isDragging,
                     lastX: circle.lastX,
                     lastY: circle.lastY,
@@ -321,6 +323,7 @@
                 circle.y = state.circle.y;
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
+                circle.rotation = state.circle.rotation || 0; // Load rotation
                 circle.isDragging = state.isDragging;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
@@ -402,34 +405,40 @@
             ctx.closePath();
 
             const offset = circle.radius + 20;
-            const greenColor = '#00ff00'; // Fixed green for level numbers
-            let counterColor = '#e0e0e0'; // Default soft white
+            const greenColor = '#00ff00';
+            let counterColor = '#e0e0e0';
             if (wallHits === level) counterColor = greenColor;
             else if (wallHits > level) counterColor = 'red';
 
-            // Draw wall hit counters (above, below, left, right)
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = counterColor;
             ctx.shadowColor = 'black';
             ctx.shadowBlur = 6;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            ctx.fillText(wallHits, circle.x, circle.y - offset); // Above
-            ctx.fillText(wallHits, circle.x, circle.y + offset); // Below
-            ctx.fillText(wallHits, circle.x - offset, circle.y); // Left
-            ctx.fillText(wallHits, circle.x + offset, circle.y); // Right
 
-            // Draw level numbers (diagonal positions: 45°, 135°, 225°, 315°)
-            ctx.fillStyle = greenColor;
-            const diagonalOffset = offset * Math.sqrt(2) / 2; // For 45° angles
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset); // Top-right (45°)
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset); // Top-left (135°)
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset); // Bottom-left (225°)
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset); // Bottom-right (315°)
+            // Define initial angles for numbers
+            const angles = [
+                { value: wallHits, color: counterColor, baseAngle: 0 },      // Above
+                { value: level, color: greenColor, baseAngle: Math.PI / 4 }, // Top-right
+                { value: wallHits, color: counterColor, baseAngle: Math.PI / 2 }, // Right
+                { value: level, color: greenColor, baseAngle: 3 * Math.PI / 4 }, // Bottom-right
+                { value: wallHits, color: counterColor, baseAngle: Math.PI },     // Below
+                { value: level, color: greenColor, baseAngle: 5 * Math.PI / 4 }, // Bottom-left
+                { value: wallHits, color: counterColor, baseAngle: 3 * Math.PI / 2 }, // Left
+                { value: level, color: greenColor, baseAngle: 7 * Math.PI / 4 }  // Top-left
+            ];
 
-            // Reset shadow
+            // Draw numbers at rotated positions
+            angles.forEach(({ value, color, baseAngle }) => {
+                const angle = baseAngle + circle.rotation;
+                const x = circle.x + offset * Math.cos(angle);
+                const y = circle.y + offset * Math.sin(angle);
+                ctx.fillStyle = color;
+                ctx.fillText(value, x, y);
+            });
+
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
@@ -446,6 +455,13 @@
                 circle.y += circle.dy;
                 circle.dx *= friction;
                 circle.dy *= friction;
+
+                // Update rotation based on velocity
+                const speed = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
+                if (speed > 0.1) { // Only rotate if moving significantly
+                    circle.rotation += (circle.dx / circle.radius) * 0.016; // Approx 60 FPS frame time
+                    circle.rotation %= 2 * Math.PI; // Keep rotation in [0, 2π)
+                }
 
                 const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
                 const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
@@ -543,6 +559,7 @@
                 countdownOpacity = 1;
                 shownTexts.clear();
                 sighhhVisible = false;
+                circle.rotation = 0; // Reset rotation on new countdown
             } else {
                 isCountingDown = true;
             }
@@ -615,7 +632,7 @@
                                 showText('yee haw BII');
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
-                            wallHits = 0; // Reset wallHits on win
+                            wallHits = 0;
                         } else if (currentMode === 'survival') {
                             lives--;
                             let text = '';
