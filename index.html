@@ -179,6 +179,8 @@
         let currentSighhhText = '';
         let sighhhVisible = false;
         let sighhhTimer = null;
+        let sighhhStartTime = null;
+        let sighhhRemainingTime = 2000;
 
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0 },
@@ -260,13 +262,48 @@
                 shownTexts.add(text);
                 currentSighhhText = text;
                 sighhhVisible = true;
-                updateDisplay();
+                sighhhStartTime = Date.now();
+                sighhhRemainingTime = 2000;
                 clearTimeout(sighhhTimer);
+                if (!isPaused) {
+                    sighhhTimer = setTimeout(() => {
+                        sighhhVisible = false;
+                        updateDisplay();
+                    }, sighhhRemainingTime);
+                }
+                updateDisplay();
+            }
+        }
+
+        function pauseTextTimer() {
+            if (sighhhVisible && sighhhTimer) {
+                clearTimeout(sighhhTimer);
+                sighhhRemainingTime -= (Date.now() - sighhhStartTime);
+                if (sighhhRemainingTime < 0) sighhhRemainingTime = 0;
+            }
+        }
+
+        function resumeTextTimer() {
+            if (sighhhVisible && sighhhRemainingTime > 0) {
+                sighhhStartTime = Date.now();
                 sighhhTimer = setTimeout(() => {
                     sighhhVisible = false;
                     updateDisplay();
-                }, 2000); // 2 seconds
+                }, sighhhRemainingTime);
+            } else if (sighhhVisible && sighhhRemainingTime <= 0) {
+                sighhhVisible = false;
+                updateDisplay();
             }
+        }
+
+        function clearText() {
+            sighhhVisible = false;
+            currentSighhhText = '';
+            clearTimeout(sighhhTimer);
+            sighhhTimer = null;
+            sighhhRemainingTime = 2000;
+            shownTexts.clear();
+            updateDisplay();
         }
 
         function saveState() {
@@ -505,7 +542,7 @@
                 isTrackingHits = true;
                 countdownOpacity = 1;
                 shownTexts.clear();
-                sighhhVisible = false; // Reset text on new game
+                clearText();
             } else {
                 isCountingDown = true;
             }
@@ -627,6 +664,7 @@
 
         modeButton.addEventListener('click', () => {
             saveState();
+            clearText();
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -634,6 +672,7 @@
 
         mapButton.addEventListener('click', () => {
             saveState();
+            clearText();
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -647,9 +686,11 @@
                 if (gameStates[key].isCountingDown) {
                     startCountdown(true);
                 }
+                resumeTextTimer();
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
                 isPaused = true;
+                pauseTextTimer();
                 saveState();
             }
             updateDisplay();
@@ -694,6 +735,7 @@
         circle.x = window.innerWidth * 0.45;
         circle.y = window.innerHeight * 0.5;
 
+        setCanvasSize();
         updateDisplay();
         animate();
     </script>
