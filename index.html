@@ -130,8 +130,8 @@
             x: 0,
             y: 0,
             radius: 30,
-            dx: 0,
-            dy: 0,
+            dx: 0, // Linear velocity x
+            dy: 0, // Linear velocity y
             rotation: 0, // Angular position in radians
             angularVelocity: 0, // Angular velocity in radians per second
             isDragging: false,
@@ -148,9 +148,11 @@
         };
 
         const gravity = 0.5;
-        const friction = 0.98;
-        const angularFriction = 0.95; // Friction for angular velocity
-        const bounciness = 0.9;
+        const friction = 0.98; // Linear friction
+        const angularFriction = 0.99; // Angular friction
+        const bounciness = 0.7; // Coefficient of restitution (less bouncy for realism)
+        const groundFriction = 0.1; // Friction when rolling on ground
+        const momentOfInertia = 0.5 * circle.radius * circle.radius; // I = (1/2) * m * r^2, m = 1
         const bounceTimeWindow = 100;
 
         const colors = [
@@ -402,7 +404,6 @@
                 ctx.closePath();
             }
 
-            // Draw the circle with 8 sectors
             ctx.save();
             ctx.translate(circle.x, circle.y);
             ctx.rotate(circle.rotation);
@@ -458,24 +459,19 @@
             if (isPaused) return;
 
             const currentTime = Date.now();
-            const dt = 0.016; // Assume ~60 FPS for simplicity
+            const dt = 0.016; // Fixed timestep ~60 FPS
 
             if (!circle.isDragging) {
-                circle.dy += gravity;
-                circle.x += circle.dx;
-                circle.y += circle.dy;
-                circle.dx *= friction;
-                circle.dy *= friction;
-
-                // Update rotation with angular velocity
+                circle.dy += gravity * dt; // Apply gravity
+                circle.x += circle.dx * dt;
+                circle.y += circle.dy * dt;
                 circle.rotation += circle.angularVelocity * dt;
                 circle.rotation %= 2 * Math.PI;
-                circle.angularVelocity *= angularFriction;
 
-                // Rolling effect when moving horizontally
-                if (Math.abs(circle.dx) > 0.1) {
-                    circle.angularVelocity -= circle.dx / circle.radius; // Negative for clockwise roll with positive dx
-                }
+                // Apply air friction
+                circle.dx *= friction;
+                circle.dy *= friction;
+                circle.angularVelocity *= angularFriction;
 
                 const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
                 const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
@@ -489,10 +485,10 @@
                 let walls;
                 if (currentMap === 'rectangle') {
                     walls = [
-                        { name: 'right', edge: canvas.width, pos: circle.x + circle.radius, velocity: circle.dx, isContact: circle.x + circle.radius >= canvas.width },
-                        { name: 'left', edge: 0, pos: circle.x - circle.radius, velocity: circle.dx, isContact: circle.x - circle.radius <= 0 },
-                        { name: 'bottom', edge: canvas.height, pos: circle.y + circle.radius, velocity: circle.dy, isContact: circle.y + circle.radius >= canvas.height },
-                        { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, isContact: circle.y - circle.radius <= 0 }
+                        { name: 'right', edge: canvas.width, pos: circle.x + circle.radius, velocity: circle.dx, normalX: -1, normalY: 0, isContact: circle.x + circle.radius >= canvas.width },
+                        { name: 'left', edge: 0, pos: circle.x - circle.radius, velocity: circle.dx, normalX: 1, normalY: 0, isContact: circle.x - circle.radius <= 0 },
+                        { name: 'bottom', edge: canvas.height, pos: circle.y + circle.radius, velocity: circle.dy, normalX: 0, normalY: -1, isContact: circle.y + circle.radius >= canvas.height },
+                        { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, normalX: 0, normalY: 1, isContact: circle.y - circle.radius <= 0 }
                     ];
                 } else {
                     const centerX = canvas.width / 2;
@@ -500,13 +496,22 @@
                     const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
                     const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                     const isContact = distFromCenter + circle.radius >= radius;
-                    walls = [{ name: 'boundary', edge: radius, pos: distFromCenter + circle.radius, velocity: 0, isContact }];
+                    const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
+                    walls = [{
+                        name: 'boundary',
+                        edge: radius,
+                        pos: distFromCenter + circle.radius,
+                        velocity: 0,
+                        normalX: -Math.cos(angle),
+                        normalY: -Math.sin(angle),
+                        isContact
+                    }];
                 }
 
                 walls.forEach(wall => {
                     const contact = circle.wallContact[wall.name];
                     if (wall.isContact) {
-                        if (!contact.inContact) {
+                        if (!contact.inContact && (currentTime - contact.time) > bounceTimeWindow) {
                             contact.inContact = true;
                             contact.time = currentTime;
                             if (isTrackingHits) {
@@ -516,6 +521,31 @@
                                     showText(text);
                                 }
                             }
+
+                            // Collision physics
+                            const vRelX = circle.dx + (-circle.angularVelocity * circle.radius * wall.normalY);
+                            const vRelY = circle.dy + (circle.angularVelocity * circle.radius * wall.normalX);
+                            const vDotN = vRelX * wall.normalX + vRelY * wall.normalY;
+                            if (vDotN < 0) { // Moving into wall
+                                const impulseMag = -(1 + bounciness) * vDotN / (1 + (circle.radius * circle.radius) / momentOfInertia);
+                                circle.dx += impulseMag * wall.normalX;
+                                circle.dy += impulseMag * wall.normalY;
+                                circle.angularVelocity += (circle.radius / momentOfInertia) * (vRelX * wall.normalY - vRelY * wall.normalX);
+                            }
+
+                            // Position correction
+                            if (wall.name === 'right') circle.x = canvas.width - circle.radius;
+                            else if (wall.name === 'left') circle.x = circle.radius;
+                            else if (wall.name === 'bottom') circle.y = canvas.height - circle.radius;
+                            else if (wall.name === 'top') circle.y = circle.radius;
+                            else if (wall.name === 'boundary') {
+                                const centerX = canvas.width / 2;
+                                const centerY = canvas.height / 2;
+                                const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
+                                const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
+                                circle.x = centerX + Math.cos(angle) * (radius - circle.radius);
+                                circle.y = centerY + Math.sin(angle) * (radius - circle.radius);
+                            }
                         }
                     } else {
                         if (contact.inContact) {
@@ -524,54 +554,13 @@
                     }
                 });
 
-                if (currentMap === 'rectangle') {
-                    if (circle.x + circle.radius > canvas.width) {
-                        circle.x = canvas.width - circle.radius;
-                        const oldDx = circle.dx;
-                        circle.dx = -circle.dx * bounciness;
-                        // Add spin from vertical velocity on right wall
-                        circle.angularVelocity += circle.dy / circle.radius * 0.5;
-                    } else if (circle.x - circle.radius < 0) {
-                        circle.x = circle.radius;
-                        const oldDx = circle.dx;
-                        circle.dx = -circle.dx * bounciness;
-                        // Add spin from vertical velocity on left wall
-                        circle.angularVelocity -= circle.dy / circle.radius * 0.5;
-                    }
-                    if (circle.y + circle.radius > canvas.height) {
-                        circle.y = canvas.height - circle.radius;
-                        const oldDy = circle.dy;
-                        circle.dy = -circle.dy * bounciness;
-                        // Add spin from horizontal velocity on bottom
-                        circle.angularVelocity -= circle.dx / circle.radius * 0.5;
-                    } else if (circle.y - circle.radius < 0) {
-                        circle.y = circle.radius;
-                        const oldDy = circle.dy;
-                        circle.dy = -circle.dy * bounciness;
-                        // Add spin from horizontal velocity on top
-                        circle.angularVelocity += circle.dx / circle.radius * 0.5;
-                    }
-                } else {
-                    const centerX = canvas.width / 2;
-                    const centerY = canvas.height / 2;
-                    const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
-                    const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
-                    if (distFromCenter + circle.radius >= radius) {
-                        const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
-                        circle.x = centerX + Math.cos(angle) * (radius - circle.radius);
-                        circle.y = centerY + Math.sin(angle) * (radius - circle.radius);
-                        const speed = Math.sqrt(circle.dx ** 2 + circle.dy ** 2);
-                        const normalX = Math.cos(angle);
-                        const normalY = Math.sin(angle);
-                        const dot = circle.dx * normalX + circle.dy * normalY;
-                        circle.dx = circle.dx - 2 * dot * normalX * bounciness;
-                        circle.dy = circle.dy - 2 * dot * normalY * bounciness;
-                        // Add spin based on tangential velocity
-                        const tangentX = -normalY;
-                        const tangentY = normalX;
-                        const tangentSpeed = circle.dx * tangentX + circle.dy * tangentY;
-                        circle.angularVelocity += tangentSpeed / circle.radius * 0.5;
-                    }
+                // Ground friction when on bottom (rectangle map only)
+                if (currentMap === 'rectangle' && circle.y + circle.radius >= canvas.height - 1) {
+                    const targetAngularVelocity = -circle.dx / circle.radius; // Ideal rolling condition
+                    const deltaOmega = targetAngularVelocity - circle.angularVelocity;
+                    const frictionImpulse = groundFriction * dt;
+                    circle.angularVelocity += frictionImpulse * deltaOmega;
+                    circle.dx -= frictionImpulse * circle.radius * deltaOmega;
                 }
             }
 
@@ -594,7 +583,7 @@
                 shownTexts.clear();
                 sighhhVisible = false;
                 circle.rotation = 0;
-                circle.angularVelocity = 0; // Reset angular velocity
+                circle.angularVelocity = 0;
             } else {
                 isCountingDown = true;
             }
@@ -709,7 +698,7 @@
                 circle.lastTime = Date.now();
                 circle.dx = 0;
                 circle.dy = 0;
-                circle.angularVelocity = 0; // Stop spinning when grabbed
+                circle.angularVelocity = 0;
                 trail.length = 0;
             }
         }
