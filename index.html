@@ -272,6 +272,25 @@
             }
         }
 
+        function constrainCircle() {
+            if (currentMap === 'rectangle') {
+                circle.x = Math.max(circle.radius, Math.min(canvas.width - circle.radius, circle.x));
+                circle.y = Math.max(circle.radius, Math.min(canvas.height - circle.radius, circle.y));
+            } else {
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const maxRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth - circle.radius;
+                const dx = circle.x - centerX;
+                const dy = circle.y - centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > maxRadius) {
+                    const angle = Math.atan2(dy, dx);
+                    circle.x = centerX + Math.cos(angle) * maxRadius;
+                    circle.y = centerY + Math.sin(angle) * maxRadius;
+                }
+            }
+        }
+
         function saveState() {
             const key = `${currentMode}-${currentMap}`;
             gameStates[key] = {
@@ -322,7 +341,7 @@
                 circle.y = state.circle.y;
                 circle.dx = state.dx;
                 circle.dy = state.dy;
-                circle.isDragging = false; // Always reset isDragging on load
+                circle.isDragging = false;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime;
@@ -330,6 +349,8 @@
                 circle.x = canvas.width / 2;
                 circle.y = canvas.height / 2;
             }
+
+            constrainCircle(); // Ensure position is valid after loading
 
             trail.length = 0;
             if (state.trail && state.trail.length > 0) {
@@ -753,6 +774,9 @@
             if (isPaused) {
                 isPaused = false;
                 circle.isDragging = false;
+                constrainCircle(); // Ensure circle stays on screen
+                circle.dx = 0; // Reset velocity to prevent instant movement
+                circle.dy = 0;
                 if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
@@ -809,6 +833,9 @@
             if (isPaused) {
                 isPaused = false;
                 circle.isDragging = false;
+                constrainCircle(); // Ensure circle stays on screen
+                circle.dx = 0; // Reset velocity to prevent instant movement
+                circle.dy = 0;
                 if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
