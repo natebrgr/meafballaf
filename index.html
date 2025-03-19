@@ -629,7 +629,7 @@
         }
 
         function drag(e) {
-            if (isPaused || !circle.isDragging) return; // Stop dragging if paused or not dragging
+            if (isPaused || !circle.isDragging) return;
             e.preventDefault();
             const pos = getMousePos(e);
             circle.x = pos.x;
@@ -691,8 +691,8 @@
                 isPaused = false;
                 const key = `${currentMode}-${currentMap}`;
                 gameStates[key].isPaused = false;
-                // If was dragging when paused and there's an active touch, snap to it
-                if (circle.isDragging && e.touches.length > 0) {
+                const wasDragging = gameStates[key].circle.isDragging; // Check saved state
+                if (wasDragging && e.touches.length > 0) {
                     const pos = getMousePos(e);
                     circle.x = pos.x;
                     circle.y = pos.y;
@@ -701,6 +701,7 @@
                     circle.lastTime = Date.now();
                     circle.dx = 0;
                     circle.dy = 0;
+                    circle.isDragging = true;
                     trail.length = 0;
                 } else if (e.touches.length === 0) {
                     circle.isDragging = false;
@@ -764,8 +765,8 @@
                 isPaused = false;
                 const key = `${currentMode}-${currentMap}`;
                 gameStates[key].isPaused = false;
-                // If was dragging when paused and mouse button is pressed, snap to it
-                if (circle.isDragging && e.buttons) {
+                const wasDragging = gameStates[key].circle.isDragging; // Check saved state
+                if (wasDragging && e.buttons) {
                     const pos = getMousePos(e);
                     circle.x = pos.x;
                     circle.y = pos.y;
@@ -774,6 +775,7 @@
                     circle.lastTime = Date.now();
                     circle.dx = 0;
                     circle.dy = 0;
+                    circle.isDragging = true;
                     trail.length = 0;
                 } else if (!e.buttons) {
                     circle.isDragging = false;
