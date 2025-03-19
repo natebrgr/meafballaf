@@ -132,7 +132,8 @@
             radius: 30,
             dx: 0,
             dy: 0,
-            rotation: 0, // Rotation angle in radians
+            rotation: 0, // Angular position in radians
+            angularVelocity: 0, // Angular velocity in radians per second
             isDragging: false,
             lastX: 0,
             lastY: 0,
@@ -148,6 +149,7 @@
 
         const gravity = 0.5;
         const friction = 0.98;
+        const angularFriction = 0.95; // Friction for angular velocity
         const bounciness = 0.9;
         const bounceTimeWindow = 100;
 
@@ -286,6 +288,7 @@
                     dx: circle.dx,
                     dy: circle.dy,
                     rotation: circle.rotation,
+                    angularVelocity: circle.angularVelocity,
                     isDragging: circle.isDragging,
                     lastX: circle.lastX,
                     lastY: circle.lastY,
@@ -324,6 +327,7 @@
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
                 circle.rotation = state.circle.rotation || 0;
+                circle.angularVelocity = state.circle.angularVelocity || 0;
                 circle.isDragging = state.isDragging;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
@@ -408,11 +412,10 @@
             ctx.fill();
             ctx.closePath();
 
-            // Draw 8 black lines to create sectors
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 2;
             for (let i = 0; i < 8; i++) {
-                const angle = (i * Math.PI) / 4; // 45° increments
+                const angle = (i * Math.PI) / 4;
                 ctx.beginPath();
                 ctx.moveTo(0, 0);
                 ctx.lineTo(circle.radius * Math.cos(angle), circle.radius * Math.sin(angle));
@@ -426,7 +429,6 @@
             if (wallHits === level) counterColor = greenColor;
             else if (wallHits > level) counterColor = 'red';
 
-            // Draw wall hit counters (above, below, left, right)
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -440,7 +442,6 @@
             ctx.fillText(wallHits, circle.x - offset, circle.y); // Left
             ctx.fillText(wallHits, circle.x + offset, circle.y); // Right
 
-            // Draw level numbers (diagonal positions: 45°, 135°, 225°, 315°)
             ctx.fillStyle = greenColor;
             const diagonalOffset = offset * Math.sqrt(2) / 2;
             ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset); // Top-right
@@ -457,6 +458,7 @@
             if (isPaused) return;
 
             const currentTime = Date.now();
+            const dt = 0.016; // Assume ~60 FPS for simplicity
 
             if (!circle.isDragging) {
                 circle.dy += gravity;
@@ -465,11 +467,14 @@
                 circle.dx *= friction;
                 circle.dy *= friction;
 
-                // Update rotation based on velocity
-                const speed = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
-                if (speed > 0.1) {
-                    circle.rotation += (circle.dx / circle.radius) * 0.016;
-                    circle.rotation %= 2 * Math.PI;
+                // Update rotation with angular velocity
+                circle.rotation += circle.angularVelocity * dt;
+                circle.rotation %= 2 * Math.PI;
+                circle.angularVelocity *= angularFriction;
+
+                // Rolling effect when moving horizontally
+                if (Math.abs(circle.dx) > 0.1) {
+                    circle.angularVelocity -= circle.dx / circle.radius; // Negative for clockwise roll with positive dx
                 }
 
                 const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
@@ -522,17 +527,29 @@
                 if (currentMap === 'rectangle') {
                     if (circle.x + circle.radius > canvas.width) {
                         circle.x = canvas.width - circle.radius;
+                        const oldDx = circle.dx;
                         circle.dx = -circle.dx * bounciness;
+                        // Add spin from vertical velocity on right wall
+                        circle.angularVelocity += circle.dy / circle.radius * 0.5;
                     } else if (circle.x - circle.radius < 0) {
                         circle.x = circle.radius;
+                        const oldDx = circle.dx;
                         circle.dx = -circle.dx * bounciness;
+                        // Add spin from vertical velocity on left wall
+                        circle.angularVelocity -= circle.dy / circle.radius * 0.5;
                     }
                     if (circle.y + circle.radius > canvas.height) {
                         circle.y = canvas.height - circle.radius;
+                        const oldDy = circle.dy;
                         circle.dy = -circle.dy * bounciness;
+                        // Add spin from horizontal velocity on bottom
+                        circle.angularVelocity -= circle.dx / circle.radius * 0.5;
                     } else if (circle.y - circle.radius < 0) {
                         circle.y = circle.radius;
+                        const oldDy = circle.dy;
                         circle.dy = -circle.dy * bounciness;
+                        // Add spin from horizontal velocity on top
+                        circle.angularVelocity += circle.dx / circle.radius * 0.5;
                     }
                 } else {
                     const centerX = canvas.width / 2;
@@ -544,8 +561,16 @@
                         circle.x = centerX + Math.cos(angle) * (radius - circle.radius);
                         circle.y = centerY + Math.sin(angle) * (radius - circle.radius);
                         const speed = Math.sqrt(circle.dx ** 2 + circle.dy ** 2);
-                        circle.dx = -Math.cos(angle) * speed * bounciness;
-                        circle.dy = -Math.sin(angle) * speed * bounciness;
+                        const normalX = Math.cos(angle);
+                        const normalY = Math.sin(angle);
+                        const dot = circle.dx * normalX + circle.dy * normalY;
+                        circle.dx = circle.dx - 2 * dot * normalX * bounciness;
+                        circle.dy = circle.dy - 2 * dot * normalY * bounciness;
+                        // Add spin based on tangential velocity
+                        const tangentX = -normalY;
+                        const tangentY = normalX;
+                        const tangentSpeed = circle.dx * tangentX + circle.dy * tangentY;
+                        circle.angularVelocity += tangentSpeed / circle.radius * 0.5;
                     }
                 }
             }
@@ -568,7 +593,8 @@
                 countdownOpacity = 1;
                 shownTexts.clear();
                 sighhhVisible = false;
-                circle.rotation = 0; // Reset rotation
+                circle.rotation = 0;
+                circle.angularVelocity = 0; // Reset angular velocity
             } else {
                 isCountingDown = true;
             }
@@ -683,6 +709,7 @@
                 circle.lastTime = Date.now();
                 circle.dx = 0;
                 circle.dy = 0;
+                circle.angularVelocity = 0; // Stop spinning when grabbed
                 trail.length = 0;
             }
         }
