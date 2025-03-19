@@ -303,7 +303,7 @@
             }
         }
 
-        function loadState(mode, map, event = null) {
+        function loadState(mode, map) {
             const key = `${mode}-${map}`;
             const state = gameStates[key];
             level = state.level;
@@ -325,33 +325,6 @@
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime;
-            }
-
-            // If there's an active touch or mouse event, snap circle to it
-            if (event) {
-                if (event.touches && event.touches.length > 0) {
-                    const pos = getMousePos(event);
-                    circle.x = pos.x;
-                    circle.y = pos.y;
-                    circle.lastX = pos.x;
-                    circle.lastY = pos.y;
-                    circle.lastTime = Date.now();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                    circle.isDragging = true;
-                    trail.length = 0;
-                } else if (event.buttons) { // Mouse button is pressed
-                    const pos = getMousePos(event);
-                    circle.x = pos.x;
-                    circle.y = pos.y;
-                    circle.lastX = pos.x;
-                    circle.lastY = pos.y;
-                    circle.lastTime = Date.now();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                    circle.isDragging = true;
-                    trail.length = 0;
-                }
             }
 
             if (mode === currentMode && map === currentMap && state.isPaused && state.trail && state.trail.length > 0) {
@@ -562,8 +535,8 @@
         function getMousePos(e) {
             const rect = canvas.getBoundingClientRect();
             return {
-                x: (e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.left,
-                y: (e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0)) - rect.top
+                x: (e.clientX || e.touches[0].clientX) - rect.left,
+                y: (e.clientY || e.touches[0].clientY) - rect.top
             };
         }
 
@@ -690,7 +663,7 @@
                 sighhhTimer = null;
             }
             shownTexts.clear();
-            loadState(currentMode, currentMap, e);
+            loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             updateDisplay();
         });
@@ -706,7 +679,7 @@
                 sighhhTimer = null;
             }
             shownTexts.clear();
-            loadState(currentMode, currentMap, e);
+            loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             updateDisplay();
         });
@@ -718,8 +691,18 @@
                 isPaused = false;
                 const key = `${currentMode}-${currentMap}`;
                 gameStates[key].isPaused = false;
-                // Reset isDragging if no active touches
-                if (e.touches.length === 0) {
+                // If was dragging when paused and there's an active touch, snap to it
+                if (circle.isDragging && e.touches.length > 0) {
+                    const pos = getMousePos(e);
+                    circle.x = pos.x;
+                    circle.y = pos.y;
+                    circle.lastX = pos.x;
+                    circle.lastY = pos.y;
+                    circle.lastTime = Date.now();
+                    circle.dx = 0;
+                    circle.dy = 0;
+                    trail.length = 0;
+                } else if (e.touches.length === 0) {
                     circle.isDragging = false;
                 }
                 if (gameStates[key].isCountingDown) {
@@ -746,7 +729,7 @@
         });
 
         // Keep click events for desktop compatibility
-        modeButton.addEventListener('click', (e) => {
+        modeButton.addEventListener('click', () => {
             saveState();
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             sighhhVisible = false;
@@ -755,12 +738,12 @@
                 sighhhTimer = null;
             }
             shownTexts.clear();
-            loadState(currentMode, currentMap, e);
+            loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             updateDisplay();
         });
 
-        mapButton.addEventListener('click', (e) => {
+        mapButton.addEventListener('click', () => {
             saveState();
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             sighhhVisible = false;
@@ -769,7 +752,7 @@
                 sighhhTimer = null;
             }
             shownTexts.clear();
-            loadState(currentMode, currentMap, e);
+            loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             updateDisplay();
         });
@@ -779,8 +762,18 @@
                 isPaused = false;
                 const key = `${currentMode}-${currentMap}`;
                 gameStates[key].isPaused = false;
-                // Reset isDragging for mouse input
-                if (!e.buttons) { // No mouse button pressed
+                // If was dragging when paused and mouse button is pressed, snap to it
+                if (circle.isDragging && e.buttons) {
+                    const pos = getMousePos(e);
+                    circle.x = pos.x;
+                    circle.y = pos.y;
+                    circle.lastX = pos.x;
+                    circle.lastY = pos.y;
+                    circle.lastTime = Date.now();
+                    circle.dx = 0;
+                    circle.dy = 0;
+                    trail.length = 0;
+                } else if (!e.buttons) {
                     circle.isDragging = false;
                 }
                 if (gameStates[key].isCountingDown) {
