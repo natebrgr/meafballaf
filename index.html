@@ -68,7 +68,8 @@
             border-radius: 5px;
             filter: drop-shadow(0 0 5px #fff);
             transition: background-color 0.5s ease;
-            pointer-events: auto; /* Ensure buttons can receive touch events */
+            z-index: 25; /* Higher z-index than canvas */
+            pointer-events: auto; /* Ensure buttons receive touch events */
         }
         button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
         #livesWindow, #hiScoreWindow {
@@ -132,7 +133,6 @@
             dx: 0,
             dy: 0,
             isDragging: false,
-            touchId: null, // Track which touch is dragging the circle
             lastX: 0,
             lastY: 0,
             lastTime: 0,
@@ -532,19 +532,18 @@
             }, 1000);
         }
 
-        function getTouchPos(e, touch) {
+        function getMousePos(e) {
             const rect = canvas.getBoundingClientRect();
             return {
-                x: touch.clientX - rect.left,
-                y: touch.clientY - rect.top
+                x: (e.clientX || e.touches[0].clientX) - rect.left,
+                y: (e.clientY || e.touches[0].clientY) - rect.top
             };
         }
 
         function handleTap(e) {
             if (isPaused) return;
             e.preventDefault();
-            const touch = e.type === 'touchstart' ? e.touches[0] : e;
-            const pos = getTouchPos(e, touch);
+            const pos = getMousePos(e);
             const dist = Math.sqrt(
                 (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
             );
@@ -614,61 +613,103 @@
         function startDragging(e) {
             if (isPaused) return;
             e.preventDefault();
-            for (let i = 0; i < e.touches.length; i++) {
-                const touch = e.touches[i];
-                const pos = getTouchPos(e, touch);
-                const dist = Math.sqrt(
-                    (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
-                );
-                if (dist < circle.radius && !circle.isDragging) {
-                    circle.isDragging = true;
-                    circle.touchId = touch.identifier;
-                    circle.lastX = pos.x;
-                    circle.lastY = pos.y;
-                    circle.lastTime = Date.now();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                    trail.length = 0;
-                    break;
-                }
+            const pos = getMousePos(e);
+            const dist = Math.sqrt(
+                (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
+            );
+            if (dist < circle.radius) {
+                circle.isDragging = true;
+                circle.lastX = pos.x;
+                circle.lastY = pos.y;
+                circle.lastTime = Date.now();
+                circle.dx = 0;
+                circle.dy = 0;
+                trail.length = 0;
             }
         }
 
         function drag(e) {
-            if (isPaused || !circle.isDragging) return;
+            if (isPaused) return;
             e.preventDefault();
-            for (let i = 0; i < e.touches.length; i++) {
-                const touch = e.touches[i];
-                if (touch.identifier === circle.touchId) {
-                    const pos = getTouchPos(e, touch);
-                    circle.x = pos.x;
-                    circle.y = pos.y;
-                    const currentTime = Date.now();
-                    const dt = (currentTime - circle.lastTime) / 1000;
-                    if (dt > 0) {
-                        circle.dx = (pos.x - circle.lastX) / dt;
-                        circle.dy = (pos.y - circle.lastY) / dt;
-                    }
-                    circle.lastX = pos.x;
-                    circle.lastY = pos.y;
-                    circle.lastTime = currentTime;
-                    break;
+            if (circle.isDragging) {
+                const pos = getMousePos(e);
+                circle.x = pos.x;
+                circle.y = pos.y;
+                const currentTime = Date.now();
+                const dt = (currentTime - circle.lastTime) / 1000;
+                if (dt > 0) {
+                    circle.dx = (pos.x - circle.lastX) / dt;
+                    circle.dy = (pos.y - circle.lastY) / dt;
                 }
+                circle.lastX = pos.x;
+                circle.lastY = pos.y;
+                circle.lastTime = currentTime;
             }
         }
 
-        function stopDragging(e) {
-            if (isPaused || !circle.isDragging) return;
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                if (touch.identifier === circle.touchId) {
-                    circle.isDragging = false;
-                    circle.touchId = null;
-                    break;
-                }
-            }
+        function stopDragging() {
+            if (isPaused) return;
+            circle.isDragging = false;
         }
 
+        modeButton.addEventListener('touchstart', (e) => {
+            e.stopPropagation(); // Prevent canvas from consuming the touch
+            saveState();
+            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+            sighhhVisible = false;
+            if (sighhhTimer) {
+                clearTimeout(sighhhTimer);
+                sighhhTimer = null;
+            }
+            shownTexts.clear();
+            loadState(currentMode, currentMap);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            updateDisplay();
+        });
+
+        mapButton.addEventListener('touchstart', (e) => {
+            e.stopPropagation(); // Prevent canvas from consuming the touch
+            saveState();
+            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+            sighhhVisible = false;
+            if (sighhhTimer) {
+                clearTimeout(sighhhTimer);
+                sighhhTimer = null;
+            }
+            shownTexts.clear();
+            loadState(currentMode, currentMap);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            updateDisplay();
+        });
+
+        playButton.addEventListener('touchstart', (e) => {
+            e.stopPropagation(); // Prevent canvas from consuming the touch
+            if (isPaused) {
+                isPaused = false;
+                const key = `${currentMode}-${currentMap}`;
+                gameStates[key].isPaused = false;
+                if (gameStates[key].isCountingDown) {
+                    startCountdown(true);
+                }
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            } else {
+                isPaused = true;
+                saveState();
+            }
+            updateDisplay();
+        });
+
+        livesDisplay.addEventListener('touchstart', (e) => {
+            e.stopPropagation(); // Prevent canvas from consuming the touch
+            livesWindow.classList.add('active');
+        });
+
+        hiScoreDisplay.addEventListener('touchstart', (e) => {
+            e.stopPropagation(); // Prevent canvas from consuming the touch
+            hiScoreWindow.classList.add('active');
+        });
+
+        // Keep click events for desktop compatibility
         modeButton.addEventListener('click', () => {
             saveState();
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
@@ -730,45 +771,20 @@
             }
         });
 
-        // Mouse events for desktop
-        canvas.addEventListener('mousedown', (e) => {
-            if (isPaused) return;
-            e.preventDefault();
-            const pos = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
-            const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
-            if (dist < circle.radius) {
-                circle.isDragging = true;
-                circle.lastX = pos.x;
-                circle.lastY = pos.y;
-                circle.lastTime = Date.now();
-                circle.dx = 0;
-                circle.dy = 0;
-                trail.length = 0;
+        document.addEventListener('touchstart', (e) => {
+            if (e.target !== livesDisplay && livesWindow.classList.contains('active')) {
+                livesWindow.classList.remove('active');
+            }
+            if (e.target !== hiScoreDisplay && hiScoreWindow.classList.contains('active')) {
+                hiScoreWindow.classList.remove('active');
             }
         });
-        canvas.addEventListener('mousemove', (e) => {
-            if (isPaused || !circle.isDragging) return;
-            e.preventDefault();
-            const pos = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
-            circle.x = pos.x;
-            circle.y = pos.y;
-            const currentTime = Date.now();
-            const dt = (currentTime - circle.lastTime) / 1000;
-            if (dt > 0) {
-                circle.dx = (pos.x - circle.lastX) / dt;
-                circle.dy = (pos.y - circle.lastY) / dt;
-            }
-            circle.lastX = pos.x;
-            circle.lastY = pos.y;
-            circle.lastTime = currentTime;
-        });
-        canvas.addEventListener('mouseup', () => {
-            if (isPaused) return;
-            circle.isDragging = false;
-        });
+
+        canvas.addEventListener('mousedown', startDragging);
+        canvas.addEventListener('mousemove', drag);
+        canvas.addEventListener('mouseup', stopDragging);
         canvas.addEventListener('click', handleTap);
 
-        // Touch events for mobile with multi-touch support
         canvas.addEventListener('touchstart', (e) => {
             startDragging(e);
             handleTap(e);
