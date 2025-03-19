@@ -261,11 +261,13 @@
                 currentSighhhText = text;
                 sighhhVisible = true;
                 updateDisplay();
-                clearTimeout(sighhhTimer);
+                if (sighhhTimer) {
+                    clearTimeout(sighhhTimer);
+                }
                 sighhhTimer = setTimeout(() => {
                     sighhhVisible = false;
                     updateDisplay();
-                }, 2000); // 2 seconds
+                }, 2000);
             }
         }
 
@@ -505,7 +507,7 @@
                 isTrackingHits = true;
                 countdownOpacity = 1;
                 shownTexts.clear();
-                sighhhVisible = false; // Reset text on new game
+                sighhhVisible = false;
             } else {
                 isCountingDown = true;
             }
@@ -628,15 +630,29 @@
         modeButton.addEventListener('click', () => {
             saveState();
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+            sighhhVisible = false;
+            if (sighhhTimer) {
+                clearTimeout(sighhhTimer);
+                sighhhTimer = null;
+            }
+            shownTexts.clear();
             loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            updateDisplay();
         });
 
         mapButton.addEventListener('click', () => {
             saveState();
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+            sighhhVisible = false;
+            if (sighhhTimer) {
+                clearTimeout(sighhhTimer);
+                sighhhTimer = null;
+            }
+            shownTexts.clear();
             loadState(currentMode, currentMap);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            updateDisplay();
         });
 
         playButton.addEventListener('click', () => {
