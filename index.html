@@ -546,37 +546,62 @@
                 (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
             );
             if (dist < circle.radius) {
-                if (isTrackingHits && !isCountingDown) {
-                    isTrackingHits = false;
-                    const previousWallHits = wallHits;
-                    const previousLives = lives;
-                    if (wallHits === level) {
-                        const completedLevel = level;
-                        level++;
-                        if (currentMode === 'survival') {
-                            lives = 3;
-                            showText('yee haw BII');
+                if (isTrackingHits) {
+                    if (isCountingDown) {
+                        // Check for win condition during countdown
+                        if (wallHits === level) {
+                            isTrackingHits = false;
+                            isCountingDown = false;
+                            clearInterval(countdownInterval);
+                            countdownInterval = null;
+                            countdownOpacity = 0;
+                            countdownDisplay.style.opacity = countdownOpacity;
+                            const completedLevel = level;
+                            level++;
+                            if (currentMode === 'survival') {
+                                lives = 3;
+                                showText('yee haw BII');
+                            }
+                            if (completedLevel > hiScore) hiScore = completedLevel;
+                            wallHits = 0;
+                            wallHitsDisplay.style.visibility = 'hidden';
+                            saveState();
+                            updateDisplay();
+                            startCountdown();
                         }
-                        if (completedLevel > hiScore) hiScore = completedLevel;
-                    } else if (currentMode === 'survival') {
-                        lives--;
-                        let text = '';
-                        if (previousLives === 3 && lives === 2) {
-                            text = 'sighhh';
-                        } else if (previousLives === 2 && lives === 1) {
-                            text = 'SighhhAFF';
-                        } else if (lives <= 0) {
-                            level = 1;
-                            lives = 3;
-                            text = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
+                    } else {
+                        // Normal gameplay win/loss logic
+                        isTrackingHits = false;
+                        const previousWallHits = wallHits;
+                        const previousLives = lives;
+                        if (wallHits === level) {
+                            const completedLevel = level;
+                            level++;
+                            if (currentMode === 'survival') {
+                                lives = 3;
+                                showText('yee haw BII');
+                            }
+                            if (completedLevel > hiScore) hiScore = completedLevel;
+                        } else if (currentMode === 'survival') {
+                            lives--;
+                            let text = '';
+                            if (previousLives === 3 && lives === 2) {
+                                text = 'sighhh';
+                            } else if (previousLives === 2 && lives === 1) {
+                                text = 'SighhhAFF';
+                            } else if (lives <= 0) {
+                                level = 1;
+                                lives = 3;
+                                text = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
+                            }
+                            if (text) showText(text);
                         }
-                        if (text) showText(text);
+                        wallHits = 0;
+                        wallHitsDisplay.style.visibility = 'hidden';
+                        saveState();
+                        updateDisplay();
+                        startCountdown();
                     }
-                    wallHits = 0;
-                    wallHitsDisplay.style.visibility = 'hidden';
-                    saveState();
-                    updateDisplay();
-                    startCountdown();
                 } else if (!isCountingDown) {
                     wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
