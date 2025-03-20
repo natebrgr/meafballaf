@@ -209,6 +209,7 @@
         let sighhhTimer = null;
 
         let holdTimer = null;
+        let buttonActivated = false; // Persistent flag for button activation state
 
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
@@ -745,6 +746,7 @@
                 circle.dx = 0;
                 circle.dy = 0;
                 if (!isPaused) trail.length = 0;
+                buttonActivated = false; // Reset on new drag start
                 console.log('Dragging started, touchId:', circle.dragTouchId);
             }
         }
@@ -787,7 +789,6 @@
 
             const screenPos = getScreenPos(e, circle.dragTouchId);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
-            let buttonActivated = false; // Track if button was activated in this drag
 
             if (target === playButton) {
                 if (!holdTimer && !buttonActivated) { // Only start timer if not already activated
@@ -819,12 +820,17 @@
                         holdTimer = null;
                     }, 1000);
                 }
-            } else if (holdTimer) {
-                clearTimeout(holdTimer);
-                holdTimer = null;
-                playButton.classList.remove('glow-green', 'glow-red');
-                playButton.classList.add('recede');
-                buttonActivated = false; // Reset when moving off
+            } else {
+                if (holdTimer) {
+                    clearTimeout(holdTimer);
+                    holdTimer = null;
+                    playButton.classList.remove('glow-green', 'glow-red');
+                    playButton.classList.add('recede');
+                }
+                if (buttonActivated) {
+                    buttonActivated = false; // Reset when leaving the button
+                    console.log('Button activation reset by leaving button');
+                }
             }
 
             if (isPaused) saveState();
@@ -855,30 +861,30 @@
                 screenPos.y <= canvasRect.bottom
             );
 
-            console.log('Stop dragging, target:', target.id, 'isOverCanvas:', isOverCanvas, 'isPaused:', isPaused);
+            console.log('Stop dragging, target:', target.id, 'isOverCanvas:', isOverCanvas, 'isPaused:', isPaused, 'buttonActivated:', buttonActivated);
 
-            if (target === playButton || target === modeButton || target === mapButton) {
+            if (target === playButton && !buttonActivated) { // Only click if not activated by hold
                 target.click();
-                circle.isDragging = false;
-                circle.dragTouchId = null;
-                if (holdTimer) {
-                    clearTimeout(holdTimer);
-                    holdTimer = null;
-                    playButton.classList.remove('glow-green', 'glow-red');
-                    playButton.classList.add('recede');
-                }
+                console.log('Button clicked via drag release (not overridden by hold)');
+            } else if (target === modeButton || target === mapButton) {
+                target.click();
                 console.log('Button clicked via drag:', target.id);
             } else if (isOverCanvas && !isPaused) {
-                circle.isDragging = false;
-                circle.dragTouchId = null;
                 console.log('Circle thrown, dx:', circle.dx, 'dy:', circle.dy);
             } else {
-                circle.isDragging = false;
-                circle.dragTouchId = null;
                 console.log('Dragging stopped elsewhere');
             }
 
+            circle.isDragging = false;
+            circle.dragTouchId = null;
+            if (holdTimer) {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+                playButton.classList.remove('glow-green', 'glow-red');
+                playButton.classList.add('recede');
+            }
             if (!circle.isDragging && isPaused) saveState();
+            if (target !== playButton) buttonActivated = false; // Reset if finger lifts off elsewhere
         }
 
         function handleMultiTouchDrop(e) {
