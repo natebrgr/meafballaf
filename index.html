@@ -134,7 +134,7 @@
             dx: 0,
             dy: 0,
             isDragging: false,
-            dragTouchId: null, // Track specific touch
+            dragTouchId: null,
             wasDraggingWhenPaused: false,
             lastX: 0,
             lastY: 0,
@@ -640,7 +640,7 @@
             if (isPaused) return;
             const pos = getMousePos(e);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
-            if (dist < circle.radius) {
+            if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
                 console.log('Circle tapped');
                 e.preventDefault();
                 if (isTrackingHits) {
@@ -783,7 +783,7 @@
         function stopDragging(e) {
             if (!circle.isDragging) return;
             let touchId = circle.dragTouchId;
-            if (e.touches && e.touches.length > 0) return; // Ignore if other touches remain
+            if (e.touches && e.touches.length > 0) return;
             if (e.changedTouches) {
                 let matched = false;
                 for (let i = 0; i < e.changedTouches.length; i++) {
@@ -792,7 +792,7 @@
                         break;
                     }
                 }
-                if (!matched) return; // Ignore if not the dragging touch
+                if (!matched) return;
             }
 
             const screenPos = getScreenPos(e, touchId);
@@ -827,6 +827,33 @@
             }
 
             if (!circle.isDragging && isPaused) saveState();
+        }
+
+        function handleMultiTouchDrop(e) {
+            if (!circle.isDragging || isPaused || e.touches.length <= 1) return;
+            const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
+            if (dragTouchIndex === -1) return;
+
+            for (let i = 0; i < e.touches.length; i++) {
+                if (i === dragTouchIndex) continue;
+                const screenPos = { x: e.touches[i].clientX, y: e.touches[i].clientY };
+                const canvasRect = canvas.getBoundingClientRect();
+                const isOverCanvas = (
+                    screenPos.x >= canvasRect.left &&
+                    screenPos.x <= canvasRect.right &&
+                    screenPos.y >= canvasRect.top &&
+                    screenPos.y <= canvasRect.bottom
+                );
+                const target = document.elementFromPoint(screenPos.x, screenPos.y);
+                if (isOverCanvas && target === canvas) {
+                    circle.isDragging = false;
+                    circle.dragTouchId = null;
+                    circle.dx = 0;
+                    circle.dy = 0;
+                    console.log('Circle dropped via multi-touch on canvas');
+                    return;
+                }
+            }
         }
 
         modeButton.addEventListener('click', () => {
@@ -921,8 +948,12 @@
         canvas.addEventListener('touchstart', (e) => {
             startDragging(e);
             handleCircleTap(e);
+            handleMultiTouchDrop(e);
         });
-        canvas.addEventListener('touchmove', drag);
+        canvas.addEventListener('touchmove', (e) => {
+            drag(e);
+            handleMultiTouchDrop(e);
+        });
         canvas.addEventListener('touchend', stopDragging);
 
         document.addEventListener('mouseup', stopDragging);
