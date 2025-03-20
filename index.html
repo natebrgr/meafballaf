@@ -725,7 +725,6 @@
 
         function drag(e) {
             if (!circle.isDragging) return;
-            e.preventDefault();
             const pos = getMousePos(e, circle.dragTouchId);
 
             if (currentMap === 'rectangle') {
@@ -950,14 +949,33 @@
             handleCircleTap(e);
             handleMultiTouchDrop(e);
         });
-        canvas.addEventListener('touchmove', (e) => {
-            drag(e);
-            handleMultiTouchDrop(e);
-        });
+        canvas.addEventListener('touchmove', drag);
         canvas.addEventListener('touchend', stopDragging);
 
         document.addEventListener('mouseup', stopDragging);
         document.addEventListener('touchend', stopDragging);
+
+        // Add touchstart listeners to buttons to allow multi-touch activation
+        modeButton.addEventListener('touchstart', (e) => {
+            if (circle.isDragging && e.touches.length > 1) {
+                console.log('MODE button tapped during drag');
+                modeButton.click();
+            }
+        });
+
+        mapButton.addEventListener('touchstart', (e) => {
+            if (circle.isDragging && e.touches.length > 1) {
+                console.log('MAP button tapped during drag');
+                mapButton.click();
+            }
+        });
+
+        playButton.addEventListener('touchstart', (e) => {
+            if (circle.isDragging && e.touches.length > 1) {
+                console.log('PAUSE/RESUME button tapped during drag');
+                playButton.click();
+            }
+        });
 
         function animate() {
             updatePhysics();
