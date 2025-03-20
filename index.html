@@ -682,12 +682,12 @@
 
         function startDragging(e) {
             if (!isPaused || circle.wasDraggingWhenPaused) {
-                e.preventDefault();
                 const pos = getMousePos(e);
                 const dist = Math.sqrt(
                     (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
                 );
                 if (dist < circle.radius) {
+                    e.preventDefault();
                     circle.isDragging = true;
                     circle.lastX = pos.x;
                     circle.lastY = pos.y;
@@ -737,7 +737,8 @@
             circle.lastY = pos.y;
 
             const screenPos = getScreenPos(e);
-            if (document.elementFromPoint(screenPos.x, screenPos.y) === playButton && !holdTimer) {
+            const target = document.elementFromPoint(screenPos.x, screenPos.y);
+            if (target === playButton && !holdTimer) {
                 holdTimer = setTimeout(() => {
                     if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
                         playButton.click();
@@ -745,7 +746,7 @@
                     }
                     holdTimer = null;
                 }, 1000);
-            } else if (document.elementFromPoint(screenPos.x, screenPos.y) !== playButton && holdTimer) {
+            } else if (target !== playButton && holdTimer) {
                 clearTimeout(holdTimer);
                 holdTimer = null;
             }
@@ -773,10 +774,10 @@
                     clearTimeout(holdTimer);
                     holdTimer = null;
                 }
-            } else if (!isOverCanvas && !isPaused) {
-                circle.isDragging = false;
-            } else if (!isPaused) {
-                circle.isDragging = false;
+            } else if (isOverCanvas && !isPaused) {
+                circle.isDragging = false; // Throw the circle
+            } else if (!isOverCanvas) {
+                circle.isDragging = false; // Stop dragging outside canvas
             }
 
             if (!circle.isDragging && isPaused) saveState();
