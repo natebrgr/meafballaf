@@ -764,10 +764,23 @@
             if (target === playButton && !holdTimer) {
                 holdTimer = setTimeout(() => {
                     if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
-                        playButton.click();
-                        circle.isDragging = false;
-                        circle.dragTouchId = null;
-                        console.log('Hold activated PAUSE/RESUME');
+                        if (isPaused) {
+                            isPaused = false;
+                            circle.lastX = pos.x;
+                            circle.lastY = pos.y;
+                            circle.lastTime = Date.now();
+                            circle.dx = 0;
+                            circle.dy = 0;
+                            if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            console.log('Resumed via hold, maintaining drag');
+                        } else {
+                            circle.wasDraggingWhenPaused = circle.isDragging;
+                            isPaused = true;
+                            saveState();
+                            console.log('Paused via hold');
+                        }
+                        updateDisplay();
                     }
                     holdTimer = null;
                 }, 1000);
@@ -955,7 +968,6 @@
         document.addEventListener('mouseup', stopDragging);
         document.addEventListener('touchend', stopDragging);
 
-        // Add touchstart listeners to buttons to allow multi-touch activation
         modeButton.addEventListener('touchstart', (e) => {
             if (circle.isDragging && e.touches.length > 1) {
                 console.log('MODE button tapped during drag');
