@@ -32,7 +32,7 @@
             z-index: 5;
             background: transparent;
             filter: drop-shadow(0 0 5px #fff);
-            pointer-events: auto; /* Ensure canvas captures events */
+            pointer-events: auto;
         }
         #level, #countdown, #wallHits, #lives, #hiScore, #title, #sighhh {
             position: absolute;
@@ -70,7 +70,7 @@
             filter: drop-shadow(0 0 5px #fff);
             transition: background-color 0.5s ease;
             z-index: 25;
-            pointer-events: auto; /* Ensure buttons capture events */
+            pointer-events: auto;
         }
         button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
         #livesWindow, #hiScoreWindow {
@@ -742,15 +742,28 @@
             e.preventDefault();
             const screenPos = getScreenPos(e);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
-            circle.isDragging = false;
-            if (isPaused) saveState();
+            const canvasRect = canvas.getBoundingClientRect();
+            const isOverCanvas = (
+                screenPos.x >= canvasRect.left &&
+                screenPos.x <= canvasRect.right &&
+                screenPos.y >= canvasRect.top &&
+                screenPos.y <= canvasRect.bottom
+            );
+
             if (target === playButton) {
                 playButton.click();
+                circle.isDragging = false;
             } else if (target === modeButton) {
                 modeButton.click();
+                circle.isDragging = false;
             } else if (target === mapButton) {
                 mapButton.click();
+                circle.isDragging = false;
+            } else if (!isOverCanvas) {
+                circle.isDragging = false;
             }
+
+            if (!circle.isDragging && isPaused) saveState();
         }
 
         modeButton.addEventListener('click', () => {
