@@ -283,7 +283,6 @@
 
             wallHitsDisplay.textContent = `${wallHits}`;
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
-            wallHitsDisplay.style.color = wallHits === 0 ? '#e0e0e0' : wallHits === level ? '#00ff00' : 'red';
         }
 
         function showText(text) {
@@ -459,7 +458,7 @@
 
             const offset = circle.radius + 20;
             const greenColor = '#00ff00';
-            let counterColor = '#e0e0e0';
+            let counterColor = '#e0e0e0'; // Default white for wallHits < level
             if (wallHits === level) counterColor = greenColor;
             else if (wallHits > level) counterColor = 'red';
 
@@ -486,6 +485,9 @@
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
+
+            // Sync main wallHitsDisplay color
+            wallHitsDisplay.style.color = counterColor;
         }
 
         function updatePhysics() {
@@ -785,8 +787,10 @@
 
             const screenPos = getScreenPos(e, circle.dragTouchId);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
+            let buttonActivated = false; // Track if button was activated in this drag
+
             if (target === playButton) {
-                if (!holdTimer) {
+                if (!holdTimer && !buttonActivated) { // Only start timer if not already activated
                     playButton.classList.remove('glow-green', 'glow-red', 'recede');
                     playButton.classList.add(isPaused ? 'glow-green' : 'glow-red');
                     holdTimer = setTimeout(() => {
@@ -810,6 +814,7 @@
                                 console.log('Paused via hold');
                             }
                             updateDisplay();
+                            buttonActivated = true; // Mark as activated
                         }
                         holdTimer = null;
                     }, 1000);
@@ -819,6 +824,7 @@
                 holdTimer = null;
                 playButton.classList.remove('glow-green', 'glow-red');
                 playButton.classList.add('recede');
+                buttonActivated = false; // Reset when moving off
             }
 
             if (isPaused) saveState();
