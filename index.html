@@ -184,6 +184,9 @@
         let sighhhVisible = false;
         let sighhhTimer = null;
 
+        let holdTimer = null;
+        let holdStartTime = null;
+
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
             'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
@@ -603,8 +606,8 @@
 
         function getScreenPos(e) {
             return {
-                x: e.clientX || (e.changedTouches && e.changedTouches[0].clientX),
-                y: e.clientY || (e.changedTouches && e.changedTouches[0].clientY)
+                x: e.clientX || (e.touches && e.touches[0].clientX) || (e.changedTouches && e.changedTouches[0].clientX),
+                y: e.clientY || (e.touches && e.touches[0].clientY) || (e.changedTouches && e.changedTouches[0].clientY)
             };
         }
 
@@ -734,6 +737,27 @@
             circle.lastX = pos.x;
             circle.lastY = pos.y;
 
+            const screenPos = getScreenPos(e);
+            const target = document.elementFromPoint(screenPos.x, screenPos.y);
+            if (target === playButton) {
+                if (!holdStartTime) {
+                    holdStartTime = Date.now();
+                    holdTimer = setTimeout(() => {
+                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
+                            playButton.click();
+                            circle.isDragging = false;
+                            holdStartTime = null;
+                        }
+                    }, 1000);
+                }
+            } else {
+                if (holdTimer) {
+                    clearTimeout(holdTimer);
+                    holdTimer = null;
+                    holdStartTime = null;
+                }
+            }
+
             if (isPaused) saveState();
         }
 
@@ -753,14 +777,21 @@
             if (target === playButton) {
                 playButton.click();
                 circle.isDragging = false;
+                if (holdTimer) {
+                    clearTimeout(holdTimer);
+                    holdTimer = null;
+                    holdStartTime = null;
+                }
             } else if (target === modeButton) {
                 modeButton.click();
                 circle.isDragging = false;
             } else if (target === mapButton) {
                 mapButton.click();
                 circle.isDragging = false;
-            } else if (!isOverCanvas) {
+            } else if (!isOverCanvas && !isPaused) {
                 circle.isDragging = false;
+            } else {
+                circle.isDragging = !isPaused; // Stop dragging only if paused
             }
 
             if (!circle.isDragging && isPaused) saveState();
