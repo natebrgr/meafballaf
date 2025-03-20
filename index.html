@@ -43,6 +43,7 @@
         }
         #title { top: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5em; }
         #level { top: 40px; left: 50%; transform: translateX(-50%); font-size: 2em; }
+        #levelNumber { color: #00ff00; }
         #countdown { top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 4em; transition: opacity 0.5s ease; }
         #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
         #lives { top: 80px; font-size: 1em; }
@@ -73,6 +74,27 @@
             pointer-events: auto;
         }
         button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
+        #playButton.glow-green {
+            animation: glowGreen 1s linear forwards;
+        }
+        #playButton.glow-red {
+            animation: glowRed 1s linear forwards;
+        }
+        #playButton.recede {
+            animation: recedeGlow 0.2s linear forwards;
+        }
+        @keyframes glowGreen {
+            0% { box-shadow: 0 0 5px #00ff00; }
+            100% { box-shadow: 0 0 20px #00ff00; }
+        }
+        @keyframes glowRed {
+            0% { box-shadow: 0 0 5px red; }
+            100% { box-shadow: 0 0 20px red; }
+        }
+        @keyframes recedeGlow {
+            0% { box-shadow: 0 0 20px; }
+            100% { box-shadow: 0 0 0; }
+        }
         #livesWindow, #hiScoreWindow {
             position: absolute;
             top: 50%;
@@ -93,7 +115,7 @@
 </head>
 <body>
     <div id="title">Survival Mode</div>
-    <div id="level">Level: 1</div>
+    <div id="level">Level: <span id="levelNumber">1</span></div>
     <div id="countdown" style="opacity: 0;"></div>
     <div id="wallHits" style="visibility: hidden;">0</div>
     <div id="livesCount">3</div>
@@ -111,6 +133,7 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const levelDisplay = document.getElementById('level');
+        const levelNumber = document.getElementById('levelNumber');
         const countdownDisplay = document.getElementById('countdown');
         const wallHitsDisplay = document.getElementById('wallHits');
         const livesDisplay = document.getElementById('lives');
@@ -243,7 +266,7 @@
         window.addEventListener('resize', setCanvasSize);
 
         function updateDisplay() {
-            levelDisplay.textContent = `Level: ${level}`;
+            levelNumber.textContent = `${level}`;
             livesDisplay.textContent = 'LIVES';
             livesCount.textContent = lives === Infinity ? '∞' : lives;
             hiScoreDisplay.textContent = 'HI SCORE';
@@ -260,6 +283,7 @@
 
             wallHitsDisplay.textContent = `${wallHits}`;
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
+            wallHitsDisplay.style.color = wallHits === 0 ? '#e0e0e0' : wallHits === level ? '#00ff00' : 'red';
         }
 
         function showText(text) {
@@ -761,32 +785,40 @@
 
             const screenPos = getScreenPos(e, circle.dragTouchId);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
-            if (target === playButton && !holdTimer) {
-                holdTimer = setTimeout(() => {
-                    if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
-                        if (isPaused) {
-                            isPaused = false;
-                            circle.lastX = pos.x;
-                            circle.lastY = pos.y;
-                            circle.lastTime = Date.now();
-                            circle.dx = 0;
-                            circle.dy = 0;
-                            if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
-                            console.log('Resumed via hold, maintaining drag');
-                        } else {
-                            circle.wasDraggingWhenPaused = circle.isDragging;
-                            isPaused = true;
-                            saveState();
-                            console.log('Paused via hold');
+            if (target === playButton) {
+                if (!holdTimer) {
+                    playButton.classList.remove('glow-green', 'glow-red', 'recede');
+                    playButton.classList.add(isPaused ? 'glow-green' : 'glow-red');
+                    holdTimer = setTimeout(() => {
+                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
+                            playButton.classList.remove('glow-green', 'glow-red');
+                            playButton.classList.add('recede');
+                            if (isPaused) {
+                                isPaused = false;
+                                circle.lastX = pos.x;
+                                circle.lastY = pos.y;
+                                circle.lastTime = Date.now();
+                                circle.dx = 0;
+                                circle.dy = 0;
+                                if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                console.log('Resumed via hold, maintaining drag');
+                            } else {
+                                circle.wasDraggingWhenPaused = circle.isDragging;
+                                isPaused = true;
+                                saveState();
+                                console.log('Paused via hold');
+                            }
+                            updateDisplay();
                         }
-                        updateDisplay();
-                    }
-                    holdTimer = null;
-                }, 1000);
-            } else if (target !== playButton && holdTimer) {
+                        holdTimer = null;
+                    }, 1000);
+                }
+            } else if (holdTimer) {
                 clearTimeout(holdTimer);
                 holdTimer = null;
+                playButton.classList.remove('glow-green', 'glow-red');
+                playButton.classList.add('recede');
             }
 
             if (isPaused) saveState();
@@ -826,6 +858,8 @@
                 if (holdTimer) {
                     clearTimeout(holdTimer);
                     holdTimer = null;
+                    playButton.classList.remove('glow-green', 'glow-red');
+                    playButton.classList.add('recede');
                 }
                 console.log('Button clicked via drag:', target.id);
             } else if (isOverCanvas && !isPaused) {
@@ -922,6 +956,12 @@
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
                 saveState();
+            }
+            if (holdTimer) {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+                playButton.classList.remove('glow-green', 'glow-red');
+                playButton.classList.add('recede');
             }
             updateDisplay();
         });
