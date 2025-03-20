@@ -739,23 +739,20 @@
 
             const screenPos = getScreenPos(e);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
-            if (target === playButton) {
-                if (!holdStartTime) {
-                    holdStartTime = Date.now();
-                    holdTimer = setTimeout(() => {
-                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
-                            playButton.click();
-                            circle.isDragging = false;
-                            holdStartTime = null;
-                        }
-                    }, 1000);
-                }
-            } else {
-                if (holdTimer) {
-                    clearTimeout(holdTimer);
-                    holdTimer = null;
-                    holdStartTime = null;
-                }
+            if (target === playButton && !holdTimer) {
+                holdStartTime = Date.now();
+                holdTimer = setTimeout(() => {
+                    if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
+                        playButton.click();
+                        circle.isDragging = false;
+                        holdTimer = null;
+                        holdStartTime = null;
+                    }
+                }, 1000);
+            } else if (target !== playButton && holdTimer) {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+                holdStartTime = null;
             }
 
             if (isPaused) saveState();
@@ -774,24 +771,16 @@
                 screenPos.y <= canvasRect.bottom
             );
 
-            if (target === playButton) {
-                playButton.click();
+            if (target === playButton || target === modeButton || target === mapButton) {
+                target.click();
                 circle.isDragging = false;
-                if (holdTimer) {
+                if (target === playButton && holdTimer) {
                     clearTimeout(holdTimer);
                     holdTimer = null;
                     holdStartTime = null;
                 }
-            } else if (target === modeButton) {
-                modeButton.click();
+            } else if (!isOverCanvas) {
                 circle.isDragging = false;
-            } else if (target === mapButton) {
-                mapButton.click();
-                circle.isDragging = false;
-            } else if (!isOverCanvas && !isPaused) {
-                circle.isDragging = false;
-            } else {
-                circle.isDragging = !isPaused; // Stop dragging only if paused
             }
 
             if (!circle.isDragging && isPaused) saveState();
