@@ -48,7 +48,14 @@
         #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
         #lives { top: 80px; font-size: 1em; }
         #hiScore { top: 80px; font-size: 1em; }
-        #sighhh { left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; text-shadow: 0 0 10px #ff0000; }
+        #sighhh { 
+            left: 50%; 
+            transform: translateX(-50%); 
+            font-size: 2em; 
+            visibility: hidden; 
+            text-shadow: 0 0 10px #ff0000; 
+        }
+        #sighhh.yee-haw { text-shadow: 0 0 10px #00ff00; } /* Green glow for yee haw BII */
         #livesCount, #hiScoreCount {
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
@@ -74,18 +81,10 @@
             pointer-events: auto;
         }
         button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
-        #playButton.glow-green {
-            animation: glowGreen 1s linear forwards;
-        }
-        #playButton.glow-red {
-            animation: glowRed 1s linear forwards;
-        }
-        #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white {
-            animation: glowWhite 1s linear forwards;
-        }
-        #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede {
-            animation: recedeGlow 0.2s linear forwards;
-        }
+        #playButton.glow-green { animation: glowGreen 1s linear forwards; }
+        #playButton.glow-red { animation: glowRed 1s linear forwards; }
+        #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white { animation: glowWhite 1s linear forwards; }
+        #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede { animation: recedeGlow 0.2s linear forwards; }
         @keyframes glowGreen {
             0% { box-shadow: 0 0 5px #00ff00; }
             100% { box-shadow: 0 0 20px #00ff00; }
@@ -116,7 +115,7 @@
             transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.5s ease;
             z-index: 20;
             filter: drop-shadow(0 0 5px #fff);
-            pointer-events: auto; /* Ensure clickable */
+            pointer-events: auto;
         }
         #livesWindow.active, #hiScoreWindow.active { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     </style>
@@ -289,6 +288,7 @@
 
             sighhhDisplay.textContent = currentSighhhText;
             sighhhDisplay.style.visibility = sighhhVisible ? 'visible' : 'hidden';
+            sighhhDisplay.classList.toggle('yee-haw', currentSighhhText === 'yee haw BII');
 
             wallHitsDisplay.textContent = `${wallHits}`;
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
@@ -551,7 +551,7 @@
                             if (isTrackingHits) {
                                 wallHits++;
                                 if (currentMode === 'survival' && wallHits > level) {
-                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
+                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'sigh me to Fleep';
                                     showText(text);
                                 }
                             }
@@ -722,7 +722,7 @@
                             } else if (lives <= 0) {
                                 level = 1;
                                 lives = 3;
-                                text = 'SIGHHH me to FLEEP';
+                                text = 'sigh me to Fleep';
                             }
                             if (text) showText(text);
                         }
@@ -756,6 +756,14 @@
                 buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
                 console.log('Dragging started, touchId:', circle.dragTouchId);
             }
+        }
+
+        function toggleWindow(windowToToggle) {
+            const otherWindow = windowToToggle === livesWindow ? hiScoreWindow : livesWindow;
+            if (otherWindow.classList.contains('active')) {
+                otherWindow.classList.remove('active');
+            }
+            windowToToggle.classList.toggle('active');
         }
 
         function drag(e) {
@@ -833,7 +841,7 @@
                     playButton.classList.remove('glow-green', 'glow-red');
                     playButton.classList.add('recede');
                 }
-                if (buttonActivated.play && target !== playButton) buttonActivated.play = false; // Reset when off button
+                if (buttonActivated.play && target !== playButton) buttonActivated.play = false;
             }
 
             // Mode Button
@@ -913,7 +921,7 @@
                         if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === livesDisplay) {
                             livesDisplay.classList.remove('glow-white');
                             livesDisplay.classList.add('recede');
-                            livesWindow.classList.toggle('active');
+                            toggleWindow(livesWindow);
                             buttonActivated.lives = true;
                         }
                         holdTimers.lives = null;
@@ -938,7 +946,7 @@
                         if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === hiScoreDisplay) {
                             hiScoreDisplay.classList.remove('glow-white');
                             hiScoreDisplay.classList.add('recede');
-                            hiScoreWindow.classList.toggle('active');
+                            toggleWindow(hiScoreWindow);
                             buttonActivated.hiScore = true;
                         }
                         holdTimers.hiScore = null;
@@ -991,9 +999,9 @@
             } else if (target === mapButton && !buttonActivated.map) {
                 target.click();
             } else if (target === livesDisplay && !buttonActivated.lives) {
-                livesWindow.classList.toggle('active');
+                toggleWindow(livesWindow);
             } else if (target === hiScoreDisplay && !buttonActivated.hiScore) {
-                hiScoreWindow.classList.toggle('active');
+                toggleWindow(hiScoreWindow);
             } else if (isOverCanvas && !isPaused) {
                 console.log('Circle thrown, dx:', circle.dx, 'dy:', circle.dy);
             }
@@ -1028,10 +1036,10 @@
                 const screenPos = { x: e.touches[i].clientX, y: e.touches[i].clientY };
                 const target = document.elementFromPoint(screenPos.x, screenPos.y);
                 if (target === livesDisplay) {
-                    livesWindow.classList.toggle('active');
+                    toggleWindow(livesWindow);
                     console.log('Lives tapped via multi-touch');
                 } else if (target === hiScoreDisplay) {
-                    hiScoreWindow.classList.toggle('active');
+                    toggleWindow(hiScoreWindow);
                     console.log('Hi Score tapped via multi-touch');
                 } else {
                     const canvasRect = canvas.getBoundingClientRect();
@@ -1112,11 +1120,11 @@
         });
 
         livesDisplay.addEventListener('click', () => {
-            livesWindow.classList.toggle('active');
+            if (!circle.isDragging) toggleWindow(livesWindow);
         });
 
         hiScoreDisplay.addEventListener('click', () => {
-            hiScoreWindow.classList.toggle('active');
+            if (!circle.isDragging) toggleWindow(hiScoreWindow);
         });
 
         document.addEventListener('click', (e) => {
@@ -1177,14 +1185,14 @@
         livesDisplay.addEventListener('touchstart', (e) => {
             if (circle.isDragging && e.touches.length > 1) {
                 console.log('LIVES button tapped during drag');
-                livesWindow.classList.toggle('active');
+                toggleWindow(livesWindow);
             }
         });
 
         hiScoreDisplay.addEventListener('touchstart', (e) => {
             if (circle.isDragging && e.touches.length > 1) {
                 console.log('HI SCORE button tapped during drag');
-                hiScoreWindow.classList.toggle('active');
+                toggleWindow(hiScoreWindow);
             }
         });
 
