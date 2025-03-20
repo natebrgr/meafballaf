@@ -51,11 +51,17 @@
         #sighhh { 
             left: 50%; 
             transform: translateX(-50%); 
-            font-size: 2em; 
+            font-size: 1em; /* Reduced from 2em */
             visibility: hidden; 
             text-shadow: 0 0 10px #ff0000; 
+            z-index: 10;
         }
-        #sighhh.yee-haw { text-shadow: 0 0 10px #00ff00; } /* Green glow for yee haw BII */
+        #sighhh.yee-haw { text-shadow: 0 0 10px #00ff00; }
+        #fleepSpan { 
+            cursor: pointer; 
+            display: inline-block; 
+            pointer-events: auto; 
+        }
         #livesCount, #hiScoreCount {
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
@@ -118,6 +124,29 @@
             pointer-events: auto;
         }
         #livesWindow.active, #hiScoreWindow.active { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        #fleepMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            color: #e0e0e0;
+            text-shadow: 0 0 10px #ff0000;
+            opacity: 0;
+            z-index: 30;
+            pointer-events: none;
+        }
+        #blackOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0);
+            z-index: 25;
+            pointer-events: none;
+            transition: background 1s ease;
+        }
     </style>
 </head>
 <body>
@@ -135,7 +164,9 @@
     <button id="playButton">PAUSE</button>
     <div id="livesWindow">MEAF yourself Leroy</div>
     <div id="hiScoreWindow">eat my MEAF LERoYYY!</div>
-    <div id="sighhh">sighhh</div>
+    <div id="sighhh"></div>
+    <div id="fleepMessage">Fleep has risen..</div>
+    <div id="blackOverlay"></div>
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -154,6 +185,8 @@
         const livesWindow = document.getElementById('livesWindow');
         const hiScoreWindow = document.getElementById('hiScoreWindow');
         const sighhhDisplay = document.getElementById('sighhh');
+        const fleepMessage = document.getElementById('fleepMessage');
+        const blackOverlay = document.getElementById('blackOverlay');
 
         const borderWidth = 2;
 
@@ -286,9 +319,16 @@
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
 
-            sighhhDisplay.textContent = currentSighhhText;
+            sighhhDisplay.innerHTML = currentSighhhText === 'SIGHH me to FLEEP' 
+                ? 'SIGHH me to <span id="fleepSpan">FLEEP</span>' 
+                : currentSighhhText;
             sighhhDisplay.style.visibility = sighhhVisible ? 'visible' : 'hidden';
             sighhhDisplay.classList.toggle('yee-haw', currentSighhhText === 'yee haw BII');
+
+            const fleepSpan = document.getElementById('fleepSpan');
+            if (fleepSpan && !fleepSpan.onclick) {
+                fleepSpan.onclick = triggerFleepSequence;
+            }
 
             wallHitsDisplay.textContent = `${wallHits}`;
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
@@ -306,6 +346,38 @@
                     updateDisplay();
                 }, 2000);
             }
+        }
+
+        function triggerFleepSequence() {
+            isPaused = true; // Pause game during sequence
+            // Fade to black (1s)
+            blackOverlay.style.transition = 'background 1s ease';
+            blackOverlay.style.background = 'rgba(0, 0, 0, 1)';
+            
+            setTimeout(() => {
+                // Show "Fleep has risen.." (1s fade in)
+                fleepMessage.style.transition = 'opacity 1s ease';
+                fleepMessage.style.opacity = '1';
+                
+                setTimeout(() => {
+                    // Hold for 1s
+                    setTimeout(() => {
+                        // Fade out text (1s)
+                        fleepMessage.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            // Fade back to normal (1s)
+                            blackOverlay.style.background = 'rgba(0, 0, 0, 0)';
+                            
+                            setTimeout(() => {
+                                isPaused = false; // Resume game
+                                blackOverlay.style.transition = ''; // Reset transition
+                                fleepMessage.style.transition = '';
+                            }, 1000);
+                        }, 1000);
+                    }, 1000);
+                }, 1000);
+            }, 1000);
         }
 
         function constrainCircle() {
@@ -551,7 +623,7 @@
                             if (isTrackingHits) {
                                 wallHits++;
                                 if (currentMode === 'survival' && wallHits > level) {
-                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'sigh me to Fleep';
+                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHH me to FLEEP';
                                     showText(text);
                                 }
                             }
@@ -722,7 +794,7 @@
                             } else if (lives <= 0) {
                                 level = 1;
                                 lives = 3;
-                                text = 'sigh me to Fleep';
+                                text = 'SIGHH me to FLEEP';
                             }
                             if (text) showText(text);
                         }
@@ -805,7 +877,6 @@
             const screenPos = getScreenPos(e, circle.dragTouchId);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
 
-            // Play Button
             if (target === playButton) {
                 if (!holdTimers.play && !buttonActivated.play) {
                     playButton.classList.remove('glow-green', 'glow-red', 'recede');
@@ -844,7 +915,6 @@
                 if (buttonActivated.play && target !== playButton) buttonActivated.play = false;
             }
 
-            // Mode Button
             if (target === modeButton) {
                 if (!holdTimers.mode && !buttonActivated.mode) {
                     modeButton.classList.remove('glow-white', 'recede');
@@ -878,7 +948,6 @@
                 if (buttonActivated.mode && target !== modeButton) buttonActivated.mode = false;
             }
 
-            // Map Button
             if (target === mapButton) {
                 if (!holdTimers.map && !buttonActivated.map) {
                     mapButton.classList.remove('glow-white', 'recede');
@@ -912,7 +981,6 @@
                 if (buttonActivated.map && target !== mapButton) buttonActivated.map = false;
             }
 
-            // Lives Button
             if (target === livesDisplay) {
                 if (!holdTimers.lives && !buttonActivated.lives) {
                     livesDisplay.classList.remove('glow-white', 'recede');
@@ -937,7 +1005,6 @@
                 if (buttonActivated.lives && target !== livesDisplay) buttonActivated.lives = false;
             }
 
-            // Hi Score Button
             if (target === hiScoreDisplay) {
                 if (!holdTimers.hiScore && !buttonActivated.hiScore) {
                     hiScoreDisplay.classList.remove('glow-white', 'recede');
