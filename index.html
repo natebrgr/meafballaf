@@ -97,7 +97,7 @@
         }
         @keyframes glowRed {
             0% { box-shadow: 0 0 5px #ff0000; }
-            100% { box-shadow: 0 0 20px #ff00000; }
+            100% { box-shadow: 0 0 20px #ff0000; }
         }
         @keyframes glowWhite {
             0% { box-shadow: 0 0 5px #ffffff; }
@@ -536,7 +536,7 @@
             livesWindow.style.backgroundColor = invertedStyle;
             hiScoreWindow.style.backgroundColor = invertedStyle;
 
-            if (!isFleepSequence) { // Only advance colors when not in Fleep sequence
+            if (!isFleepSequence) {
                 colorProgress += colorTransitionSpeed;
                 if (colorProgress >= 1) {
                     colorProgress = 0;
@@ -852,7 +852,7 @@
         }
 
         function startDragging(e) {
-            if (isFleepSequence) return; // Block dragging during Fleep sequence
+            if (isFleepSequence || (isPaused && !circle.wasDraggingWhenPaused)) return; // Block dragging if paused and not held at pause time
             const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
             if (dist < circle.radius) {
