@@ -612,12 +612,12 @@
 
         function handleTap(e) {
             if (isPaused) return;
-            e.preventDefault();
             const pos = getMousePos(e);
             const dist = Math.sqrt(
                 (pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2
             );
             if (dist < circle.radius) {
+                e.preventDefault();
                 if (isTrackingHits) {
                     if (isCountingDown) {
                         if (wallHits === level) {
@@ -695,6 +695,7 @@
                     circle.dx = 0;
                     circle.dy = 0;
                     if (!isPaused) trail.length = 0;
+                    console.log('Dragging started');
                 }
             }
         }
@@ -743,6 +744,7 @@
                     if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
                         playButton.click();
                         circle.isDragging = false;
+                        console.log('Hold activated PAUSE/RESUME');
                     }
                     holdTimer = null;
                 }, 1000);
@@ -756,7 +758,6 @@
 
         function stopDragging(e) {
             if (!circle.isDragging) return;
-            e.preventDefault();
             const screenPos = getScreenPos(e);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
             const canvasRect = canvas.getBoundingClientRect();
@@ -767,6 +768,8 @@
                 screenPos.y <= canvasRect.bottom
             );
 
+            console.log('Stop dragging, target:', target.id, 'isOverCanvas:', isOverCanvas, 'isPaused:', isPaused);
+
             if (target === playButton || target === modeButton || target === mapButton) {
                 target.click();
                 circle.isDragging = false;
@@ -774,16 +777,20 @@
                     clearTimeout(holdTimer);
                     holdTimer = null;
                 }
+                console.log('Button clicked:', target.id);
             } else if (isOverCanvas && !isPaused) {
-                circle.isDragging = false; // Throw the circle
-            } else if (!isOverCanvas) {
-                circle.isDragging = false; // Stop dragging outside canvas
+                circle.isDragging = false;
+                console.log('Circle thrown');
+            } else {
+                circle.isDragging = false;
+                console.log('Dragging stopped elsewhere');
             }
 
             if (!circle.isDragging && isPaused) saveState();
         }
 
         modeButton.addEventListener('click', () => {
+            console.log('MODE button clicked');
             if (!isPaused) {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
@@ -799,6 +806,7 @@
         });
 
         mapButton.addEventListener('click', () => {
+            console.log('MAP button clicked');
             if (!isPaused) {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
@@ -814,6 +822,7 @@
         });
 
         playButton.addEventListener('click', (e) => {
+            console.log('PAUSE/RESUME button clicked');
             if (isPaused) {
                 isPaused = false;
                 if (circle.isDragging) {
