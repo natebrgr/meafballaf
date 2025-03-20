@@ -97,7 +97,7 @@
         }
         @keyframes glowRed {
             0% { box-shadow: 0 0 5px #ff0000; }
-            100% { box-shadow: 0 0 20px #ff0000; }
+            100% { box-shadow: 0 0 20px #ff00000; }
         }
         @keyframes glowWhite {
             0% { box-shadow: 0 0 5px #ffffff; }
@@ -129,7 +129,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 1.5em; /* Between 1em and 2em */
+            font-size: 1.5em;
             color: #e0e0e0;
             text-shadow: 0 0 10px #ff0000;
             opacity: 0;
@@ -235,7 +235,7 @@
         let lives = 3;
         let hiScore = 0;
         let isPaused = false;
-        let isFleepSequence = false; // New flag for Fleep sequence
+        let isFleepSequence = false;
 
         let currentMode = 'survival';
         let currentMap = 'rectangle';
@@ -350,45 +350,38 @@
         }
 
         function triggerFleepSequence() {
-            if (isFleepSequence) return; // Prevent overlapping sequences
+            if (isFleepSequence) return;
             isFleepSequence = true;
 
-            // Store current state
             const savedState = {
                 circleDx: circle.dx,
                 circleDy: circle.dy,
                 colorProgress: colorProgress,
                 countdownInterval: countdownInterval,
-                sighhhTimer: sighhhTimer
+                sighhhTimer: sighhhTimer,
+                sighhhTimerStart: sighhhTimer ? Date.now() : null
             };
 
-            // Pause ongoing processes
             if (countdownInterval) clearInterval(countdownInterval);
             if (sighhhTimer) clearTimeout(sighhhTimer);
             circle.dx = 0;
             circle.dy = 0;
 
-            // Fade to black (1s)
             blackOverlay.style.transition = 'background 1s ease';
             blackOverlay.style.background = 'rgba(0, 0, 0, 1)';
             
             setTimeout(() => {
-                // Show "Fleep has risen.." (1s fade in)
                 fleepMessage.style.transition = 'opacity 1s ease';
                 fleepMessage.style.opacity = '1';
                 
                 setTimeout(() => {
-                    // Hold for 1s
                     setTimeout(() => {
-                        // Fade out text (1s)
                         fleepMessage.style.opacity = '0';
                         
                         setTimeout(() => {
-                            // Fade back to normal (1s)
                             blackOverlay.style.background = 'rgba(0, 0, 0, 0)';
                             
                             setTimeout(() => {
-                                // Restore state
                                 circle.dx = savedState.circleDx;
                                 circle.dy = savedState.circleDy;
                                 colorProgress = savedState.colorProgress;
@@ -408,11 +401,12 @@
                                     }, 1000);
                                 }
                                 if (savedState.sighhhTimer) {
+                                    const elapsed = Date.now() - savedState.sighhhTimerStart;
+                                    const remaining = Math.max(2000 - elapsed, 0);
                                     sighhhTimer = setTimeout(() => {
                                         sighhhVisible = false;
                                         updateDisplay();
-                                    }, 2000 - (Date.now() - savedState.sighhhTimerStart));
-                                    savedState.sighhhTimerStart = Date.now();
+                                    }, remaining);
                                 }
                                 isFleepSequence = false;
                                 blackOverlay.style.transition = '';
@@ -492,8 +486,8 @@
             if (state.circle.x !== undefined) {
                 circle.x = state.circle.x;
                 circle.y = state.circle.y;
-                circle.dx = state.dx;
-                circle.dy = state.dy;
+                circle.dx = state.circle.dx;
+                circle.dy = state.circle.dy;
                 circle.isDragging = state.isDragging;
                 circle.dragTouchId = state.dragTouchId;
                 circle.lastX = state.lastX;
@@ -522,8 +516,6 @@
         }
 
         function updateColors() {
-            if (isFleepSequence) return colors[currentColorIndex]; // Freeze color during sequence
-
             const currentColor = colors[currentColorIndex];
             const nextColorIndex = (currentColorIndex + 1) % colors.length;
             const nextColor = colors[nextColorIndex];
@@ -544,10 +536,12 @@
             livesWindow.style.backgroundColor = invertedStyle;
             hiScoreWindow.style.backgroundColor = invertedStyle;
 
-            colorProgress += colorTransitionSpeed;
-            if (colorProgress >= 1) {
-                colorProgress = 0;
-                currentColorIndex = (currentColorIndex + 1) % colors.length;
+            if (!isFleepSequence) { // Only advance colors when not in Fleep sequence
+                colorProgress += colorTransitionSpeed;
+                if (colorProgress >= 1) {
+                    colorProgress = 0;
+                    currentColorIndex = (currentColorIndex + 1) % colors.length;
+                }
             }
 
             return invertedColor;
@@ -617,7 +611,7 @@
         }
 
         function updatePhysics() {
-            if (isPaused || isFleepSequence) { // Freeze during Fleep sequence
+            if (isPaused || isFleepSequence) {
                 if (circle.isDragging) {
                     circle.dx = 0;
                     circle.dy = 0;
@@ -858,7 +852,7 @@
         }
 
         function startDragging(e) {
-            if (isPaused || isFleepSequence) return;
+            if (isFleepSequence) return; // Block dragging during Fleep sequence
             const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
             if (dist < circle.radius) {
