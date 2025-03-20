@@ -852,7 +852,7 @@
         }
 
         function startDragging(e) {
-            if (isFleepSequence || (isPaused && !circle.wasDraggingWhenPaused)) return; // Block dragging if paused and not held at pause time
+            if (isFleepSequence || (isPaused && !circle.wasDraggingWhenPaused)) return;
             const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
             if (dist < circle.radius) {
@@ -1102,8 +1102,12 @@
             if (target === playButton && !buttonActivated.play) {
                 target.click();
             } else if (target === modeButton && !buttonActivated.mode) {
+                modeButton.classList.remove('glow-white');
+                modeButton.classList.add('recede');
                 target.click();
             } else if (target === mapButton && !buttonActivated.map) {
+                mapButton.classList.remove('glow-white');
+                mapButton.classList.add('recede');
                 target.click();
             } else if (target === livesDisplay && !buttonActivated.lives) {
                 toggleWindow(livesWindow);
@@ -1119,9 +1123,13 @@
                 if (holdTimers[key]) {
                     clearTimeout(holdTimers[key]);
                     holdTimers[key] = null;
-                    if (key === 'play') playButton.classList.remove('glow-green', 'glow-red');
-                    else document.getElementById(key).classList.remove('glow-white');
-                    document.getElementById(key === 'play' ? 'playButton' : key).classList.add('recede');
+                    if (key === 'play') {
+                        playButton.classList.remove('glow-green', 'glow-red');
+                        playButton.classList.add('recede');
+                    } else {
+                        document.getElementById(key).classList.remove('glow-white');
+                        document.getElementById(key).classList.add('recede');
+                    }
                 }
             });
             if (target !== playButton) buttonActivated.play = false;
