@@ -134,6 +134,7 @@
             dx: 0,
             dy: 0,
             isDragging: false,
+            dragTouchId: null, // Track specific touch
             wasDraggingWhenPaused: false,
             lastX: 0,
             lastY: 0,
@@ -306,6 +307,7 @@
                     dx: circle.dx,
                     dy: circle.dy,
                     isDragging: circle.isDragging,
+                    dragTouchId: circle.dragTouchId,
                     lastX: circle.lastX,
                     lastY: circle.lastY,
                     lastTime: circle.lastTime
@@ -344,7 +346,8 @@
                 circle.y = state.circle.y;
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
-                circle.isDragging = false;
+                circle.isDragging = state.isDragging;
+                circle.dragTouchId = state.dragTouchId;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime;
@@ -353,6 +356,8 @@
                 circle.y = canvas.height / 2;
                 circle.dx = 0;
                 circle.dy = 0;
+                circle.isDragging = false;
+                circle.dragTouchId = null;
             }
 
             constrainCircle();
@@ -595,15 +600,36 @@
             }, 1000);
         }
 
-        function getMousePos(e) {
+        function getMousePos(e, touchId = null) {
             const rect = canvas.getBoundingClientRect();
+            if (touchId !== null && e.touches) {
+                for (let i = 0; i < e.touches.length; i++) {
+                    if (e.touches[i].identifier === touchId) {
+                        return {
+                            x: e.touches[i].clientX - rect.left,
+                            y: e.touches[i].clientY - rect.top
+                        };
+                    }
+                }
+            }
             return {
                 x: (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left,
                 y: (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top
             };
         }
 
-        function getScreenPos(e) {
+        function getScreenPos(e, touchId = null) {
+            if (touchId !== null && (e.touches || e.changedTouches)) {
+                const touches = e.changedTouches || e.touches;
+                for (let i = 0; i < touches.length; i++) {
+                    if (touches[i].identifier === touchId) {
+                        return {
+                            x: touches[i].clientX,
+                            y: touches[i].clientY
+                        };
+                    }
+                }
+            }
             return {
                 x: e.clientX || (e.touches && e.touches[0].clientX) || (e.changedTouches && e.changedTouches[0].clientX),
                 y: e.clientY || (e.touches && e.touches[0].clientY) || (e.changedTouches && e.changedTouches[0].clientY)
@@ -615,8 +641,8 @@
             const pos = getMousePos(e);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
             if (dist < circle.radius) {
-                console.log('Circle tapped, isTrackingHits:', isTrackingHits, 'isCountingDown:', isCountingDown);
-                e.preventDefault(); // Only prevent default for game logic
+                console.log('Circle tapped');
+                e.preventDefault();
                 if (isTrackingHits) {
                     if (isCountingDown) {
                         if (wallHits === level) {
@@ -638,7 +664,6 @@
                             saveState();
                             updateDisplay();
                             startCountdown();
-                            console.log('Level completed, new level:', level);
                         }
                     } else {
                         isTrackingHits = false;
@@ -671,39 +696,37 @@
                         saveState();
                         updateDisplay();
                         startCountdown();
-                        console.log('Tap processed, lives:', lives, 'wallHits:', wallHits);
                     }
                 } else if (!isCountingDown) {
                     wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
                     startCountdown();
-                    console.log('Countdown started');
                 }
             }
         }
 
         function startDragging(e) {
-            if (!isPaused || circle.wasDraggingWhenPaused) {
-                const pos = getMousePos(e);
-                const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
-                if (dist < circle.radius) {
-                    circle.isDragging = true;
-                    circle.lastX = pos.x;
-                    circle.lastY = pos.y;
-                    circle.lastTime = Date.now();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                    if (!isPaused) trail.length = 0;
-                    console.log('Dragging started');
-                    e.preventDefault(); // Prevent default only when dragging starts
-                }
+            if (isPaused && !circle.wasDraggingWhenPaused) return;
+            const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
+            const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
+            if (dist < circle.radius) {
+                e.preventDefault();
+                circle.isDragging = true;
+                circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
+                circle.lastX = pos.x;
+                circle.lastY = pos.y;
+                circle.lastTime = Date.now();
+                circle.dx = 0;
+                circle.dy = 0;
+                if (!isPaused) trail.length = 0;
+                console.log('Dragging started, touchId:', circle.dragTouchId);
             }
         }
 
         function drag(e) {
             if (!circle.isDragging) return;
             e.preventDefault();
-            let pos = getMousePos(e);
+            const pos = getMousePos(e, circle.dragTouchId);
 
             if (currentMap === 'rectangle') {
                 pos.x = Math.max(circle.radius, Math.min(canvas.width - circle.radius, pos.x));
@@ -737,13 +760,14 @@
             circle.lastX = pos.x;
             circle.lastY = pos.y;
 
-            const screenPos = getScreenPos(e);
+            const screenPos = getScreenPos(e, circle.dragTouchId);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
             if (target === playButton && !holdTimer) {
                 holdTimer = setTimeout(() => {
                     if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
                         playButton.click();
                         circle.isDragging = false;
+                        circle.dragTouchId = null;
                         console.log('Hold activated PAUSE/RESUME');
                     }
                     holdTimer = null;
@@ -758,7 +782,20 @@
 
         function stopDragging(e) {
             if (!circle.isDragging) return;
-            const screenPos = getScreenPos(e);
+            let touchId = circle.dragTouchId;
+            if (e.touches && e.touches.length > 0) return; // Ignore if other touches remain
+            if (e.changedTouches) {
+                let matched = false;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchId) {
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) return; // Ignore if not the dragging touch
+            }
+
+            const screenPos = getScreenPos(e, touchId);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
             const canvasRect = canvas.getBoundingClientRect();
             const isOverCanvas = (
@@ -773,6 +810,7 @@
             if (target === playButton || target === modeButton || target === mapButton) {
                 target.click();
                 circle.isDragging = false;
+                circle.dragTouchId = null;
                 if (holdTimer) {
                     clearTimeout(holdTimer);
                     holdTimer = null;
@@ -780,9 +818,11 @@
                 console.log('Button clicked via drag:', target.id);
             } else if (isOverCanvas && !isPaused) {
                 circle.isDragging = false;
-                console.log('Circle thrown');
+                circle.dragTouchId = null;
+                console.log('Circle thrown, dx:', circle.dx, 'dy:', circle.dy);
             } else {
                 circle.isDragging = false;
+                circle.dragTouchId = null;
                 console.log('Dragging stopped elsewhere');
             }
 
@@ -873,17 +913,14 @@
             }
         });
 
-        // Mouse events
         canvas.addEventListener('mousedown', startDragging);
         canvas.addEventListener('mousemove', drag);
         canvas.addEventListener('mouseup', stopDragging);
         canvas.addEventListener('click', handleCircleTap);
 
-        // Touch events
         canvas.addEventListener('touchstart', (e) => {
-            console.log('Touchstart on canvas');
             startDragging(e);
-            handleCircleTap(e); // Handle tap separately
+            handleCircleTap(e);
         });
         canvas.addEventListener('touchmove', drag);
         canvas.addEventListener('touchend', stopDragging);
