@@ -48,7 +48,7 @@
         #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
         #lives { top: 80px; font-size: 1em; }
         #hiScore { top: 80px; font-size: 1em; }
-        #sighhh { left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; text-shadow: 0 0 10px #ff0000; } /* Red glow */
+        #sighhh { left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; text-shadow: 0 0 10px #ff0000; }
         #livesCount, #hiScoreCount {
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
@@ -80,10 +80,10 @@
         #playButton.glow-red {
             animation: glowRed 1s linear forwards;
         }
-        #modeButton.glow-white, #mapButton.glow-white {
+        #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white {
             animation: glowWhite 1s linear forwards;
         }
-        #playButton.recede, #modeButton.recede, #mapButton.recede {
+        #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede {
             animation: recedeGlow 0.2s linear forwards;
         }
         @keyframes glowGreen {
@@ -91,7 +91,7 @@
             100% { box-shadow: 0 0 20px #00ff00; }
         }
         @keyframes glowRed {
-            0% { box-shadow: 0 0 5px #ff0000; } /* Match red color */
+            0% { box-shadow: 0 0 5px #ff0000; }
             100% { box-shadow: 0 0 20px #ff0000; }
         }
         @keyframes glowWhite {
@@ -116,6 +116,7 @@
             transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.5s ease;
             z-index: 20;
             filter: drop-shadow(0 0 5px #fff);
+            pointer-events: auto; /* Ensure clickable */
         }
         #livesWindow.active, #hiScoreWindow.active { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     </style>
@@ -215,8 +216,8 @@
         let sighhhVisible = false;
         let sighhhTimer = null;
 
-        let holdTimers = { play: null, mode: null, map: null };
-        let buttonActivated = { play: false, mode: false, map: false };
+        let holdTimers = { play: null, mode: null, map: null, lives: null, hiScore: null };
+        let buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
 
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
@@ -752,7 +753,7 @@
                 circle.dx = 0;
                 circle.dy = 0;
                 if (!isPaused) trail.length = 0;
-                buttonActivated = { play: false, mode: false, map: false }; // Reset all on new drag
+                buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
                 console.log('Dragging started, touchId:', circle.dragTouchId);
             }
         }
@@ -814,12 +815,10 @@
                                 circle.dy = 0;
                                 if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
                                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                console.log('Resumed via hold');
                             } else {
                                 circle.wasDraggingWhenPaused = circle.isDragging;
                                 isPaused = true;
                                 saveState();
-                                console.log('Paused via hold');
                             }
                             updateDisplay();
                             buttonActivated.play = true;
@@ -827,12 +826,14 @@
                         holdTimers.play = null;
                     }, 1000);
                 }
-            } else if (holdTimers.play) {
-                clearTimeout(holdTimers.play);
-                holdTimers.play = null;
-                playButton.classList.remove('glow-green', 'glow-red');
-                playButton.classList.add('recede');
-                if (buttonActivated.play) buttonActivated.play = false;
+            } else {
+                if (holdTimers.play) {
+                    clearTimeout(holdTimers.play);
+                    holdTimers.play = null;
+                    playButton.classList.remove('glow-green', 'glow-red');
+                    playButton.classList.add('recede');
+                }
+                if (buttonActivated.play && target !== playButton) buttonActivated.play = false; // Reset when off button
             }
 
             // Mode Button
@@ -855,17 +856,18 @@
                             ctx.clearRect(0, 0, canvas.width, canvas.height);
                             updateDisplay();
                             buttonActivated.mode = true;
-                            console.log('Mode switched via hold');
                         }
                         holdTimers.mode = null;
                     }, 1000);
                 }
-            } else if (holdTimers.mode) {
-                clearTimeout(holdTimers.mode);
-                holdTimers.mode = null;
-                modeButton.classList.remove('glow-white');
-                modeButton.classList.add('recede');
-                if (buttonActivated.mode) buttonActivated.mode = false;
+            } else {
+                if (holdTimers.mode) {
+                    clearTimeout(holdTimers.mode);
+                    holdTimers.mode = null;
+                    modeButton.classList.remove('glow-white');
+                    modeButton.classList.add('recede');
+                }
+                if (buttonActivated.mode && target !== modeButton) buttonActivated.mode = false;
             }
 
             // Map Button
@@ -888,17 +890,68 @@
                             ctx.clearRect(0, 0, canvas.width, canvas.height);
                             updateDisplay();
                             buttonActivated.map = true;
-                            console.log('Map switched via hold');
                         }
                         holdTimers.map = null;
                     }, 1000);
                 }
-            } else if (holdTimers.map) {
-                clearTimeout(holdTimers.map);
-                holdTimers.map = null;
-                mapButton.classList.remove('glow-white');
-                mapButton.classList.add('recede');
-                if (buttonActivated.map) buttonActivated.map = false;
+            } else {
+                if (holdTimers.map) {
+                    clearTimeout(holdTimers.map);
+                    holdTimers.map = null;
+                    mapButton.classList.remove('glow-white');
+                    mapButton.classList.add('recede');
+                }
+                if (buttonActivated.map && target !== mapButton) buttonActivated.map = false;
+            }
+
+            // Lives Button
+            if (target === livesDisplay) {
+                if (!holdTimers.lives && !buttonActivated.lives) {
+                    livesDisplay.classList.remove('glow-white', 'recede');
+                    livesDisplay.classList.add('glow-white');
+                    holdTimers.lives = setTimeout(() => {
+                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === livesDisplay) {
+                            livesDisplay.classList.remove('glow-white');
+                            livesDisplay.classList.add('recede');
+                            livesWindow.classList.toggle('active');
+                            buttonActivated.lives = true;
+                        }
+                        holdTimers.lives = null;
+                    }, 1000);
+                }
+            } else {
+                if (holdTimers.lives) {
+                    clearTimeout(holdTimers.lives);
+                    holdTimers.lives = null;
+                    livesDisplay.classList.remove('glow-white');
+                    livesDisplay.classList.add('recede');
+                }
+                if (buttonActivated.lives && target !== livesDisplay) buttonActivated.lives = false;
+            }
+
+            // Hi Score Button
+            if (target === hiScoreDisplay) {
+                if (!holdTimers.hiScore && !buttonActivated.hiScore) {
+                    hiScoreDisplay.classList.remove('glow-white', 'recede');
+                    hiScoreDisplay.classList.add('glow-white');
+                    holdTimers.hiScore = setTimeout(() => {
+                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === hiScoreDisplay) {
+                            hiScoreDisplay.classList.remove('glow-white');
+                            hiScoreDisplay.classList.add('recede');
+                            hiScoreWindow.classList.toggle('active');
+                            buttonActivated.hiScore = true;
+                        }
+                        holdTimers.hiScore = null;
+                    }, 1000);
+                }
+            } else {
+                if (holdTimers.hiScore) {
+                    clearTimeout(holdTimers.hiScore);
+                    holdTimers.hiScore = null;
+                    hiScoreDisplay.classList.remove('glow-white');
+                    hiScoreDisplay.classList.add('recede');
+                }
+                if (buttonActivated.hiScore && target !== hiScoreDisplay) buttonActivated.hiScore = false;
             }
 
             if (isPaused) saveState();
@@ -933,13 +986,14 @@
 
             if (target === playButton && !buttonActivated.play) {
                 target.click();
-                console.log('Play button clicked via release');
             } else if (target === modeButton && !buttonActivated.mode) {
                 target.click();
-                console.log('Mode button clicked via release');
             } else if (target === mapButton && !buttonActivated.map) {
                 target.click();
-                console.log('Map button clicked via release');
+            } else if (target === livesDisplay && !buttonActivated.lives) {
+                livesWindow.classList.toggle('active');
+            } else if (target === hiScoreDisplay && !buttonActivated.hiScore) {
+                hiScoreWindow.classList.toggle('active');
             } else if (isOverCanvas && !isPaused) {
                 console.log('Circle thrown, dx:', circle.dx, 'dy:', circle.dy);
             }
@@ -951,14 +1005,15 @@
                     clearTimeout(holdTimers[key]);
                     holdTimers[key] = null;
                     if (key === 'play') playButton.classList.remove('glow-green', 'glow-red');
-                    else if (key === 'mode') modeButton.classList.remove('glow-white');
-                    else if (key === 'map') mapButton.classList.remove('glow-white');
-                    document.getElementById(key + 'Button').classList.add('recede');
+                    else document.getElementById(key).classList.remove('glow-white');
+                    document.getElementById(key === 'play' ? 'playButton' : key).classList.add('recede');
                 }
             });
             if (target !== playButton) buttonActivated.play = false;
             if (target !== modeButton) buttonActivated.mode = false;
             if (target !== mapButton) buttonActivated.map = false;
+            if (target !== livesDisplay) buttonActivated.lives = false;
+            if (target !== hiScoreDisplay) buttonActivated.hiScore = false;
 
             if (!circle.isDragging && isPaused) saveState();
         }
@@ -971,21 +1026,29 @@
             for (let i = 0; i < e.touches.length; i++) {
                 if (i === dragTouchIndex) continue;
                 const screenPos = { x: e.touches[i].clientX, y: e.touches[i].clientY };
-                const canvasRect = canvas.getBoundingClientRect();
-                const isOverCanvas = (
-                    screenPos.x >= canvasRect.left &&
-                    screenPos.x <= canvasRect.right &&
-                    screenPos.y >= canvasRect.top &&
-                    screenPos.y <= canvasRect.bottom
-                );
                 const target = document.elementFromPoint(screenPos.x, screenPos.y);
-                if (isOverCanvas && target === canvas) {
-                    circle.isDragging = false;
-                    circle.dragTouchId = null;
-                    circle.dx = 0;
-                    circle.dy = 0;
-                    console.log('Circle dropped via multi-touch on canvas');
-                    return;
+                if (target === livesDisplay) {
+                    livesWindow.classList.toggle('active');
+                    console.log('Lives tapped via multi-touch');
+                } else if (target === hiScoreDisplay) {
+                    hiScoreWindow.classList.toggle('active');
+                    console.log('Hi Score tapped via multi-touch');
+                } else {
+                    const canvasRect = canvas.getBoundingClientRect();
+                    const isOverCanvas = (
+                        screenPos.x >= canvasRect.left &&
+                        screenPos.x <= canvasRect.right &&
+                        screenPos.y >= canvasRect.top &&
+                        screenPos.y <= canvasRect.bottom
+                    );
+                    if (isOverCanvas && target === canvas) {
+                        circle.isDragging = false;
+                        circle.dragTouchId = null;
+                        circle.dx = 0;
+                        circle.dy = 0;
+                        console.log('Circle dropped via multi-touch on canvas');
+                        return;
+                    }
                 }
             }
         }
@@ -1049,27 +1112,27 @@
         });
 
         livesDisplay.addEventListener('click', () => {
-            livesWindow.classList.add('active');
+            livesWindow.classList.toggle('active');
         });
 
         hiScoreDisplay.addEventListener('click', () => {
-            hiScoreWindow.classList.add('active');
+            hiScoreWindow.classList.toggle('active');
         });
 
         document.addEventListener('click', (e) => {
-            if (e.target !== livesDisplay && livesWindow.classList.contains('active')) {
+            if (livesWindow.classList.contains('active') && e.target !== livesWindow) {
                 livesWindow.classList.remove('active');
             }
-            if (e.target !== hiScoreDisplay && hiScoreWindow.classList.contains('active')) {
+            if (hiScoreWindow.classList.contains('active') && e.target !== hiScoreWindow) {
                 hiScoreWindow.classList.remove('active');
             }
         });
 
         document.addEventListener('touchend', (e) => {
-            if (e.target !== livesDisplay && livesWindow.classList.contains('active')) {
+            if (livesWindow.classList.contains('active') && e.target !== livesWindow) {
                 livesWindow.classList.remove('active');
             }
-            if (e.target !== hiScoreDisplay && hiScoreWindow.classList.contains('active')) {
+            if (hiScoreWindow.classList.contains('active') && e.target !== hiScoreWindow) {
                 hiScoreWindow.classList.remove('active');
             }
         });
@@ -1108,6 +1171,20 @@
             if (circle.isDragging && e.touches.length > 1) {
                 console.log('PAUSE/RESUME button tapped during drag');
                 playButton.click();
+            }
+        });
+
+        livesDisplay.addEventListener('touchstart', (e) => {
+            if (circle.isDragging && e.touches.length > 1) {
+                console.log('LIVES button tapped during drag');
+                livesWindow.classList.toggle('active');
+            }
+        });
+
+        hiScoreDisplay.addEventListener('touchstart', (e) => {
+            if (circle.isDragging && e.touches.length > 1) {
+                console.log('HI SCORE button tapped during drag');
+                hiScoreWindow.classList.toggle('active');
             }
         });
 
