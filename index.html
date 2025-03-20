@@ -339,8 +339,8 @@
             if (state.circle.x !== undefined) {
                 circle.x = state.circle.x;
                 circle.y = state.circle.y;
-                circle.dx = state.dx;
-                circle.dy = state.dy;
+                circle.dx = state.circle.dx; // Preserve velocity
+                circle.dy = state.circle.dy;
                 circle.isDragging = false;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
@@ -348,6 +348,8 @@
             } else {
                 circle.x = canvas.width / 2;
                 circle.y = canvas.height / 2;
+                circle.dx = 0;
+                circle.dy = 0;
             }
 
             constrainCircle();
@@ -779,7 +781,7 @@
                     circle.lastTime = Date.now();
                     circle.dx = 0;
                     circle.dy = 0;
-                } else {
+                } else if (circle.wasDraggingWhenPaused) {
                     constrainCircle();
                     circle.dx = 0;
                     circle.dy = 0;
@@ -846,7 +848,7 @@
                     circle.lastTime = Date.now();
                     circle.dx = 0;
                     circle.dy = 0;
-                } else {
+                } else if (circle.wasDraggingWhenPaused) {
                     constrainCircle();
                     circle.dx = 0;
                     circle.dy = 0;
