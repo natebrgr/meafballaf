@@ -185,7 +185,6 @@
         let sighhhTimer = null;
 
         let holdTimer = null;
-        let holdStartTime = null;
 
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
@@ -738,21 +737,17 @@
             circle.lastY = pos.y;
 
             const screenPos = getScreenPos(e);
-            const target = document.elementFromPoint(screenPos.x, screenPos.y);
-            if (target === playButton && !holdTimer) {
-                holdStartTime = Date.now();
+            if (document.elementFromPoint(screenPos.x, screenPos.y) === playButton && !holdTimer) {
                 holdTimer = setTimeout(() => {
                     if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
                         playButton.click();
                         circle.isDragging = false;
-                        holdTimer = null;
-                        holdStartTime = null;
                     }
+                    holdTimer = null;
                 }, 1000);
-            } else if (target !== playButton && holdTimer) {
+            } else if (document.elementFromPoint(screenPos.x, screenPos.y) !== playButton && holdTimer) {
                 clearTimeout(holdTimer);
                 holdTimer = null;
-                holdStartTime = null;
             }
 
             if (isPaused) saveState();
@@ -774,12 +769,13 @@
             if (target === playButton || target === modeButton || target === mapButton) {
                 target.click();
                 circle.isDragging = false;
-                if (target === playButton && holdTimer) {
+                if (holdTimer) {
                     clearTimeout(holdTimer);
                     holdTimer = null;
-                    holdStartTime = null;
                 }
-            } else if (!isOverCanvas) {
+            } else if (!isOverCanvas && !isPaused) {
+                circle.isDragging = false;
+            } else if (!isPaused) {
                 circle.isDragging = false;
             }
 
