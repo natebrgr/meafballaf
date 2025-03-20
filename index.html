@@ -32,6 +32,7 @@
             z-index: 5;
             background: transparent;
             filter: drop-shadow(0 0 5px #fff);
+            pointer-events: auto; /* Ensure canvas captures events */
         }
         #level, #countdown, #wallHits, #lives, #hiScore, #title, #sighhh {
             position: absolute;
@@ -69,7 +70,7 @@
             filter: drop-shadow(0 0 5px #fff);
             transition: background-color 0.5s ease;
             z-index: 25;
-            pointer-events: auto;
+            pointer-events: auto; /* Ensure buttons capture events */
         }
         button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
         #livesWindow, #hiScoreWindow {
@@ -602,8 +603,8 @@
 
         function getScreenPos(e) {
             return {
-                x: e.clientX || (e.touches && e.touches[0].clientX),
-                y: e.clientY || (e.touches && e.touches[0].clientY)
+                x: e.clientX || (e.changedTouches && e.changedTouches[0].clientX),
+                y: e.clientY || (e.changedTouches && e.changedTouches[0].clientY)
             };
         }
 
@@ -738,88 +739,19 @@
 
         function stopDragging(e) {
             if (!circle.isDragging) return;
+            e.preventDefault();
             const screenPos = getScreenPos(e);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
             circle.isDragging = false;
             if (isPaused) saveState();
-            if (target === playButton || target === modeButton || target === mapButton) {
-                target.dispatchEvent(new Event('click', { bubbles: true }));
-                target.dispatchEvent(new Event('touchend', { bubbles: true }));
+            if (target === playButton) {
+                playButton.click();
+            } else if (target === modeButton) {
+                modeButton.click();
+            } else if (target === mapButton) {
+                mapButton.click();
             }
         }
-
-        modeButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!isPaused) {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-            }
-            saveState();
-            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-            sighhhVisible = false;
-            if (sighhhTimer) clearTimeout(sighhhTimer);
-            shownTexts.clear();
-            loadState(currentMode, currentMap);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            updateDisplay();
-        });
-
-        mapButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!isPaused) {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-            }
-            saveState();
-            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-            sighhhVisible = false;
-            if (sighhhTimer) clearTimeout(sighhhTimer);
-            shownTexts.clear();
-            loadState(currentMode, currentMap);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            updateDisplay();
-        });
-
-        playButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (isPaused) {
-                isPaused = false;
-                if (circle.isDragging) {
-                    const pos = getMousePos(e);
-                    circle.lastX = pos.x;
-                    circle.lastY = pos.y;
-                    circle.lastTime = Date.now();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                } else if (circle.wasDraggingWhenPaused) {
-                    constrainCircle();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                }
-                if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            } else {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-                saveState();
-            }
-            updateDisplay();
-        });
-
-        livesDisplay.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            livesWindow.classList.add('active');
-        });
-
-        hiScoreDisplay.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            hiScoreWindow.classList.add('active');
-        });
 
         modeButton.addEventListener('click', () => {
             if (!isPaused) {
