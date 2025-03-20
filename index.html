@@ -48,7 +48,7 @@
         #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
         #lives { top: 80px; font-size: 1em; }
         #hiScore { top: 80px; font-size: 1em; }
-        #sighhh { left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
+        #sighhh { left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; text-shadow: 0 0 10px #ff0000; } /* Red glow */
         #livesCount, #hiScoreCount {
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
@@ -80,7 +80,10 @@
         #playButton.glow-red {
             animation: glowRed 1s linear forwards;
         }
-        #playButton.recede {
+        #modeButton.glow-white, #mapButton.glow-white {
+            animation: glowWhite 1s linear forwards;
+        }
+        #playButton.recede, #modeButton.recede, #mapButton.recede {
             animation: recedeGlow 0.2s linear forwards;
         }
         @keyframes glowGreen {
@@ -88,8 +91,12 @@
             100% { box-shadow: 0 0 20px #00ff00; }
         }
         @keyframes glowRed {
-            0% { box-shadow: 0 0 5px red; }
-            100% { box-shadow: 0 0 20px red; }
+            0% { box-shadow: 0 0 5px #ff0000; } /* Match red color */
+            100% { box-shadow: 0 0 20px #ff0000; }
+        }
+        @keyframes glowWhite {
+            0% { box-shadow: 0 0 5px #ffffff; }
+            100% { box-shadow: 0 0 20px #ffffff; }
         }
         @keyframes recedeGlow {
             0% { box-shadow: 0 0 20px; }
@@ -208,8 +215,8 @@
         let sighhhVisible = false;
         let sighhhTimer = null;
 
-        let holdTimer = null;
-        let buttonActivated = false; // Persistent flag for button activation state
+        let holdTimers = { play: null, mode: null, map: null };
+        let buttonActivated = { play: false, mode: false, map: false };
 
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
@@ -459,9 +466,9 @@
 
             const offset = circle.radius + 20;
             const greenColor = '#00ff00';
-            let counterColor = '#e0e0e0'; // Default white for wallHits < level
+            let counterColor = '#e0e0e0';
             if (wallHits === level) counterColor = greenColor;
-            else if (wallHits > level) counterColor = 'red';
+            else if (wallHits > level) counterColor = '#ff0000';
 
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
@@ -487,7 +494,6 @@
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
 
-            // Sync main wallHitsDisplay color
             wallHitsDisplay.style.color = counterColor;
         }
 
@@ -544,7 +550,7 @@
                             if (isTrackingHits) {
                                 wallHits++;
                                 if (currentMode === 'survival' && wallHits > level) {
-                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
+                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
                                     showText(text);
                                 }
                             }
@@ -715,7 +721,7 @@
                             } else if (lives <= 0) {
                                 level = 1;
                                 lives = 3;
-                                text = 'SIGH me to AFF Rica where the girAFFs and AFF Zebras RUN';
+                                text = 'SIGHHH me to FLEEP';
                             }
                             if (text) showText(text);
                         }
@@ -746,7 +752,7 @@
                 circle.dx = 0;
                 circle.dy = 0;
                 if (!isPaused) trail.length = 0;
-                buttonActivated = false; // Reset on new drag start
+                buttonActivated = { play: false, mode: false, map: false }; // Reset all on new drag
                 console.log('Dragging started, touchId:', circle.dragTouchId);
             }
         }
@@ -790,11 +796,12 @@
             const screenPos = getScreenPos(e, circle.dragTouchId);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
 
+            // Play Button
             if (target === playButton) {
-                if (!holdTimer && !buttonActivated) { // Only start timer if not already activated
+                if (!holdTimers.play && !buttonActivated.play) {
                     playButton.classList.remove('glow-green', 'glow-red', 'recede');
                     playButton.classList.add(isPaused ? 'glow-green' : 'glow-red');
-                    holdTimer = setTimeout(() => {
+                    holdTimers.play = setTimeout(() => {
                         if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
                             playButton.classList.remove('glow-green', 'glow-red');
                             playButton.classList.add('recede');
@@ -807,7 +814,7 @@
                                 circle.dy = 0;
                                 if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
                                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                console.log('Resumed via hold, maintaining drag');
+                                console.log('Resumed via hold');
                             } else {
                                 circle.wasDraggingWhenPaused = circle.isDragging;
                                 isPaused = true;
@@ -815,22 +822,83 @@
                                 console.log('Paused via hold');
                             }
                             updateDisplay();
-                            buttonActivated = true; // Mark as activated
+                            buttonActivated.play = true;
                         }
-                        holdTimer = null;
+                        holdTimers.play = null;
                     }, 1000);
                 }
-            } else {
-                if (holdTimer) {
-                    clearTimeout(holdTimer);
-                    holdTimer = null;
-                    playButton.classList.remove('glow-green', 'glow-red');
-                    playButton.classList.add('recede');
+            } else if (holdTimers.play) {
+                clearTimeout(holdTimers.play);
+                holdTimers.play = null;
+                playButton.classList.remove('glow-green', 'glow-red');
+                playButton.classList.add('recede');
+                if (buttonActivated.play) buttonActivated.play = false;
+            }
+
+            // Mode Button
+            if (target === modeButton) {
+                if (!holdTimers.mode && !buttonActivated.mode) {
+                    modeButton.classList.remove('glow-white', 'recede');
+                    modeButton.classList.add('glow-white');
+                    holdTimers.mode = setTimeout(() => {
+                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === modeButton) {
+                            modeButton.classList.remove('glow-white');
+                            modeButton.classList.add('recede');
+                            if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
+                            isPaused = true;
+                            saveState();
+                            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+                            sighhhVisible = false;
+                            if (sighhhTimer) clearTimeout(sighhhTimer);
+                            shownTexts.clear();
+                            loadState(currentMode, currentMap);
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            updateDisplay();
+                            buttonActivated.mode = true;
+                            console.log('Mode switched via hold');
+                        }
+                        holdTimers.mode = null;
+                    }, 1000);
                 }
-                if (buttonActivated) {
-                    buttonActivated = false; // Reset when leaving the button
-                    console.log('Button activation reset by leaving button');
+            } else if (holdTimers.mode) {
+                clearTimeout(holdTimers.mode);
+                holdTimers.mode = null;
+                modeButton.classList.remove('glow-white');
+                modeButton.classList.add('recede');
+                if (buttonActivated.mode) buttonActivated.mode = false;
+            }
+
+            // Map Button
+            if (target === mapButton) {
+                if (!holdTimers.map && !buttonActivated.map) {
+                    mapButton.classList.remove('glow-white', 'recede');
+                    mapButton.classList.add('glow-white');
+                    holdTimers.map = setTimeout(() => {
+                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === mapButton) {
+                            mapButton.classList.remove('glow-white');
+                            mapButton.classList.add('recede');
+                            if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
+                            isPaused = true;
+                            saveState();
+                            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+                            sighhhVisible = false;
+                            if (sighhhTimer) clearTimeout(sighhhTimer);
+                            shownTexts.clear();
+                            loadState(currentMode, currentMap);
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            updateDisplay();
+                            buttonActivated.map = true;
+                            console.log('Map switched via hold');
+                        }
+                        holdTimers.map = null;
+                    }, 1000);
                 }
+            } else if (holdTimers.map) {
+                clearTimeout(holdTimers.map);
+                holdTimers.map = null;
+                mapButton.classList.remove('glow-white');
+                mapButton.classList.add('recede');
+                if (buttonActivated.map) buttonActivated.map = false;
             }
 
             if (isPaused) saveState();
@@ -861,30 +929,38 @@
                 screenPos.y <= canvasRect.bottom
             );
 
-            console.log('Stop dragging, target:', target.id, 'isOverCanvas:', isOverCanvas, 'isPaused:', isPaused, 'buttonActivated:', buttonActivated);
+            console.log('Stop dragging, target:', target.id, 'isOverCanvas:', isOverCanvas, 'isPaused:', isPaused);
 
-            if (target === playButton && !buttonActivated) { // Only click if not activated by hold
+            if (target === playButton && !buttonActivated.play) {
                 target.click();
-                console.log('Button clicked via drag release (not overridden by hold)');
-            } else if (target === modeButton || target === mapButton) {
+                console.log('Play button clicked via release');
+            } else if (target === modeButton && !buttonActivated.mode) {
                 target.click();
-                console.log('Button clicked via drag:', target.id);
+                console.log('Mode button clicked via release');
+            } else if (target === mapButton && !buttonActivated.map) {
+                target.click();
+                console.log('Map button clicked via release');
             } else if (isOverCanvas && !isPaused) {
                 console.log('Circle thrown, dx:', circle.dx, 'dy:', circle.dy);
-            } else {
-                console.log('Dragging stopped elsewhere');
             }
 
             circle.isDragging = false;
             circle.dragTouchId = null;
-            if (holdTimer) {
-                clearTimeout(holdTimer);
-                holdTimer = null;
-                playButton.classList.remove('glow-green', 'glow-red');
-                playButton.classList.add('recede');
-            }
+            Object.keys(holdTimers).forEach(key => {
+                if (holdTimers[key]) {
+                    clearTimeout(holdTimers[key]);
+                    holdTimers[key] = null;
+                    if (key === 'play') playButton.classList.remove('glow-green', 'glow-red');
+                    else if (key === 'mode') modeButton.classList.remove('glow-white');
+                    else if (key === 'map') mapButton.classList.remove('glow-white');
+                    document.getElementById(key + 'Button').classList.add('recede');
+                }
+            });
+            if (target !== playButton) buttonActivated.play = false;
+            if (target !== modeButton) buttonActivated.mode = false;
+            if (target !== mapButton) buttonActivated.map = false;
+
             if (!circle.isDragging && isPaused) saveState();
-            if (target !== playButton) buttonActivated = false; // Reset if finger lifts off elsewhere
         }
 
         function handleMultiTouchDrop(e) {
@@ -968,12 +1044,6 @@
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
                 saveState();
-            }
-            if (holdTimer) {
-                clearTimeout(holdTimer);
-                holdTimer = null;
-                playButton.classList.remove('glow-green', 'glow-red');
-                playButton.classList.add('recede');
             }
             updateDisplay();
         });
