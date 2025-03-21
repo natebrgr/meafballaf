@@ -207,7 +207,7 @@
                 right: { time: 0, inContact: false },
                 top: { time: 0, inContact: false },
                 bottom: { time: 0, inContact: false },
-                boundary: { time: 0, inContact: false }
+                boundary: { time: 0, inContact: false, lastHitTime: 0 }
             }
         };
 
@@ -630,9 +630,8 @@
                 const text = "HOLDING";
                 const fontSize = 24;
                 const textRadius = circle.radius + 50;
-                const letterSpacing = fontSize * 0.5; // Space between words
-                const totalLetters = (text.length * 4) + 4; // 4 words + 4 spaces
-                const anglePerUnit = (2 * Math.PI) / totalLetters;
+                const totalLetters = text.length * 4;
+                const anglePerLetter = (2 * Math.PI) / totalLetters;
 
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
@@ -650,22 +649,16 @@
 
                 for (let instance = 0; instance < 4; instance++) {
                     const startAngle = startAngles[instance];
-                    let letterIndex = 0;
-                    for (let i = 0; i < text.length + 1; i++) {
-                        if (i < text.length) {
-                            const angle = startAngle + (letterIndex * anglePerUnit);
-                            const x = circle.x + textRadius * Math.cos(angle);
-                            const y = circle.y + textRadius * Math.sin(angle);
-                            ctx.save();
-                            ctx.translate(x, y);
-                            ctx.rotate(angle + Math.PI / 2);
-                            ctx.fillText(text[i], 0, 0);
-                            ctx.restore();
-                            letterIndex++;
-                        }
-                        // Add space after each word
-                        if (i === text.length - 1) continue;
-                        letterIndex++;
+                    for (let i = 0; i < text.length; i++) {
+                        const angle = startAngle + (i * anglePerLetter);
+                        const x = circle.x + textRadius * Math.cos(angle);
+                        const y = circle.y + textRadius * Math.sin(angle);
+
+                        ctx.save();
+                        ctx.translate(x, y);
+                        ctx.rotate(angle + Math.PI / 2);
+                        ctx.fillText(text[i], 0, 0);
+                        ctx.restore();
                     }
                 }
             }
@@ -719,7 +712,7 @@
                 circle.dy *= friction;
 
                 const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
-                const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 10)); // Adjust length by velocity
+                const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 10));
                 trail.unshift({ x: circle.x, y: circle.y, opacity: 1 });
                 while (trail.length > trailLength) trail.pop();
                 for (let i = 0; i < trail.length; i++) {
@@ -747,9 +740,10 @@
                 walls.forEach(wall => {
                     const contact = circle.wallContact[wall.name];
                     if (wall.isContact) {
-                        if (!contact.inContact) {
+                        if (!contact.inContact && (currentTime - contact.lastHitTime > bounceTimeWindow)) {
                             contact.inContact = true;
                             contact.time = currentTime;
+                            contact.lastHitTime = currentTime;
                             if (isTrackingHits) {
                                 wallHits++;
                                 if (currentMode === 'survival' && wallHits > level) {
@@ -784,14 +778,22 @@
                     const centerX = canvas.width / 2;
                     const centerY = canvas.height / 2;
                     const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
-                    const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
+                    const dx = circle.x - centerX;
+                    const dy = circle.y - centerY;
+                    const distFromCenter = Math.sqrt(dx * dx + dy * dy);
                     if (distFromCenter + circle.radius >= radius) {
-                        const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
-                        circle.x = centerX + Math.cos(angle) * (radius - circle.radius);
-                        circle.y = centerY + Math.sin(angle) * (radius - circle.radius);
-                        const speed = Math.sqrt(circle.dx ** 2 + circle.dy ** 2);
-                        circle.dx = -Math.cos(angle) * speed * bounciness;
-                        circle.dy = -Math.sin(angle) * speed * bounciness;
+                        const angle = Math.atan2(dy, dx);
+                        const normalX = Math.cos(angle);
+                        const normalY = Math.sin(angle);
+                        circle.x = centerX + normalX * (radius - circle.radius);
+                        circle.y = centerY + normalY * (radius - circle.radius);
+                        
+                        const speed = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
+                        const dotProduct = circle.dx * normalX + circle.dy * normalY;
+                        const reflectionX = circle.dx - 2 * dotProduct * normalX;
+                        const reflectionY = circle.dy - 2 * dotProduct * normalY;
+                        circle.dx = reflectionX * bounciness;
+                        circle.dy = reflectionY * bounciness;
                     }
                 }
             }
@@ -887,7 +889,7 @@
                             clearInterval(countdownInterval);
                             countdownInterval = null;
                             countdownOpacity = 0;
-                            countdownDisplay.style.opacity = countdownOpacity;
+                            comebackDisplay.style.opacity = countdownOpacity;
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
