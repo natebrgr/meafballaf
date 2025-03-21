@@ -591,18 +591,14 @@
             ctx.fill();
             ctx.closePath();
 
-            // Modified "HOLDING" text: 4 times around, synced with circle color
+            // Modified "HOLDING" text: 4 instances, each starting at cardinal points, clockwise
             const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
             if (shouldShowHoldingText) {
                 const text = "HOLDING";
                 const fontSize = 24;
                 const textRadius = circle.radius + 50;
-                const positions = [
-                    { startAngle: Math.PI, endAngle: 0 },        // Top (left to right)
-                    { startAngle: 0, endAngle: -Math.PI },       // Bottom (right to left)
-                    { startAngle: Math.PI / 2, endAngle: 3 * Math.PI / 2 }, // Left (top to bottom)
-                    { startAngle: 3 * Math.PI / 2, endAngle: Math.PI / 2 }  // Right (bottom to top)
-                ];
+                const totalLetters = text.length * 4; // 28 letters total
+                const anglePerLetter = (2 * Math.PI) / totalLetters; // ~12.857° per letter
 
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
@@ -611,20 +607,27 @@
                 ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`; // Glow matches circle
                 ctx.shadowBlur = 5;
 
-                positions.forEach(pos => {
-                    const angleStep = (pos.startAngle - pos.endAngle) / (text.length - 1);
+                const startAngles = [
+                    -Math.PI / 2,  // Top (0°)
+                    0,             // Right (90°)
+                    Math.PI / 2,   // Bottom (180°)
+                    Math.PI        // Left (270°)
+                ];
+
+                for (let instance = 0; instance < 4; instance++) {
+                    const startAngle = startAngles[instance];
                     for (let i = 0; i < text.length; i++) {
-                        const angle = pos.startAngle - (i * angleStep);
+                        const angle = startAngle + (i * anglePerLetter);
                         const x = circle.x + textRadius * Math.cos(angle);
                         const y = circle.y + textRadius * Math.sin(angle);
 
                         ctx.save();
                         ctx.translate(x, y);
-                        ctx.rotate(angle + Math.PI / 2);
+                        ctx.rotate(angle + Math.PI / 2); // Rotate to align with ring
                         ctx.fillText(text[i], 0, 0);
                         ctx.restore();
                     }
-                });
+                }
             }
             ctx.shadowBlur = 0; // Reset shadow
 
