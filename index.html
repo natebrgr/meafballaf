@@ -272,21 +272,26 @@
             canvas.height = availableHeight - 2 * borderWidth;
             canvas.width = window.innerWidth * 0.9;
 
-            // Position canvas just below wallHitsDisplay, no centering
+            // Position canvas just below wallHitsDisplay
             const canvasLeft = (window.innerWidth - canvas.width) / 2;
-            const canvasTop = wallHitsBottom + snugGap; // Place canvas directly below wallHitsDisplay
+            const canvasTop = wallHitsBottom + snugGap;
             canvas.style.top = `${canvasTop}px`;
             canvas.style.left = `${canvasLeft}px`;
 
             const canvasBottom = canvasTop + canvas.height + (2 * borderWidth);
 
-            // Position bottom buttons directly below the canvas with a small gap
-            const buttonBottom = snugGap; // Small gap from the bottom of the window
-            modeButton.style.bottom = `${buttonBottom}px`;
+            // Position bottom buttons just below the canvas using 'top' instead of 'bottom'
+            const buttonTop = canvasBottom + snugGap; // 5px below the canvas
+            modeButton.style.top = `${buttonTop}px`;
+            modeButton.style.bottom = ''; // Remove bottom property
             modeButton.style.left = `${canvasLeft}px`;
-            mapButton.style.bottom = `${buttonBottom}px`;
+
+            mapButton.style.top = `${buttonTop}px`;
+            mapButton.style.bottom = ''; // Remove bottom property
             mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
-            playButton.style.bottom = `${buttonBottom}px`;
+
+            playButton.style.top = `${buttonTop}px`;
+            playButton.style.bottom = ''; // Remove bottom property
 
             livesDisplay.style.left = `${canvasLeft}px`;
             hiScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
