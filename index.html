@@ -241,8 +241,8 @@
         let currentMap = 'rectangle';
 
         const trail = [];
-        const maxTrailLength = 20;
-        const trailFadeRate = 0.05;
+        const maxTrailLength = 20; // Max segments, adjusted by velocity
+        const trailFadeRate = 0.1; // Faster fade for quick disappearance
 
         let shownTexts = new Set();
         let currentSighhhText = '';
@@ -574,6 +574,13 @@
             return null; // Null means use the looping color
         }
 
+        function lightenColor(color) {
+            if (color === '#00ff00') return 'rgba(0, 255, 0,';
+            if (color === '#ff0000') return 'rgba(255, 0, 0,';
+            const [r, g, b] = color.match(/\d+/g).map(Number);
+            return `rgba(${Math.min(r + 100, 255)}, ${Math.min(g + 100, 255)}, ${Math.min(b + 100, 255)},`;
+        }
+
         function drawScene(color) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -587,23 +594,31 @@
                 ctx.stroke();
             }
 
-            const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
-            const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
-            for (let i = 0; i < trail.length; i++) {
-                const segment = trail[i];
-                ctx.beginPath();
-                ctx.arc(segment.x, segment.y, circle.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b}, ${segment.opacity})`;
-                ctx.fill();
-                ctx.closePath();
-            }
-
             const greenColor = '#00ff00';
             let counterColor = '#e0e0e0';
             if (wallHits === level) counterColor = greenColor;
             else if (wallHits > level) counterColor = '#ff0000';
 
             const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+            const trailBaseColor = lightenColor(circleColor);
+
+            // Draw the trail as a solid, fading line
+            if (trail.length > 1) {
+                ctx.beginPath();
+                ctx.lineWidth = circle.radius * 2; // Width matches circle diameter
+                ctx.lineCap = 'round';
+                for (let i = 0; i < trail.length - 1; i++) {
+                    const start = trail[i];
+                    const end = trail[i + 1];
+                    const opacity = start.opacity * (1 - (i / trail.length)); // Fade from circle outward
+                    ctx.strokeStyle = `${trailBaseColor} ${opacity})`;
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                }
+            }
+
+            // Draw the circle
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = circleColor;
@@ -615,14 +630,15 @@
                 const text = "HOLDING";
                 const fontSize = 24;
                 const textRadius = circle.radius + 50;
-                const totalLetters = text.length * 4;
-                const anglePerLetter = (2 * Math.PI) / totalLetters;
+                const letterSpacing = fontSize * 0.5; // Space between words
+                const totalLetters = (text.length * 4) + 4; // 4 words + 4 spaces
+                const anglePerUnit = (2 * Math.PI) / totalLetters;
 
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = circleColor; // Sync text color with circle
-                ctx.shadowColor = circleColor;
+                ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`; // Always looping color
+                ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
                 ctx.shadowBlur = 5;
 
                 const startAngles = [
@@ -634,16 +650,22 @@
 
                 for (let instance = 0; instance < 4; instance++) {
                     const startAngle = startAngles[instance];
-                    for (let i = 0; i < text.length; i++) {
-                        const angle = startAngle + (i * anglePerLetter);
-                        const x = circle.x + textRadius * Math.cos(angle);
-                        const y = circle.y + textRadius * Math.sin(angle);
-
-                        ctx.save();
-                        ctx.translate(x, y);
-                        ctx.rotate(angle + Math.PI / 2);
-                        ctx.fillText(text[i], 0, 0);
-                        ctx.restore();
+                    let letterIndex = 0;
+                    for (let i = 0; i < text.length + 1; i++) {
+                        if (i < text.length) {
+                            const angle = startAngle + (letterIndex * anglePerUnit);
+                            const x = circle.x + textRadius * Math.cos(angle);
+                            const y = circle.y + textRadius * Math.sin(angle);
+                            ctx.save();
+                            ctx.translate(x, y);
+                            ctx.rotate(angle + Math.PI / 2);
+                            ctx.fillText(text[i], 0, 0);
+                            ctx.restore();
+                            letterIndex++;
+                        }
+                        // Add space after each word
+                        if (i === text.length - 1) continue;
+                        letterIndex++;
                     }
                 }
             }
@@ -697,7 +719,7 @@
                 circle.dy *= friction;
 
                 const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
-                const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 5));
+                const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 10)); // Adjust length by velocity
                 trail.unshift({ x: circle.x, y: circle.y, opacity: 1 });
                 while (trail.length > trailLength) trail.pop();
                 for (let i = 0; i < trail.length; i++) {
