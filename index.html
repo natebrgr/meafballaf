@@ -305,7 +305,6 @@
 
             sighhhDisplay.style.top = `${wallHitsBottom + 10}px`;
 
-            // Ensure circle stays within bounds after resize
             constrainCircle();
         }
 
@@ -523,7 +522,6 @@
             }
 
             updateDisplay();
-            // Force a redraw to ensure the circle appears
             requestAnimationFrame(() => drawScene(updateColors()));
         }
 
@@ -570,6 +568,12 @@
             return { r, g, b, inverted: invertedColor };
         }
 
+        function getCircleColor(counterColor) {
+            if (counterColor === '#00ff00') return '#00ff00'; // Green when wallHits === level
+            if (counterColor === '#ff0000') return '#ff0000'; // Red when wallHits > level
+            return null; // Null means use the looping color
+        }
+
         function drawScene(color) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -594,9 +598,15 @@
                 ctx.closePath();
             }
 
+            const greenColor = '#00ff00';
+            let counterColor = '#e0e0e0';
+            if (wallHits === level) counterColor = greenColor;
+            else if (wallHits > level) counterColor = '#ff0000';
+
+            const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
-            ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+            ctx.fillStyle = circleColor;
             ctx.fill();
             ctx.closePath();
 
@@ -611,8 +621,8 @@
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
-                ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+                ctx.fillStyle = circleColor; // Sync text color with circle
+                ctx.shadowColor = circleColor;
                 ctx.shadowBlur = 5;
 
                 const startAngles = [
@@ -640,10 +650,6 @@
             ctx.shadowBlur = 0;
 
             const offset = circle.radius + 20;
-            const greenColor = '#00ff00';
-            let counterColor = '#e0e0e0';
-            if (wallHits === level) counterColor = greenColor;
-            else if (wallHits > level) counterColor = '#ff0000';
 
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
@@ -1280,20 +1286,19 @@
                     circle.dx = 0;
                     circle.dy = 0;
                 } else if (circle.wasDraggingWhenPaused) {
-                    circle.isDragging = false; // Reset dragging state
+                    circle.isDragging = false;
                     circle.dragTouchId = null;
                     constrainCircle();
-                    circle.dx = circle.dx || 0; // Preserve velocity if it exists
+                    circle.dx = circle.dx || 0;
                     circle.dy = circle.dy || 0;
                 } else {
-                    constrainCircle(); // Ensure circle is within bounds
+                    constrainCircle();
                     circle.dx = circle.dx || 0;
                     circle.dy = circle.dy || 0;
                 }
-                circle.wasDraggingWhenPaused = false; // Reset flag
+                circle.wasDraggingWhenPaused = false;
                 if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
                 updateDisplay();
-                // Remove ctx.clearRect to prevent wiping the circle prematurely
             } else {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
