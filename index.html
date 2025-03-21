@@ -264,19 +264,24 @@
             const wallHitsHeight = wallHitsDisplay.offsetHeight || 32;
             const wallHitsBottom = wallHitsTop + wallHitsHeight;
             const buttonHeight = modeButton.offsetHeight || 36;
-            const canvasShrink = 10; // Reduced from 50 to 10 to bring buttons closer
+            const canvasShrink = 10;
             const snugGap = 5;
 
+            // Calculate available height for the canvas
             const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
             canvas.height = availableHeight - 2 * borderWidth;
             canvas.width = window.innerWidth * 0.9;
+
+            // Position canvas just below wallHitsDisplay, no centering
             const canvasLeft = (window.innerWidth - canvas.width) / 2;
-            const canvasTop = wallHitsBottom + (availableHeight - canvas.height) / 2;
+            const canvasTop = wallHitsBottom + snugGap; // Place canvas directly below wallHitsDisplay
             canvas.style.top = `${canvasTop}px`;
             canvas.style.left = `${canvasLeft}px`;
 
             const canvasBottom = canvasTop + canvas.height + (2 * borderWidth);
-            const buttonBottom = window.innerHeight - canvasBottom - buttonHeight - snugGap;
+
+            // Position bottom buttons directly below the canvas with a small gap
+            const buttonBottom = snugGap; // Small gap from the bottom of the window
             modeButton.style.bottom = `${buttonBottom}px`;
             modeButton.style.left = `${canvasLeft}px`;
             mapButton.style.bottom = `${buttonBottom}px`;
