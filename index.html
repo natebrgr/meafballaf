@@ -595,12 +595,12 @@
             if (shouldShowHoldingText) {
                 const topText = "HOLDING"; // Top half: H-O-L-D-I-N-G
                 const bottomText = "OLDIN"; // Bottom half: O-L-D-I-N
-                const fullText = "HOLDINGOLDIN"; // Combined for positioning: H-O-L-D-I-N-G-O-L-D-I-N
-                const fontSize = 12;
-                const textRadius = circle.radius + 30; // Beyond the numbers (circle.radius + 20)
+                const fullText = "HOLDING"; // We'll use just "HOLDING" to match the image
+                const fontSize = 20; // Increased font size for larger text
+                const textRadius = circle.radius + 50; // Increased radius to move text further from the circle
 
-                // Position letters around the full circle
-                const totalLetters = 10; // H, O, L, D, I, N, G, O, L, D, I, N (sharing H and G)
+                // Position letters around the circle
+                const totalLetters = fullText.length; // 7 letters: H, O, L, D, I, N, G
                 const angleStep = (2 * Math.PI) / totalLetters; // Equal spacing around the circle
 
                 ctx.font = `bold ${fontSize}px Arial`;
@@ -616,15 +616,15 @@
 
                 // Draw each letter
                 for (let i = 0; i < totalLetters; i++) {
+                    // Start at 180 degrees (left side) and move clockwise to match the image
                     const angle = Math.PI - (i * angleStep); // Start at 180 degrees (H at center-left)
                     const x = circle.x + textRadius * Math.cos(angle);
                     const y = circle.y + textRadius * Math.sin(angle);
 
                     ctx.save();
                     ctx.translate(x, y);
-                    ctx.rotate(angle + Math.PI / 2); // Rotate text to follow curve
-                    const letterIndex = i < 7 ? i : i - 2; // Adjust for shared H and G
-                    const letter = fullText[letterIndex];
+                    // Do not rotate the text to keep letters upright
+                    const letter = fullText[i];
                     ctx.fillText(letter, 0, 0);
                     ctx.restore();
                 }
