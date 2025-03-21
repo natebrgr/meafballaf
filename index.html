@@ -252,9 +252,6 @@
         let holdTimers = { play: null, mode: null, map: null, lives: null, hiScore: null };
         let buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
 
-        let holdingTextOpacity = 0; // For fading "HOLDING" text
-        const fadeSpeed = 0.05; // Speed of fade-in/fade-out
-
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
             'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
@@ -534,10 +531,8 @@
             const g = Math.round(currentColor.g + (nextColor.g - currentColor.g) * colorProgress);
             const b = Math.round(currentColor.b + (nextColor.b - currentColor.b) * colorProgress);
 
-            // Set background color
             document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
 
-            // Set text color for buttons to match background color
             const textColor = `rgb(${r}, ${g}, ${b})`;
             modeButton.style.color = textColor;
             mapButton.style.color = textColor;
@@ -545,7 +540,6 @@
             hiScoreDisplay.style.color = textColor;
             playButton.style.color = textColor;
 
-            // Set background color for buttons (inverted color)
             const invertedColor = invertColor({ r, g, b });
             const invertedStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
             modeButton.style.backgroundColor = invertedStyle;
@@ -597,31 +591,48 @@
             ctx.fill();
             ctx.closePath();
 
-            // Draw "HOLDING" text if visible
-            if (holdingTextOpacity > 0) {
-                const text = "HOLDING";
-                const fontSize = 12; // Smaller font size
-                const textRadius = circle.radius - 10; // Inside the circle
-                const startAngle = Math.PI; // Start at left (180 degrees)
-                const endAngle = 0; // End at right (0 degrees)
-                const angleStep = (startAngle - endAngle) / (text.length - 1);
+            const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
+            if (shouldShowHoldingText) {
+                const topText = "HOLDING"; // Top half: H-O-L-D-I-N-G
+                const bottomText = "OLDIN"; // Bottom half: O-L-D-I-N
+                const fullText = "HOLDINGOLDIN"; // Combined for positioning: H-O-L-D-I-N-G-O-L-D-I-N
+                const fontSize = 12;
+                const textRadius = circle.radius + 30; // Beyond the numbers (circle.radius + 20)
+
+                // Position letters around the full circle
+                const totalLetters = 10; // H, O, L, D, I, N, G, O, L, D, I, N (sharing H and G)
+                const angleStep = (2 * Math.PI) / totalLetters; // Equal spacing around the circle
 
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${holdingTextOpacity})`;
+                ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
 
-                for (let i = 0; i < text.length; i++) {
-                    const angle = startAngle - (i * angleStep);
+                // Set shadow properties
+                ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+                ctx.shadowBlur = 6;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+
+                // Draw each letter
+                for (let i = 0; i < totalLetters; i++) {
+                    const angle = Math.PI - (i * angleStep); // Start at 180 degrees (H at center-left)
                     const x = circle.x + textRadius * Math.cos(angle);
                     const y = circle.y + textRadius * Math.sin(angle);
 
                     ctx.save();
                     ctx.translate(x, y);
                     ctx.rotate(angle + Math.PI / 2); // Rotate text to follow curve
-                    ctx.fillText(text[i], 0, 0);
+                    const letterIndex = i < 7 ? i : i - 2; // Adjust for shared H and G
+                    const letter = fullText[letterIndex];
+                    ctx.fillText(letter, 0, 0);
                     ctx.restore();
                 }
+
+                // Reset shadow properties
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
             }
 
             const offset = circle.radius + 20;
@@ -1367,15 +1378,6 @@
 
         function animate() {
             updatePhysics();
-
-            // Update "HOLDING" text opacity
-            const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
-            if (shouldShowHoldingText) {
-                holdingTextOpacity = Math.min(1, holdingTextOpacity + fadeSpeed);
-            } else {
-                holdingTextOpacity = Math.max(0, holdingTextOpacity - fadeSpeed);
-            }
-
             const color = updateColors();
             drawScene(color);
             requestAnimationFrame(animate);
