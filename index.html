@@ -264,7 +264,7 @@
             const wallHitsHeight = wallHitsDisplay.offsetHeight || 32;
             const wallHitsBottom = wallHitsTop + wallHitsHeight;
             const buttonHeight = modeButton.offsetHeight || 36;
-            const canvasShrink = 50;
+            const canvasShrink = 10; // Reduced from 50 to 10 to bring buttons closer
             const snugGap = 5;
 
             const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
