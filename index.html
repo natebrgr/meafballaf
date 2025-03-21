@@ -304,6 +304,9 @@
             hiScoreCount.style.transform = 'translateX(-50%)';
 
             sighhhDisplay.style.top = `${wallHitsBottom + 10}px`;
+
+            // Ensure circle stays within bounds after resize
+            constrainCircle();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -459,7 +462,8 @@
                     dragTouchId: circle.dragTouchId,
                     lastX: circle.lastX,
                     lastY: circle.lastY,
-                    lastTime: circle.lastTime
+                    lastTime: circle.lastTime,
+                    wasDraggingWhenPaused: circle.wasDraggingWhenPaused
                 },
                 trail: [...trail],
                 wallHits,
@@ -499,7 +503,7 @@
                 circle.dragTouchId = state.dragTouchId;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
-                circle.lastTime = state.lastTime;
+                circle.lastTime = state.lastTime || Date.now();
             } else {
                 circle.x = canvas.width / 2;
                 circle.y = canvas.height / 2;
@@ -507,6 +511,9 @@
                 circle.dy = 0;
                 circle.isDragging = false;
                 circle.dragTouchId = null;
+                circle.lastX = circle.x;
+                circle.lastY = circle.y;
+                circle.lastTime = Date.now();
             }
 
             constrainCircle();
@@ -516,6 +523,8 @@
             }
 
             updateDisplay();
+            // Force a redraw to ensure the circle appears
+            requestAnimationFrame(() => drawScene(updateColors()));
         }
 
         function invertColor(rgb) {
@@ -591,20 +600,19 @@
             ctx.fill();
             ctx.closePath();
 
-            // Modified "HOLDING" text: 4 instances, each starting at cardinal points, clockwise
             const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
             if (shouldShowHoldingText) {
                 const text = "HOLDING";
                 const fontSize = 24;
                 const textRadius = circle.radius + 50;
-                const totalLetters = text.length * 4; // 28 letters total
-                const anglePerLetter = (2 * Math.PI) / totalLetters; // ~12.857° per letter
+                const totalLetters = text.length * 4;
+                const anglePerLetter = (2 * Math.PI) / totalLetters;
 
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`; // Match circle color
-                ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`; // Glow matches circle
+                ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+                ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
                 ctx.shadowBlur = 5;
 
                 const startAngles = [
@@ -623,13 +631,13 @@
 
                         ctx.save();
                         ctx.translate(x, y);
-                        ctx.rotate(angle + Math.PI / 2); // Rotate to align with ring
+                        ctx.rotate(angle + Math.PI / 2);
                         ctx.fillText(text[i], 0, 0);
                         ctx.restore();
                     }
                 }
             }
-            ctx.shadowBlur = 0; // Reset shadow
+            ctx.shadowBlur = 0;
 
             const offset = circle.radius + 20;
             const greenColor = '#00ff00';
@@ -987,7 +995,6 @@
                                 circle.dx = 0;
                                 circle.dy = 0;
                                 if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
-                                ctx.clearRect(0, 0, canvas.width, canvas.height);
                             } else {
                                 circle.wasDraggingWhenPaused = circle.isDragging;
                                 isPaused = true;
@@ -1025,7 +1032,6 @@
                             if (sighhhTimer) clearTimeout(sighhhTimer);
                             shownTexts.clear();
                             loadState(currentMode, currentMap);
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
                             updateDisplay();
                             buttonActivated.mode = true;
                         }
@@ -1058,7 +1064,6 @@
                             if (sighhhTimer) clearTimeout(sighhhTimer);
                             shownTexts.clear();
                             loadState(currentMode, currentMap);
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
                             updateDisplay();
                             buttonActivated.map = true;
                         }
@@ -1243,7 +1248,6 @@
             if (sighhhTimer) clearTimeout(sighhhTimer);
             shownTexts.clear();
             loadState(currentMode, currentMap);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
             updateDisplay();
         });
 
@@ -1260,7 +1264,6 @@
             if (sighhhTimer) clearTimeout(sighhhTimer);
             shownTexts.clear();
             loadState(currentMode, currentMap);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
             updateDisplay();
         });
 
@@ -1277,18 +1280,26 @@
                     circle.dx = 0;
                     circle.dy = 0;
                 } else if (circle.wasDraggingWhenPaused) {
+                    circle.isDragging = false; // Reset dragging state
+                    circle.dragTouchId = null;
                     constrainCircle();
-                    circle.dx = 0;
-                    circle.dy = 0;
+                    circle.dx = circle.dx || 0; // Preserve velocity if it exists
+                    circle.dy = circle.dy || 0;
+                } else {
+                    constrainCircle(); // Ensure circle is within bounds
+                    circle.dx = circle.dx || 0;
+                    circle.dy = circle.dy || 0;
                 }
+                circle.wasDraggingWhenPaused = false; // Reset flag
                 if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                updateDisplay();
+                // Remove ctx.clearRect to prevent wiping the circle prematurely
             } else {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
                 saveState();
+                updateDisplay();
             }
-            updateDisplay();
         });
 
         livesDisplay.addEventListener('click', () => {
