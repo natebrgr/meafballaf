@@ -147,16 +147,6 @@
             pointer-events: none;
             transition: background 1s ease;
         }
-        #holdingText {
-            position: absolute;
-            color: #000;
-            font-size: 24px;
-            font-weight: bold;
-            text-shadow: 0 0 5px #000;
-            z-index: 6;
-            visibility: hidden;
-            pointer-events: none;
-        }
     </style>
 </head>
 <body>
@@ -177,7 +167,6 @@
     <div id="sighhh"></div>
     <div id="fleepMessage">Fleep is nigh...</div>
     <div id="blackOverlay"></div>
-    <div id="holdingText"></div>
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -198,7 +187,6 @@
         const sighhhDisplay = document.getElementById('sighhh');
         const fleepMessage = document.getElementById('fleepMessage');
         const blackOverlay = document.getElementById('blackOverlay');
-        const holdingTextDisplay = document.getElementById('holdingText');
 
         const borderWidth = 2;
 
@@ -486,7 +474,6 @@
                 clearInterval(countdownInterval);
                 countdownInterval = null;
             }
-            holdingTextDisplay.style.visibility = 'hidden';
         }
 
         function loadState(mode, map) {
@@ -545,14 +532,13 @@
             const b = Math.round(currentColor.b + (nextColor.b - currentColor.b) * colorProgress);
 
             document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+
             const textColor = `rgb(${r}, ${g}, ${b})`;
             modeButton.style.color = textColor;
             mapButton.style.color = textColor;
             livesDisplay.style.color = textColor;
             hiScoreDisplay.style.color = textColor;
             playButton.style.color = textColor;
-            holdingTextDisplay.style.color = textColor;
-            holdingTextDisplay.style.textShadow = `0 0 5px rgb(${r}, ${g}, ${b})`;
 
             const invertedColor = invertColor({ r, g, b });
             const invertedStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
@@ -605,6 +591,37 @@
             ctx.fill();
             ctx.closePath();
 
+            // Modified "HOLDING" text drawing: no fade, larger, outside numbers, synced color
+            const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
+            if (shouldShowHoldingText) {
+                const text = "HOLDING";
+                const fontSize = 24; // Larger font size
+                const textRadius = circle.radius + 50; // Beyond the numbers (offset was 20 + extra)
+                const startAngle = Math.PI; // Left side
+                const endAngle = 0; // Right side
+                const angleStep = (startAngle - endAngle) / (text.length - 1);
+
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`; // Synced with background
+                ctx.shadowColor = `rgb(${color.r}, ${color.g}, ${color.b})`; // Synced shadow
+                ctx.shadowBlur = 5;
+
+                for (let i = 0; i < text.length; i++) {
+                    const angle = startAngle - (i * angleStep);
+                    const x = circle.x + textRadius * Math.cos(angle);
+                    const y = circle.y + textRadius * Math.sin(angle);
+
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(angle + Math.PI / 2);
+                    ctx.fillText(text[i], 0, 0);
+                    ctx.restore();
+                }
+            }
+            ctx.shadowBlur = 0; // Reset shadow for other elements
+
             const offset = circle.radius + 20;
             const greenColor = '#00ff00';
             let counterColor = '#e0e0e0';
@@ -636,14 +653,6 @@
             ctx.shadowOffsetY = 0;
 
             wallHitsDisplay.style.color = counterColor;
-
-            const holdingRadius = circle.radius + 50;
-            const text = "HOLDING";
-            holdingTextDisplay.innerHTML = text.split('').join(' ');
-            const canvasRect = canvas.getBoundingClientRect();
-            holdingTextDisplay.style.left = `${canvasRect.left + circle.x - (holdingTextDisplay.offsetWidth / 2)}px`;
-            holdingTextDisplay.style.top = `${canvasRect.top + circle.y - holdingRadius - (holdingTextDisplay.offsetHeight / 2)}px`;
-            holdingTextDisplay.style.visibility = ((!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused)) ? 'visible' : 'hidden';
         }
 
         function updatePhysics() {
@@ -1293,7 +1302,7 @@
             }
         });
 
- vagas        document.addEventListener('touchend', (e) => {
+        document.addEventListener('touchend', (e) => {
             if (isFleepSequence) return;
             if (livesWindow.classList.contains('active') && e.target !== livesWindow) {
                 livesWindow.classList.remove('active');
