@@ -593,15 +593,40 @@
 
             const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
             if (shouldShowHoldingText) {
-                const topText = "HOLDING"; // Top half: H-O-L-D-I-N-G
-                const bottomText = "OLDIN"; // Bottom half: O-L-D-I-N
-                const fullText = "HOLDING"; // We'll use just "HOLDING" to match the image
-                const fontSize = 20; // Increased font size for larger text
-                const textRadius = circle.radius + 50; // Increased radius to move text further from the circle
+                const fullText = "HOLDING"; // The word to display
+                const fontSize = 20; // Larger text as requested
+                const textRadius = circle.radius + 50; // Larger ring as requested
 
-                // Position letters around the circle
-                const totalLetters = fullText.length; // 7 letters: H, O, L, D, I, N, G
-                const angleStep = (2 * Math.PI) / totalLetters; // Equal spacing around the circle
+                // Define the positions for each letter around the circle
+                // We have 10 positions: H, O, L, D (top), I, N, G, N, I, D (bottom)
+                const positions = [
+                    { letter: 'H', angle: Math.PI }, // Left (180 degrees)
+                    { letter: 'O', angle: 5 * Math.PI / 4 }, // Between H and D (top), clockwise
+                    { letter: 'L', angle: 3 * Math.PI / 4 }, // Between O and D (top), clockwise
+                    { letter: 'D', angle: Math.PI / 2 }, // Top (90 degrees)
+                    { letter: 'I', angle: Math.PI / 4 }, // Between D (top) and G, clockwise
+                    { letter: 'N', angle: -Math.PI / 4 }, // Between I and G, clockwise
+                    { letter: 'G', angle: 0 }, // Right (0 degrees)
+                    { letter: 'N', angle: -3 * Math.PI / 4 }, // Between G and D (bottom), counterclockwise
+                    { letter: 'I', angle: -5 * Math.PI / 4 }, // Between N and D (bottom), counterclockwise
+                    { letter: 'D', angle: -Math.PI / 2 }, // Bottom (270 degrees)
+                    { letter: 'L', angle: -3 * Math.PI / 4 }, // Between D (bottom) and H, counterclockwise (already used in position 2)
+                    { letter: 'O', angle: -5 * Math.PI / 4 } // Between L and H, counterclockwise (already used in position 1)
+                ];
+
+                // Filter out duplicate positions for shared letters (H, D at top, G, D at bottom)
+                const uniquePositions = [
+                    { letter: 'H', angle: Math.PI }, // 180 degrees
+                    { letter: 'O', angle: 5 * Math.PI / 4 }, // 225 degrees
+                    { letter: 'L', angle: 3 * Math.PI / 4 }, // 135 degrees
+                    { letter: 'D', angle: Math.PI / 2 }, // 90 degrees
+                    { letter: 'I', angle: Math.PI / 4 }, // 45 degrees
+                    { letter: 'N', angle: -Math.PI / 4 }, // 315 degrees
+                    { letter: 'G', angle: 0 }, // 0 degrees
+                    { letter: 'N', angle: -3 * Math.PI / 4 }, // 225 degrees (already used in position 1)
+                    { letter: 'I', angle: -5 * Math.PI / 4 }, // 135 degrees (already used in position 2)
+                    { letter: 'D', angle: -Math.PI / 2 } // 270 degrees
+                ];
 
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
@@ -614,20 +639,17 @@
                 ctx.shadowOffsetX = 0;
                 ctx.shadowOffsetY = 0;
 
-                // Draw each letter
-                for (let i = 0; i < totalLetters; i++) {
-                    // Start at 180 degrees (left side) and move clockwise to match the image
-                    const angle = Math.PI - (i * angleStep); // Start at 180 degrees (H at center-left)
-                    const x = circle.x + textRadius * Math.cos(angle);
-                    const y = circle.y + textRadius * Math.sin(angle);
+                // Draw each letter at its specified position
+                uniquePositions.forEach(pos => {
+                    const x = circle.x + textRadius * Math.cos(pos.angle);
+                    const y = circle.y + textRadius * Math.sin(pos.angle);
 
                     ctx.save();
                     ctx.translate(x, y);
-                    // Do not rotate the text to keep letters upright
-                    const letter = fullText[i];
-                    ctx.fillText(letter, 0, 0);
+                    // Keep letters upright (no rotation)
+                    ctx.fillText(pos.letter, 0, 0);
                     ctx.restore();
-                }
+                });
 
                 // Reset shadow properties
                 ctx.shadowBlur = 0;
