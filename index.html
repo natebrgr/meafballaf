@@ -82,7 +82,7 @@
             border: none;
             border-radius: 5px;
             filter: drop-shadow(0 0 5px #fff);
-            transition: background-color 0.5s ease;
+            transition: background-color 0.5s ease, color 0.5s ease;
             z-index: 25;
             pointer-events: auto;
         }
@@ -165,7 +165,7 @@
     <div id="livesWindow">MEAF yourself Leroy</div>
     <div id="hiScoreWindow">eat my MEAF LERoYYY!</div>
     <div id="sighhh"></div>
-    <div id="fleepMessage">Fleep has risen..</div>
+    <div id="fleepMessage">Fleep is nigh...</div>
     <div id="blackOverlay"></div>
     <script>
         const canvas = document.getElementById('canvas');
@@ -252,6 +252,9 @@
         let holdTimers = { play: null, mode: null, map: null, lives: null, hiScore: null };
         let buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
 
+        let holdingTextOpacity = 0; // For fading "HOLDING" text
+        const fadeSpeed = 0.05; // Speed of fade-in/fade-out
+
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
             'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
@@ -267,12 +270,10 @@
             const canvasShrink = 10;
             const snugGap = 5;
 
-            // Calculate available height for the canvas
             const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
             canvas.height = availableHeight - 2 * borderWidth;
             canvas.width = window.innerWidth * 0.9;
 
-            // Position canvas just below wallHitsDisplay
             const canvasLeft = (window.innerWidth - canvas.width) / 2;
             const canvasTop = wallHitsBottom + snugGap;
             canvas.style.top = `${canvasTop}px`;
@@ -280,18 +281,17 @@
 
             const canvasBottom = canvasTop + canvas.height + (2 * borderWidth);
 
-            // Position bottom buttons just below the canvas using 'top' instead of 'bottom'
-            const buttonTop = canvasBottom + snugGap; // 5px below the canvas
+            const buttonTop = canvasBottom + snugGap;
             modeButton.style.top = `${buttonTop}px`;
-            modeButton.style.bottom = ''; // Remove bottom property
+            modeButton.style.bottom = '';
             modeButton.style.left = `${canvasLeft}px`;
 
             mapButton.style.top = `${buttonTop}px`;
-            mapButton.style.bottom = ''; // Remove bottom property
+            mapButton.style.bottom = '';
             mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
 
             playButton.style.top = `${buttonTop}px`;
-            playButton.style.bottom = ''; // Remove bottom property
+            playButton.style.bottom = '';
 
             livesDisplay.style.left = `${canvasLeft}px`;
             hiScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
@@ -330,8 +330,8 @@
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
 
-            sighhhDisplay.innerHTML = currentSighhhText === 'SIGHH me to FLEEP' 
-                ? 'SIGHH me to <span id="fleepSpan">FLEEP</span>' 
+            sighhhDisplay.innerHTML = currentSighhhText === 'SIGHHH me to FLEEP' 
+                ? 'SIGHHH me to <span id="fleepSpan">FLEEP</span>' 
                 : currentSighhhText;
             sighhhDisplay.style.visibility = sighhhVisible ? 'visible' : 'hidden';
             sighhhDisplay.classList.toggle('yee-haw', currentSighhhText === 'yee haw BII');
@@ -534,10 +534,20 @@
             const g = Math.round(currentColor.g + (nextColor.g - currentColor.g) * colorProgress);
             const b = Math.round(currentColor.b + (nextColor.b - currentColor.b) * colorProgress);
 
+            // Set background color
             document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+
+            // Set text color for buttons to match background color
+            const textColor = `rgb(${r}, ${g}, ${b})`;
+            modeButton.style.color = textColor;
+            mapButton.style.color = textColor;
+            livesDisplay.style.color = textColor;
+            hiScoreDisplay.style.color = textColor;
+            playButton.style.color = textColor;
+
+            // Set background color for buttons (inverted color)
             const invertedColor = invertColor({ r, g, b });
             const invertedStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
-
             modeButton.style.backgroundColor = invertedStyle;
             mapButton.style.backgroundColor = invertedStyle;
             livesDisplay.style.backgroundColor = invertedStyle;
@@ -554,13 +564,13 @@
                 }
             }
 
-            return invertedColor;
+            return { r, g, b, inverted: invertedColor };
         }
 
-        function drawScene(invertedColor) {
+        function drawScene(color) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
+            ctx.strokeStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
                 ctx.strokeRect(0, 0, canvas.width, canvas.height);
@@ -576,16 +586,43 @@
                 const segment = trail[i];
                 ctx.beginPath();
                 ctx.arc(segment.x, segment.y, circle.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b}, ${segment.opacity})`;
+                ctx.fillStyle = `rgba(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b}, ${segment.opacity})`;
                 ctx.fill();
                 ctx.closePath();
             }
 
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
-            ctx.fillStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
+            ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             ctx.fill();
             ctx.closePath();
+
+            // Draw "HOLDING" text if visible
+            if (holdingTextOpacity > 0) {
+                const text = "HOLDING";
+                const fontSize = 12; // Smaller font size
+                const textRadius = circle.radius - 10; // Inside the circle
+                const startAngle = Math.PI; // Start at left (180 degrees)
+                const endAngle = 0; // End at right (0 degrees)
+                const angleStep = (startAngle - endAngle) / (text.length - 1);
+
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${holdingTextOpacity})`;
+
+                for (let i = 0; i < text.length; i++) {
+                    const angle = startAngle - (i * angleStep);
+                    const x = circle.x + textRadius * Math.cos(angle);
+                    const y = circle.y + textRadius * Math.sin(angle);
+
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(angle + Math.PI / 2); // Rotate text to follow curve
+                    ctx.fillText(text[i], 0, 0);
+                    ctx.restore();
+                }
+            }
 
             const offset = circle.radius + 20;
             const greenColor = '#00ff00';
@@ -673,7 +710,7 @@
                             if (isTrackingHits) {
                                 wallHits++;
                                 if (currentMode === 'survival' && wallHits > level) {
-                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHH me to FLEEP';
+                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
                                     showText(text);
                                 }
                             }
@@ -844,7 +881,7 @@
                             } else if (lives <= 0) {
                                 level = 1;
                                 lives = 3;
-                                text = 'SIGHH me to FLEEP';
+                                text = 'SIGHHH me to FLEEP';
                             }
                             if (text) showText(text);
                         }
@@ -1330,8 +1367,17 @@
 
         function animate() {
             updatePhysics();
-            const invertedColor = updateColors();
-            drawScene(invertedColor);
+
+            // Update "HOLDING" text opacity
+            const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
+            if (shouldShowHoldingText) {
+                holdingTextOpacity = Math.min(1, holdingTextOpacity + fadeSpeed);
+            } else {
+                holdingTextOpacity = Math.max(0, holdingTextOpacity - fadeSpeed);
+            }
+
+            const color = updateColors();
+            drawScene(color);
             requestAnimationFrame(animate);
         }
 
