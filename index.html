@@ -34,7 +34,7 @@
             filter: drop-shadow(0 0 5px #fff);
             pointer-events: auto;
         }
-        #level, #countdown, #wallHits, #lives, #hiScore, #title, #sighhh {
+        #level, #countdown, #wallHits, #lives, #hiScore, #title, #sighhh, #centerWallHits {
             position: absolute;
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
@@ -44,7 +44,14 @@
         #title { top: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5em; }
         #level { top: 40px; left: 50%; transform: translateX(-50%); font-size: 2em; }
         #levelNumber { color: #00ff00; }
-        #countdown { top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 4em; transition: opacity 0.5s ease; }
+        #countdown, #centerWallHits { 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            font-size: 4em; 
+            transition: opacity 0.5s ease; 
+        }
+        #centerWallHits { opacity: 0; }
         #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
         #lives { top: 80px; font-size: 1em; }
         #hiScore { top: 80px; font-size: 1em; }
@@ -153,6 +160,7 @@
     <div id="title">Survival Mode</div>
     <div id="level">Level: <span id="levelNumber">1</span></div>
     <div id="countdown" style="opacity: 0;"></div>
+    <div id="centerWallHits" style="opacity: 0;">0</div>
     <div id="wallHits" style="visibility: hidden;">0</div>
     <div id="livesCount">3</div>
     <button id="lives">LIVES</button>
@@ -173,6 +181,7 @@
         const levelDisplay = document.getElementById('level');
         const levelNumber = document.getElementById('levelNumber');
         const countdownDisplay = document.getElementById('countdown');
+        const centerWallHitsDisplay = document.getElementById('centerWallHits');
         const wallHitsDisplay = document.getElementById('wallHits');
         const livesDisplay = document.getElementById('lives');
         const hiScoreDisplay = document.getElementById('hiScore');
@@ -342,6 +351,13 @@
 
             wallHitsDisplay.textContent = `${wallHits}`;
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
+
+            centerWallHitsDisplay.textContent = `${wallHits}`;
+            let counterColor = '#e0e0e0';
+            if (wallHits === level) counterColor = '#00ff00';
+            else if (wallHits > level) counterColor = '#ff0000';
+            centerWallHitsDisplay.style.color = counterColor;
+            centerWallHitsDisplay.style.opacity = (!isCountingDown && isTrackingHits && !isPaused) ? 1 : 0;
         }
 
         function showText(text) {
@@ -602,15 +618,14 @@
             const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             const trailBaseColor = lightenColor(circleColor);
 
-            // Draw the trail as a solid, fading line
             if (trail.length > 1) {
                 ctx.beginPath();
-                ctx.lineWidth = circle.radius * 2; // Width matches circle diameter
+                ctx.lineWidth = circle.radius * 2;
                 ctx.lineCap = 'round';
                 for (let i = 0; i < trail.length - 1; i++) {
                     const start = trail[i];
                     const end = trail[i + 1];
-                    const opacity = start.opacity * (1 - (i / trail.length)); // Fade from circle outward
+                    const opacity = start.opacity * (1 - (i / trail.length));
                     ctx.strokeStyle = `${trailBaseColor} ${opacity})`;
                     ctx.moveTo(start.x, start.y);
                     ctx.lineTo(end.x, end.y);
@@ -618,7 +633,6 @@
                 }
             }
 
-            // Draw the circle
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = circleColor;
@@ -636,15 +650,15 @@
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`; // Always looping color
+                ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
                 ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
                 ctx.shadowBlur = 5;
 
                 const startAngles = [
-                    -Math.PI / 2,  // Top (0°)
-                    0,             // Right (90°)
-                    Math.PI / 2,   // Bottom (180°)
-                    Math.PI        // Left (270°)
+                    -Math.PI / 2,
+                    0,
+                    Math.PI / 2,
+                    Math.PI
                 ];
 
                 for (let instance = 0; instance < 4; instance++) {
@@ -866,7 +880,50 @@
         }
 
         function handleCircleTap(e) {
-            if (isPaused || isFleepSequence) return;
+            if (isPaused || isFleepSequence) {
+                if (isPaused && circle.wasDraggingWhenPaused) {
+                    const screenPos = getScreenPos(e);
+                    const target = document.elementFromPoint(screenPos.x, screenPos.y);
+                    const canvasRect = canvas.getBoundingClientRect();
+                    const isOverCanvas = (
+                        screenPos.x >= canvasRect.left &&
+                        screenPos.x <= canvasRect.right &&
+                        screenPos.y >= canvasRect.top &&
+                        screenPos.y <= canvasRect.bottom
+                    );
+
+                    if (isOverCanvas && target === canvas) {
+                        console.log('Canvas tapped while paused and was dragging, resuming game');
+                        const pos = getMousePos(e);
+                        const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
+                        const isFingerOnCircle = dist < circle.radius;
+
+                        isPaused = false;
+                        if (isFingerOnCircle) {
+                            circle.isDragging = true;
+                            circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
+                            circle.lastX = pos.x;
+                            circle.lastY = pos.y;
+                            circle.lastTime = Date.now();
+                            circle.dx = 0;
+                            circle.dy = 0;
+                        } else {
+                            circle.isDragging = false;
+                            circle.dragTouchId = null;
+                            constrainCircle();
+                            circle.dx = circle.dx || 0;
+                            circle.dy = circle.dy || 0;
+                        }
+                        circle.wasDraggingWhenPaused = false;
+                        if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
+                        updateDisplay();
+                        e.preventDefault();
+                        return;
+                    }
+                }
+                return;
+            }
+
             const pos = getMousePos(e);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
             if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
