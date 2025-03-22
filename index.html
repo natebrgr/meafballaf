@@ -631,6 +631,7 @@
                 }
             }
 
+            // Draw red ring first (below green)
             if (redRing.visible) {
                 ctx.beginPath();
                 ctx.arc(redRing.x, redRing.y, redRing.radius, 0, Math.PI * 2);
@@ -641,6 +642,7 @@
                 ctx.setLineDash([]);
             }
 
+            // Draw green ring second (above red)
             if (greenRing.visible) {
                 ctx.beginPath();
                 ctx.arc(greenRing.x, greenRing.y, greenRing.radius, 0, Math.PI * 2);
@@ -737,6 +739,7 @@
             let simDx = circle.dx;
             let simDy = circle.dy;
             let simHits = wallHits;
+            let prevSimY = simY;
 
             const maxIterations = 1000;
             let greenX = 0;
@@ -746,6 +749,7 @@
             let greenFound = false;
             let redFound = false;
             let maxHits = simHits;
+            let settleCount = 0;
 
             for (let i = 0; i < maxIterations; i++) {
                 simDy += gravity;
@@ -802,17 +806,25 @@
                     redFound = true;
                 }
 
-                // Stop simulation if we've exceeded the level + 1 hits
-                if (simHits > level + 1) break;
-
-                // Check if the circle has effectively stopped
                 const velocity = Math.sqrt(simDx * simDx + simDy * simDy);
-                if (velocity < 0.01 && simY + circle.radius >= canvas.height - 0.1) break;
+                const yChange = Math.abs(simY - prevSimY);
+
+                // Stop condition: circle has settled (low velocity and minimal movement)
+                if (velocity < 0.1 && yChange < 0.1) {
+                    settleCount++;
+                    if (settleCount > 10) break; // Require multiple frames of "settled" state
+                } else {
+                    settleCount = 0;
+                }
+
+                prevSimY = simY;
+
+                if (simHits > level + 1) break; // Cap simulation after red ring
             }
 
             greenRing.x = greenX;
             greenRing.y = greenY;
-            greenRing.visible = greenFound && maxHits === level && !redFound;
+            greenRing.visible = greenFound && maxHits === level;
 
             redRing.x = redX;
             redRing.y = redY;
@@ -1446,7 +1458,7 @@
                     constrainCircle();
                     circle.dx = 0;
                     circle.dy = 0;
-                    if (isTrackingHits) predictTargetPositions(); // Show rings on resume, even during countdown
+                    if (isTrackingHits) predictTargetPositions();
                 } else {
                     constrainCircle();
                     circle.dx = circle.dx || 0;
