@@ -92,7 +92,7 @@
         #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white { animation: glowWhite 1s linear forwards; }
         #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede { animation: recedeGlow 0.2s linear forwards; }
         @keyframes glowGreen {
-            0% { box-shadow: 0 0 5px #00ff00; }
+            80% { box-shadow: 0 0 5px #00ff00; }
             100% { box-shadow: 0 0 20px #00ff00; }
         }
         @keyframes glowRed {
@@ -229,6 +229,7 @@
         const friction = 0.98;
         const bounciness = 0.9;
         const bounceTimeWindow = 100;
+        const minVelocity = 0.1; // Threshold below which velocity is set to 0
 
         const colors = [
             { r: 0, g: 0, b: 0 },
@@ -631,20 +632,22 @@
                 }
             }
 
-            if (greenRing.visible && wallHits < level) {
+            // Draw red ring first (below green)
+            if (redRing.visible && wallHits <= level) {
                 ctx.beginPath();
-                ctx.arc(greenRing.x, greenRing.y, greenRing.radius, 0, Math.PI * 2);
-                ctx.strokeStyle = '#00ff00';
+                ctx.arc(redRing.x, redRing.y, redRing.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#ff0000';
                 ctx.lineWidth = 2;
                 ctx.setLineDash([5, 5]);
                 ctx.stroke();
                 ctx.setLineDash([]);
             }
 
-            if (redRing.visible && wallHits <= level) {
+            // Draw green ring second (above red)
+            if (greenRing.visible && wallHits < level) {
                 ctx.beginPath();
-                ctx.arc(redRing.x, redRing.y, redRing.radius, 0, Math.PI * 2);
-                ctx.strokeStyle = '#ff0000';
+                ctx.arc(greenRing.x, greenRing.y, greenRing.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#00ff00';
                 ctx.lineWidth = 2;
                 ctx.setLineDash([5, 5]);
                 ctx.stroke();
@@ -737,8 +740,9 @@
             let simDx = circle.dx;
             let simDy = circle.dy;
             let simHits = wallHits;
+            let maxHits = simHits;
 
-            const maxIterations = 1000;
+            const maxIterations = 500; // Reduced to avoid excessive simulation
             let greenX = 0;
             let greenY = 0;
             let redX = 0;
@@ -752,6 +756,13 @@
                 simY += simDy;
                 simDx *= friction;
                 simDy *= friction;
+
+                const velocity = Math.sqrt(simDx * simDx + simDy * simDy);
+                if (velocity < minVelocity) {
+                    simDx = 0;
+                    simDy = 0;
+                    break; // Stop simulation if velocity is negligible
+                }
 
                 if (currentMap === 'rectangle') {
                     if (simX + circle.radius > canvas.width) {
@@ -788,6 +799,8 @@
                     }
                 }
 
+                maxHits = Math.max(maxHits, simHits);
+
                 if (simHits === level && !greenFound) {
                     greenX = simX;
                     greenY = simY;
@@ -802,11 +815,11 @@
 
             greenRing.x = greenX;
             greenRing.y = greenY;
-            greenRing.visible = greenFound && simHits >= level;
+            greenRing.visible = greenFound && maxHits >= level;
 
             redRing.x = redX;
             redRing.y = redY;
-            redRing.visible = redFound && simHits >= level;
+            redRing.visible = redFound && maxHits >= level;
         }
 
         function updatePhysics() {
@@ -828,6 +841,11 @@
                 circle.dy *= friction;
 
                 const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
+                if (velocity < minVelocity) {
+                    circle.dx = 0;
+                    circle.dy = 0;
+                }
+
                 const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 10));
                 trail.unshift({ x: circle.x, y: circle.y, opacity: 1 });
                 while (trail.length > trailLength) trail.pop();
@@ -1436,7 +1454,7 @@
                     constrainCircle();
                     circle.dx = 0;
                     circle.dy = 0;
-                    if (!isCountingDown) predictTargetPositions(); // Treat as a drop when resuming
+                    if (isTrackingHits && !isCountingDown) predictTargetPositions(); // Show rings on resume drop
                 } else {
                     constrainCircle();
                     circle.dx = circle.dx || 0;
