@@ -631,7 +631,7 @@
                 }
             }
 
-            // Draw red ring first (below green)
+            // Red ring first (below green)
             if (redRing.visible) {
                 ctx.beginPath();
                 ctx.arc(redRing.x, redRing.y, redRing.radius, 0, Math.PI * 2);
@@ -642,7 +642,7 @@
                 ctx.setLineDash([]);
             }
 
-            // Draw green ring second (above red)
+            // Green ring second (above red)
             if (greenRing.visible) {
                 ctx.beginPath();
                 ctx.arc(greenRing.x, greenRing.y, greenRing.radius, 0, Math.PI * 2);
@@ -739,6 +739,7 @@
             let simDx = circle.dx;
             let simDy = circle.dy;
             let simHits = wallHits;
+            let prevSimX = simX;
             let prevSimY = simY;
 
             const maxIterations = 1000;
@@ -751,6 +752,8 @@
             let maxHits = simHits;
             let settleCount = 0;
 
+            console.log(`Starting prediction: x=${simX}, y=${simY}, dx=${simDx}, dy=${simDy}, hits=${simHits}, level=${level}`);
+
             for (let i = 0; i < maxIterations; i++) {
                 simDy += gravity;
                 simX += simDx;
@@ -758,24 +761,30 @@
                 simDx *= friction;
                 simDy *= friction;
 
+                let hitThisFrame = false;
+
                 if (currentMap === 'rectangle') {
                     if (simX + circle.radius > canvas.width) {
                         simX = canvas.width - circle.radius;
                         simDx = -simDx * bounciness;
                         simHits++;
+                        hitThisFrame = true;
                     } else if (simX - circle.radius < 0) {
                         simX = circle.radius;
                         simDx = -simDx * bounciness;
                         simHits++;
+                        hitThisFrame = true;
                     }
                     if (simY + circle.radius > canvas.height) {
                         simY = canvas.height - circle.radius;
                         simDy = -simDy * bounciness;
                         simHits++;
+                        hitThisFrame = true;
                     } else if (simY - circle.radius < 0) {
                         simY = circle.radius;
                         simDy = -simDy * bounciness;
                         simHits++;
+                        hitThisFrame = true;
                     }
                 } else {
                     const centerX = canvas.width / 2;
@@ -790,41 +799,53 @@
                         simDx = -Math.cos(angle) * speed * bounciness;
                         simDy = -Math.sin(angle) * speed * bounciness;
                         simHits++;
+                        hitThisFrame = true;
                     }
                 }
 
                 maxHits = Math.max(maxHits, simHits);
 
-                if (simHits === level && !greenFound) {
+                if (hitThisFrame && simHits === level && !greenFound) {
                     greenX = simX;
                     greenY = simY;
                     greenFound = true;
+                    console.log(`Green found at hit ${simHits}: x=${simX}, y=${simY}`);
                 }
-                if (simHits === level + 1 && !redFound) {
+                if (hitThisFrame && simHits === level + 1 && !redFound) {
                     redX = simX;
                     redY = simY;
                     redFound = true;
+                    console.log(`Red found at hit ${simHits}: x=${simX}, y=${simY}`);
                 }
 
                 const velocity = Math.sqrt(simDx * simDx + simDy * simDy);
-                const yChange = Math.abs(simY - prevSimY);
+                const posChange = Math.sqrt((simX - prevSimX) ** 2 + (simY - prevSimY) ** 2);
 
-                // Stop condition: circle has settled (low velocity and minimal movement)
-                if (velocity < 0.1 && yChange < 0.1) {
+                // Stop if settled: low velocity and minimal position change
+                if (velocity < 0.05 && posChange < 0.05) {
                     settleCount++;
-                    if (settleCount > 10) break; // Require multiple frames of "settled" state
+                    if (settleCount > 5) {
+                        console.log(`Settled at iteration ${i}: hits=${simHits}, x=${simX}, y=${simY}, v=${velocity}`);
+                        break;
+                    }
                 } else {
                     settleCount = 0;
                 }
 
+                prevSimX = simX;
                 prevSimY = simY;
 
-                if (simHits > level + 1) break; // Cap simulation after red ring
+                if (simHits > level + 1) {
+                    console.log(`Stopped at hit ${simHits}`);
+                    break;
+                }
             }
+
+            console.log(`Prediction ended: maxHits=${maxHits}, greenFound=${greenFound}, redFound=${redFound}`);
 
             greenRing.x = greenX;
             greenRing.y = greenY;
-            greenRing.visible = greenFound && maxHits === level;
+            greenRing.visible = greenFound && maxHits >= level && maxHits <= level;
 
             redRing.x = redX;
             redRing.y = redY;
