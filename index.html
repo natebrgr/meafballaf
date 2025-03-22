@@ -190,6 +190,7 @@
 
         const borderWidth = 2;
         const defaultRadius = 30;
+        const resizeHoldThreshold = 200; // ms to differentiate tap vs hold
 
         const circle = {
             x: 0,
@@ -213,7 +214,10 @@
             resizeTouchId: null,
             isResizing: false,
             resizeStartX: 0,
-            resizeStartY: 0
+            resizeStartY: 0,
+            initialRadius: defaultRadius,
+            resizeStartTime: 0,
+            resizeTimer: null
         };
 
         const gravity = 0.5;
@@ -958,7 +962,9 @@
         }
 
         function startResizing(e) {
-            if (!circle.isDragging || circle.isResizing || isPaused || isFleepSequence || e.touches.length < 2) return;
+            if (!circle.isDragging || circle.isResizing || isFleepSequence || e.touches.length < 2) return;
+            if (isPaused && !circle.wasDraggingWhenPaused) return;
+
             const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
             if (dragTouchIndex === -1) return;
 
@@ -973,11 +979,18 @@
             );
 
             if (isOverCanvas) {
-                circle.isResizing = true;
                 circle.resizeTouchId = otherTouch.identifier;
                 circle.resizeStartX = pos.x;
                 circle.resizeStartY = pos.y;
-                console.log('Resizing started, resizeTouchId:', circle.resizeTouchId);
+                circle.initialRadius = circle.radius;
+                circle.resizeStartTime = Date.now();
+                circle.resizeTimer = setTimeout(() => {
+                    if (circle.resizeTouchId !== null) {
+                        circle.isResizing = true;
+                        console.log('Resizing started, resizeTouchId:', circle.resizeTouchId);
+                    }
+                }, resizeHoldThreshold);
+                console.log('Resize touch initiated, waiting for hold threshold');
             }
         }
 
@@ -1032,32 +1045,31 @@
                 const resizePos = getMousePos(e, circle.resizeTouchId);
                 const dx = resizePos.x - circle.x;
                 const dy = resizePos.y - circle.y;
-                const distanceFromCenter = Math.sqrt(dx * dx + dy * dy);
+                const currentDistance = Math.sqrt(dx * dx + dy * dy);
                 const initialDistance = Math.sqrt(
                     (circle.resizeStartX - circle.x) ** 2 + 
                     (circle.resizeStartY - circle.y) ** 2
                 );
+                const distanceDelta = currentDistance - initialDistance;
 
-                if (distanceFromCenter > initialDistance) {
-                    const newRadius = Math.max(defaultRadius, distanceFromCenter / 2);
-                    let maxAllowedRadius;
+                const newRadius = Math.max(defaultRadius, circle.initialRadius + distanceDelta / 2);
+                let maxAllowedRadius;
 
-                    if (currentMap === 'rectangle') {
-                        maxAllowedRadius = Math.min(
-                            circle.x, 
-                            canvas.width - circle.x,
-                            circle.y,
-                            canvas.height - circle.y
-                        );
-                    } else {
-                        const centerX = canvas.width / 2;
-                        const centerY = canvas.height / 2;
-                        const distToCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
-                        maxAllowedRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth - distToCenter;
-                    }
-
-                    circle.radius = Math.min(newRadius, maxAllowedRadius);
+                if (currentMap === 'rectangle') {
+                    maxAllowedRadius = Math.min(
+                        circle.x, 
+                        canvas.width - circle.x,
+                        circle.y,
+                        canvas.height - circle.y
+                    );
+                } else {
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const distToCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
+                    maxAllowedRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth - distToCenter;
                 }
+
+                circle.radius = Math.min(newRadius, maxAllowedRadius);
             }
 
             const screenPos = getScreenPos(e, circle.dragTouchId);
@@ -1283,7 +1295,7 @@
         }
 
         function stopResizing(e) {
-            if (!circle.isResizing || isFleepSequence) return;
+            if (circle.resizeTouchId === null || isFleepSequence) return;
             if (e.touches && e.touches.length > 1) return;
             if (e.changedTouches) {
                 let matched = false;
@@ -1296,15 +1308,29 @@
                 if (!matched) return;
             }
 
-            circle.isResizing = false;
+            const elapsed = Date.now() - circle.resizeStartTime;
+            if (!circle.isResizing && elapsed < resizeHoldThreshold && !isPaused) {
+                console.log('Quick tap detected, dropping circle');
+                circle.isDragging = false;
+                circle.dragTouchId = null;
+                circle.dx = 0;
+                circle.dy = 0;
+            } else if (circle.isResizing) {
+                console.log('Resizing stopped, new radius:', circle.radius);
+                circle.isResizing = false;
+            }
+
+            if (circle.resizeTimer) {
+                clearTimeout(circle.resizeTimer);
+                circle.resizeTimer = null;
+            }
             circle.resizeTouchId = null;
-            console.log('Resizing stopped, new radius:', circle.radius);
             constrainCircle();
             if (isPaused) saveState();
         }
 
         function handleMultiTouch(e) {
-            if (isPaused || isFleepSequence || e.touches.length < 2) return;
+            if (isFleepSequence || e.touches.length < 2) return;
             const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
             if (dragTouchIndex === -1) return;
 
@@ -1318,7 +1344,7 @@
                 screenPos.y <= canvasRect.bottom
             );
 
-            if (isOverCanvas && !circle.isResizing) {
+            if (isOverCanvas && !circle.isResizing && !isPaused) {
                 handleCircleTap({ touches: [otherTouch] });
             }
         }
