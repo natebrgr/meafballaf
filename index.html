@@ -527,8 +527,8 @@
                 circle.radius = state.circle.radius || defaultRadius;
                 circle.dx = state.circle.dx;
                 circle.dy = state.dy;
-                circle.isDragging = state.isDragging;
-                circle.dragTouchId = state.dragTouchId;
+                circle.isDragging = state.circle.isDragging;
+                circle.dragTouchId = state.circle.dragTouchId;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime || Date.now();
@@ -859,7 +859,7 @@
             }
         }
 
-        function startCountdown(isResuming = false) {
+        function startCountdown(isResuming = false, resetLives = false) {
             if (!isResuming) {
                 isCountingDown = true;
                 countdown = 3;
@@ -870,9 +870,14 @@
                 sighhhVisible = false;
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     setRandomZones();
-                    lives = defaultMaxLives + extraLives; // Start with default + any extra
+                    if (resetLives) {
+                        lives = defaultMaxLives + extraLives; // Reset to max only for new level
+                    }
+                    // Otherwise, lives retains its current value for new game
                 } else {
-                    lives = defaultMaxLives; // No zones for circle map or endurance
+                    if (resetLives) {
+                        lives = defaultMaxLives; // No zones for circle map or endurance
+                    }
                 }
             } else {
                 isCountingDown = true;
@@ -978,7 +983,7 @@
                             wallHitsDisplay.style.visibility = 'hidden';
                             saveState();
                             updateDisplay();
-                            startCountdown();
+                            startCountdown(false, true); // Reset lives for new level
                         }
                     } else {
                         isTrackingHits = false;
@@ -1021,8 +1026,9 @@
                                 text = 'SighhhAFF';
                             } else if (lives <= 0) {
                                 level = 1;
-                                lives = defaultMaxLives = 3;
+                                defaultMaxLives = 3;
                                 extraLives = 0;
+                                lives = defaultMaxLives; // New game, start with defaultMaxLives only
                                 text = 'SIGHHH me to FLEEP';
                             }
                             if (text) showText(text);
@@ -1030,12 +1036,12 @@
                         wallHitsDisplay.style.visibility = 'hidden';
                         saveState();
                         updateDisplay();
-                        startCountdown();
+                        startCountdown(false, wallHits === level); // Reset lives only if level completed
                     }
                 } else if (!isCountingDown) {
                     wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
-                    startCountdown();
+                    startCountdown(false, false); // New game, no lives reset
                 }
             }
         }
