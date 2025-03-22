@@ -211,7 +211,14 @@
             }
         };
 
-        const targetRing = {
+        const greenRing = {
+            x: 0,
+            y: 0,
+            radius: 30,
+            visible: false
+        };
+
+        const redRing = {
             x: 0,
             y: 0,
             radius: 30,
@@ -624,10 +631,20 @@
                 }
             }
 
-            if (targetRing.visible && wallHits <= level) {
+            if (greenRing.visible && wallHits < level) {
                 ctx.beginPath();
-                ctx.arc(targetRing.x, targetRing.y, targetRing.radius, 0, Math.PI * 2);
+                ctx.arc(greenRing.x, greenRing.y, greenRing.radius, 0, Math.PI * 2);
                 ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            if (redRing.visible && wallHits <= level) {
+                ctx.beginPath();
+                ctx.arc(redRing.x, redRing.y, redRing.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#ff0000';
                 ctx.lineWidth = 2;
                 ctx.setLineDash([5, 5]);
                 ctx.stroke();
@@ -708,9 +725,10 @@
             wallHitsDisplay.style.color = counterColor;
         }
 
-        function predictTargetPosition() {
+        function predictTargetPositions() {
             if (!isTrackingHits || isPaused || isFleepSequence) {
-                targetRing.visible = false;
+                greenRing.visible = false;
+                redRing.visible = false;
                 return;
             }
 
@@ -721,10 +739,14 @@
             let simHits = wallHits;
 
             const maxIterations = 1000;
-            let targetX = simX;
-            let targetY = simY;
+            let greenX = 0;
+            let greenY = 0;
+            let redX = 0;
+            let redY = 0;
+            let greenFound = false;
+            let redFound = false;
 
-            for (let i = 0; i < maxIterations && simHits <= level; i++) {
+            for (let i = 0; i < maxIterations && (!greenFound || !redFound); i++) {
                 simDy += gravity;
                 simX += simDx;
                 simY += simDy;
@@ -766,16 +788,25 @@
                     }
                 }
 
-                if (simHits === level) {
-                    targetX = simX;
-                    targetY = simY;
-                    break;
+                if (simHits === level && !greenFound) {
+                    greenX = simX;
+                    greenY = simY;
+                    greenFound = true;
+                }
+                if (simHits === level + 1 && !redFound) {
+                    redX = simX;
+                    redY = simY;
+                    redFound = true;
                 }
             }
 
-            targetRing.x = targetX;
-            targetRing.y = targetY;
-            targetRing.visible = simHits >= level;
+            greenRing.x = greenX;
+            greenRing.y = greenY;
+            greenRing.visible = greenFound && simHits >= level;
+
+            redRing.x = redX;
+            redRing.y = redY;
+            redRing.visible = redFound && simHits >= level + 1;
         }
 
         function updatePhysics() {
@@ -830,10 +861,15 @@
                             contact.time = currentTime;
                             if (isTrackingHits) {
                                 wallHits++;
-                                if (currentMode === 'survival' && wallHits > level) {
-                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
-                                    showText(text);
-                                    targetRing.visible = false;
+                                if (wallHits === level) {
+                                    greenRing.visible = false;
+                                }
+                                if (wallHits > level) {
+                                    redRing.visible = false;
+                                    if (currentMode === 'survival') {
+                                        const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
+                                        showText(text);
+                                    }
                                 }
                             }
                         }
@@ -881,7 +917,8 @@
             } else if (!isTrackingHits) {
                 wallHitsDisplay.textContent = '0';
                 wallHitsDisplay.style.visibility = 'hidden';
-                targetRing.visible = false;
+                greenRing.visible = false;
+                redRing.visible = false;
             }
         }
 
@@ -894,7 +931,8 @@
                 countdownOpacity = 1;
                 shownTexts.clear();
                 sighhhVisible = false;
-                targetRing.visible = false;
+                greenRing.visible = false;
+                redRing.visible = false;
             } else {
                 isCountingDown = true;
             }
@@ -1036,6 +1074,8 @@
                 circle.dx = 0;
                 circle.dy = 0;
                 if (!isPaused) trail.length = 0;
+                greenRing.visible = false;
+                redRing.visible = false;
                 buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
                 console.log('Dragging started, touchId:', circle.dragTouchId);
             }
@@ -1283,7 +1323,7 @@
                 toggleWindow(hiScoreWindow);
             } else if (isOverCanvas && !isPaused) {
                 console.log('Circle thrown, dx:', circle.dx, 'dy:', circle.dy);
-                predictTargetPosition();
+                predictTargetPositions();
             }
 
             circle.isDragging = false;
@@ -1339,7 +1379,7 @@
                         circle.dx = 0;
                         circle.dy = 0;
                         console.log('Circle dropped via multi-touch on canvas');
-                        predictTargetPosition();
+                        predictTargetPositions();
                         return;
                     }
                 }
