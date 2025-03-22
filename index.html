@@ -189,11 +189,12 @@
         const blackOverlay = document.getElementById('blackOverlay');
 
         const borderWidth = 2;
+        const defaultRadius = 30;
 
         const circle = {
             x: 0,
             y: 0,
-            radius: 30,
+            radius: defaultRadius,
             dx: 0,
             dy: 0,
             isDragging: false,
@@ -208,21 +209,11 @@
                 top: { time: 0, inContact: false },
                 bottom: { time: 0, inContact: false },
                 boundary: { time: 0, inContact: false }
-            }
-        };
-
-        const greenRing = {
-            x: 0,
-            y: 0,
-            radius: 30,
-            visible: false
-        };
-
-        const redRing = {
-            x: 0,
-            y: 0,
-            radius: 30,
-            visible: false
+            },
+            resizeTouchId: null,
+            isResizing: false,
+            resizeStartX: 0,
+            resizeStartY: 0
         };
 
         const gravity = 0.5;
@@ -448,14 +439,12 @@
             } else {
                 const centerX = canvas.width / 2;
                 const centerY = canvas.height / 2;
-                const maxRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth - circle.radius;
-                const dx = circle.x - centerX;
-                const dy = circle.y - centerY;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance > maxRadius) {
-                    const angle = Math.atan2(dy, dx);
-                    circle.x = centerX + Math.cos(angle) * maxRadius;
-                    circle.y = centerY + Math.sin(angle) * maxRadius;
+                const maxRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
+                const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
+                if (distFromCenter + circle.radius > maxRadius) {
+                    const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
+                    circle.x = centerX + Math.cos(angle) * (maxRadius - circle.radius);
+                    circle.y = centerY + Math.sin(angle) * (maxRadius - circle.radius);
                 }
             }
         }
@@ -469,6 +458,7 @@
                 circle: {
                     x: circle.x,
                     y: circle.y,
+                    radius: circle.radius,
                     dx: circle.dx,
                     dy: circle.dy,
                     isDragging: circle.isDragging,
@@ -510,6 +500,7 @@
             if (state.circle.x !== undefined) {
                 circle.x = state.circle.x;
                 circle.y = state.circle.y;
+                circle.radius = state.circle.radius || defaultRadius;
                 circle.dx = state.circle.dx;
                 circle.dy = state.dy;
                 circle.isDragging = state.isDragging;
@@ -520,6 +511,7 @@
             } else {
                 circle.x = canvas.width / 2;
                 circle.y = canvas.height / 2;
+                circle.radius = defaultRadius;
                 circle.dx = 0;
                 circle.dy = 0;
                 circle.isDragging = false;
@@ -631,28 +623,6 @@
                 }
             }
 
-            // Red ring first (below green)
-            if (redRing.visible) {
-                ctx.beginPath();
-                ctx.arc(redRing.x, redRing.y, redRing.radius, 0, Math.PI * 2);
-                ctx.strokeStyle = '#ff0000';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-
-            // Green ring second (above red)
-            if (greenRing.visible) {
-                ctx.beginPath();
-                ctx.arc(greenRing.x, greenRing.y, greenRing.radius, 0, Math.PI * 2);
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = circleColor;
@@ -727,131 +697,6 @@
             wallHitsDisplay.style.color = counterColor;
         }
 
-        function predictTargetPositions() {
-            if (!isTrackingHits || isPaused || isFleepSequence) {
-                greenRing.visible = false;
-                redRing.visible = false;
-                return;
-            }
-
-            let simX = circle.x;
-            let simY = circle.y;
-            let simDx = circle.dx;
-            let simDy = circle.dy;
-            let simHits = wallHits;
-            let prevSimX = simX;
-            let prevSimY = simY;
-
-            const maxIterations = 1000;
-            let greenX = 0;
-            let greenY = 0;
-            let redX = 0;
-            let redY = 0;
-            let greenFound = false;
-            let redFound = false;
-            let maxHits = simHits;
-            let settleCount = 0;
-
-            console.log(`Starting prediction: x=${simX}, y=${simY}, dx=${simDx}, dy=${simDy}, hits=${simHits}, level=${level}`);
-
-            for (let i = 0; i < maxIterations; i++) {
-                simDy += gravity;
-                simX += simDx;
-                simY += simDy;
-                simDx *= friction;
-                simDy *= friction;
-
-                let hitThisFrame = false;
-
-                if (currentMap === 'rectangle') {
-                    if (simX + circle.radius > canvas.width) {
-                        simX = canvas.width - circle.radius;
-                        simDx = -simDx * bounciness;
-                        simHits++;
-                        hitThisFrame = true;
-                    } else if (simX - circle.radius < 0) {
-                        simX = circle.radius;
-                        simDx = -simDx * bounciness;
-                        simHits++;
-                        hitThisFrame = true;
-                    }
-                    if (simY + circle.radius > canvas.height) {
-                        simY = canvas.height - circle.radius;
-                        simDy = -simDy * bounciness;
-                        simHits++;
-                        hitThisFrame = true;
-                    } else if (simY - circle.radius < 0) {
-                        simY = circle.radius;
-                        simDy = -simDy * bounciness;
-                        simHits++;
-                        hitThisFrame = true;
-                    }
-                } else {
-                    const centerX = canvas.width / 2;
-                    const centerY = canvas.height / 2;
-                    const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
-                    const distFromCenter = Math.sqrt((simX - centerX) ** 2 + (simY - centerY) ** 2);
-                    if (distFromCenter + circle.radius >= radius) {
-                        const angle = Math.atan2(simY - centerY, simX - centerX);
-                        simX = centerX + Math.cos(angle) * (radius - circle.radius);
-                        simY = centerY + Math.sin(angle) * (radius - circle.radius);
-                        const speed = Math.sqrt(simDx ** 2 + simDy ** 2);
-                        simDx = -Math.cos(angle) * speed * bounciness;
-                        simDy = -Math.sin(angle) * speed * bounciness;
-                        simHits++;
-                        hitThisFrame = true;
-                    }
-                }
-
-                maxHits = Math.max(maxHits, simHits);
-
-                if (hitThisFrame && simHits === level && !greenFound) {
-                    greenX = simX;
-                    greenY = simY;
-                    greenFound = true;
-                    console.log(`Green found at hit ${simHits}: x=${simX}, y=${simY}`);
-                }
-                if (hitThisFrame && simHits === level + 1 && !redFound) {
-                    redX = simX;
-                    redY = simY;
-                    redFound = true;
-                    console.log(`Red found at hit ${simHits}: x=${simX}, y=${simY}`);
-                }
-
-                const velocity = Math.sqrt(simDx * simDx + simDy * simDy);
-                const posChange = Math.sqrt((simX - prevSimX) ** 2 + (simY - prevSimY) ** 2);
-
-                // Stop if settled: low velocity and minimal position change
-                if (velocity < 0.05 && posChange < 0.05) {
-                    settleCount++;
-                    if (settleCount > 5) {
-                        console.log(`Settled at iteration ${i}: hits=${simHits}, x=${simX}, y=${simY}, v=${velocity}`);
-                        break;
-                    }
-                } else {
-                    settleCount = 0;
-                }
-
-                prevSimX = simX;
-                prevSimY = simY;
-
-                if (simHits > level + 1) {
-                    console.log(`Stopped at hit ${simHits}`);
-                    break;
-                }
-            }
-
-            console.log(`Prediction ended: maxHits=${maxHits}, greenFound=${greenFound}, redFound=${redFound}`);
-
-            greenRing.x = greenX;
-            greenRing.y = greenY;
-            greenRing.visible = greenFound && maxHits >= level && maxHits <= level;
-
-            redRing.x = redX;
-            redRing.y = redY;
-            redRing.visible = redFound && maxHits > level;
-        }
-
         function updatePhysics() {
             if (isPaused || isFleepSequence) {
                 if (circle.isDragging) {
@@ -904,15 +749,9 @@
                             contact.time = currentTime;
                             if (isTrackingHits) {
                                 wallHits++;
-                                if (wallHits === level) {
-                                    greenRing.visible = false;
-                                }
-                                if (wallHits > level) {
-                                    redRing.visible = false;
-                                    if (currentMode === 'survival') {
-                                        const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
-                                        showText(text);
-                                    }
+                                if (wallHits > level && currentMode === 'survival') {
+                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
+                                    showText(text);
                                 }
                             }
                         }
@@ -960,8 +799,6 @@
             } else if (!isTrackingHits) {
                 wallHitsDisplay.textContent = '0';
                 wallHitsDisplay.style.visibility = 'hidden';
-                greenRing.visible = false;
-                redRing.visible = false;
             }
         }
 
@@ -974,8 +811,6 @@
                 countdownOpacity = 1;
                 shownTexts.clear();
                 sighhhVisible = false;
-                greenRing.visible = false;
-                redRing.visible = false;
             } else {
                 isCountingDown = true;
             }
@@ -1117,10 +952,32 @@
                 circle.dx = 0;
                 circle.dy = 0;
                 if (!isPaused) trail.length = 0;
-                greenRing.visible = false;
-                redRing.visible = false;
                 buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
                 console.log('Dragging started, touchId:', circle.dragTouchId);
+            }
+        }
+
+        function startResizing(e) {
+            if (!circle.isDragging || circle.isResizing || isPaused || isFleepSequence || e.touches.length < 2) return;
+            const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
+            if (dragTouchIndex === -1) return;
+
+            const otherTouch = e.touches[dragTouchIndex === 0 ? 1 : 0];
+            const pos = getMousePos(e, otherTouch.identifier);
+            const canvasRect = canvas.getBoundingClientRect();
+            const isOverCanvas = (
+                otherTouch.clientX >= canvasRect.left &&
+                otherTouch.clientX <= canvasRect.right &&
+                otherTouch.clientY >= canvasRect.top &&
+                otherTouch.clientY <= canvasRect.bottom
+            );
+
+            if (isOverCanvas) {
+                circle.isResizing = true;
+                circle.resizeTouchId = otherTouch.identifier;
+                circle.resizeStartX = pos.x;
+                circle.resizeStartY = pos.y;
+                console.log('Resizing started, resizeTouchId:', circle.resizeTouchId);
             }
         }
 
@@ -1133,40 +990,75 @@
         }
 
         function drag(e) {
-            if (!circle.isDragging || isFleepSequence) return;
-            const pos = getMousePos(e, circle.dragTouchId);
+            if (isFleepSequence) return;
 
-            if (currentMap === 'rectangle') {
-                pos.x = Math.max(circle.radius, Math.min(canvas.width - circle.radius, pos.x));
-                pos.y = Math.max(circle.radius, Math.min(canvas.height - circle.radius, pos.y));
-            } else {
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                const maxRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth - circle.radius;
-                const dx = pos.x - centerX;
-                const dy = pos.y - centerY;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance > maxRadius) {
-                    const angle = Math.atan2(dy, dx);
-                    pos.x = centerX + Math.cos(angle) * maxRadius;
-                    pos.y = centerY + Math.sin(angle) * maxRadius;
+            if (circle.isDragging && !circle.isResizing) {
+                const pos = getMousePos(e, circle.dragTouchId);
+
+                if (currentMap === 'rectangle') {
+                    pos.x = Math.max(circle.radius, Math.min(canvas.width - circle.radius, pos.x));
+                    pos.y = Math.max(circle.radius, Math.min(canvas.height - circle.radius, pos.y));
+                } else {
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const maxRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth - circle.radius;
+                    const dx = pos.x - centerX;
+                    const dy = pos.y - centerY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > maxRadius) {
+                        const angle = Math.atan2(dy, dx);
+                        pos.x = centerX + Math.cos(angle) * maxRadius;
+                        pos.y = centerY + Math.sin(angle) * maxRadius;
+                    }
                 }
+
+                circle.x = pos.x;
+                circle.y = pos.y;
+
+                if (!isPaused) {
+                    const currentTime = Date.now();
+                    const dt = (currentTime - circle.lastTime) / 1000;
+                    if (dt > 0) {
+                        circle.dx = (pos.x - circle.lastX) / dt;
+                        circle.dy = (pos.y - circle.lastY) / dt;
+                    }
+                    circle.lastTime = currentTime;
+                }
+                circle.lastX = pos.x;
+                circle.lastY = pos.y;
             }
 
-            circle.x = pos.x;
-            circle.y = pos.y;
+            if (circle.isResizing) {
+                const resizePos = getMousePos(e, circle.resizeTouchId);
+                const dx = resizePos.x - circle.x;
+                const dy = resizePos.y - circle.y;
+                const distanceFromCenter = Math.sqrt(dx * dx + dy * dy);
+                const initialDistance = Math.sqrt(
+                    (circle.resizeStartX - circle.x) ** 2 + 
+                    (circle.resizeStartY - circle.y) ** 2
+                );
 
-            if (!isPaused) {
-                const currentTime = Date.now();
-                const dt = (currentTime - circle.lastTime) / 1000;
-                if (dt > 0) {
-                    circle.dx = (pos.x - circle.lastX) / dt;
-                    circle.dy = (pos.y - circle.lastY) / dt;
+                if (distanceFromCenter > initialDistance) {
+                    const newRadius = Math.max(defaultRadius, distanceFromCenter / 2);
+                    let maxAllowedRadius;
+
+                    if (currentMap === 'rectangle') {
+                        maxAllowedRadius = Math.min(
+                            circle.x, 
+                            canvas.width - circle.x,
+                            circle.y,
+                            canvas.height - circle.y
+                        );
+                    } else {
+                        const centerX = canvas.width / 2;
+                        const centerY = canvas.height / 2;
+                        const distToCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
+                        maxAllowedRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth - distToCenter;
+                    }
+
+                    circle.radius = Math.min(newRadius, maxAllowedRadius);
                 }
-                circle.lastTime = currentTime;
             }
-            circle.lastX = pos.x;
-            circle.lastY = pos.y;
 
             const screenPos = getScreenPos(e, circle.dragTouchId);
             const target = document.elementFromPoint(screenPos.x, screenPos.y);
@@ -1181,8 +1073,8 @@
                             playButton.classList.add('recede');
                             if (isPaused) {
                                 isPaused = false;
-                                circle.lastX = pos.x;
-                                circle.lastY = pos.y;
+                                circle.lastX = getMousePos(e, circle.dragTouchId).x;
+                                circle.lastY = getMousePos(e, circle.dragTouchId).y;
                                 circle.lastTime = Date.now();
                                 circle.dx = 0;
                                 circle.dy = 0;
@@ -1364,9 +1256,6 @@
                 toggleWindow(livesWindow);
             } else if (target === hiScoreDisplay && !buttonActivated.hiScore) {
                 toggleWindow(hiScoreWindow);
-            } else if (isOverCanvas && !isPaused) {
-                console.log('Circle thrown, dx:', circle.dx, 'dy:', circle.dy);
-                predictTargetPositions();
             }
 
             circle.isDragging = false;
@@ -1393,39 +1282,44 @@
             if (!circle.isDragging && isPaused) saveState();
         }
 
-        function handleMultiTouchDrop(e) {
-            if (!circle.isDragging || isPaused || isFleepSequence || e.touches.length <= 1) return;
+        function stopResizing(e) {
+            if (!circle.isResizing || isFleepSequence) return;
+            if (e.touches && e.touches.length > 1) return;
+            if (e.changedTouches) {
+                let matched = false;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === circle.resizeTouchId) {
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) return;
+            }
+
+            circle.isResizing = false;
+            circle.resizeTouchId = null;
+            console.log('Resizing stopped, new radius:', circle.radius);
+            constrainCircle();
+            if (isPaused) saveState();
+        }
+
+        function handleMultiTouch(e) {
+            if (isPaused || isFleepSequence || e.touches.length < 2) return;
             const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
             if (dragTouchIndex === -1) return;
 
-            for (let i = 0; i < e.touches.length; i++) {
-                if (i === dragTouchIndex) continue;
-                const screenPos = { x: e.touches[i].clientX, y: e.touches[i].clientY };
-                const target = document.elementFromPoint(screenPos.x, screenPos.y);
-                if (target === livesDisplay) {
-                    toggleWindow(livesWindow);
-                    console.log('Lives tapped via multi-touch');
-                } else if (target === hiScoreDisplay) {
-                    toggleWindow(hiScoreWindow);
-                    console.log('Hi Score tapped via multi-touch');
-                } else {
-                    const canvasRect = canvas.getBoundingClientRect();
-                    const isOverCanvas = (
-                        screenPos.x >= canvasRect.left &&
-                        screenPos.x <= canvasRect.right &&
-                        screenPos.y >= canvasRect.top &&
-                        screenPos.y <= canvasRect.bottom
-                    );
-                    if (isOverCanvas && target === canvas) {
-                        circle.isDragging = false;
-                        circle.dragTouchId = null;
-                        circle.dx = 0;
-                        circle.dy = 0;
-                        console.log('Circle dropped via multi-touch on canvas');
-                        predictTargetPositions();
-                        return;
-                    }
-                }
+            const otherTouch = e.touches[dragTouchIndex === 0 ? 1 : 0];
+            const screenPos = { x: otherTouch.clientX, y: otherTouch.clientY };
+            const canvasRect = canvas.getBoundingClientRect();
+            const isOverCanvas = (
+                screenPos.x >= canvasRect.left &&
+                screenPos.x <= canvasRect.right &&
+                screenPos.y >= canvasRect.top &&
+                screenPos.y <= canvasRect.bottom
+            );
+
+            if (isOverCanvas && !circle.isResizing) {
+                handleCircleTap({ touches: [otherTouch] });
             }
         }
 
@@ -1479,7 +1373,6 @@
                     constrainCircle();
                     circle.dx = 0;
                     circle.dy = 0;
-                    if (isTrackingHits) predictTargetPositions();
                 } else {
                     constrainCircle();
                     circle.dx = circle.dx || 0;
@@ -1534,13 +1427,20 @@
         canvas.addEventListener('touchstart', (e) => {
             startDragging(e);
             handleCircleTap(e);
-            handleMultiTouchDrop(e);
+            startResizing(e);
+            handleMultiTouch(e);
         });
         canvas.addEventListener('touchmove', drag);
-        canvas.addEventListener('touchend', stopDragging);
+        canvas.addEventListener('touchend', (e) => {
+            stopDragging(e);
+            stopResizing(e);
+        });
 
         document.addEventListener('mouseup', stopDragging);
-        document.addEventListener('touchend', stopDragging);
+        document.addEventListener('touchend', (e) => {
+            stopDragging(e);
+            stopResizing(e);
+        });
 
         modeButton.addEventListener('touchstart', (e) => {
             if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
