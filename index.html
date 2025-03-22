@@ -806,7 +806,7 @@
 
             redRing.x = redX;
             redRing.y = redY;
-            redRing.visible = redFound && simHits >= level + 1;
+            redRing.visible = redFound && simHits >= level;
         }
 
         function updatePhysics() {
@@ -1434,8 +1434,9 @@
                     circle.isDragging = false;
                     circle.dragTouchId = null;
                     constrainCircle();
-                    circle.dx = circle.dx || 0;
-                    circle.dy = circle.dy || 0;
+                    circle.dx = 0;
+                    circle.dy = 0;
+                    if (!isCountingDown) predictTargetPositions(); // Treat as a drop when resuming
                 } else {
                     constrainCircle();
                     circle.dx = circle.dx || 0;
