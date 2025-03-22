@@ -44,7 +44,15 @@
         #title { top: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5em; }
         #level { top: 40px; left: 50%; transform: translateX(-50%); font-size: 2em; }
         #levelNumber { color: #00ff00; }
-        #countdown { top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 4em; transition: opacity 0.5s ease; }
+        #countdown { 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            font-size: 4em; 
+            transition: opacity 0.5s ease; 
+            z-index: 10; 
+            pointer-events: none; /* Prevents blocking circle taps */
+        }
         #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
         #lives { top: 80px; font-size: 1em; }
         #hiScore { top: 80px; font-size: 1em; }
@@ -190,7 +198,7 @@
 
         const borderWidth = 2;
         const defaultRadius = 30;
-        const resizeHoldThreshold = 200; // ms to differentiate tap vs hold
+        const resizeHoldThreshold = 200;
 
         const circle = {
             x: 0,
@@ -566,6 +574,10 @@
             playButton.style.backgroundColor = invertedStyle;
             livesWindow.style.backgroundColor = invertedStyle;
             hiScoreWindow.style.backgroundColor = invertedStyle;
+
+            // Update countdown color and shadow
+            countdownDisplay.style.color = invertedStyle;
+            countdownDisplay.style.textShadow = `0 0 10px rgb(${r}, ${g}, ${b})`;
 
             if (!isFleepSequence) {
                 colorProgress += colorTransitionSpeed;
