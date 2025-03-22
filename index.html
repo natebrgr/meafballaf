@@ -51,7 +51,7 @@
             font-size: 4em; 
             transition: opacity 0.5s ease; 
             z-index: 10; 
-            pointer-events: none; /* Prevents blocking circle taps */
+            pointer-events: none;
         }
         #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
         #lives { top: 80px; font-size: 1em; }
@@ -250,12 +250,16 @@
         let level = 1;
         let isTrackingHits = false;
         let lives = 3;
+        let maxLives = 3; // New variable for max lives
         let hiScore = 0;
         let isPaused = false;
         let isFleepSequence = false;
 
         let currentMode = 'survival';
         let currentMap = 'rectangle';
+
+        let greenZone = { y: 0, height: 0, active: false };
+        let redZone = { y: 0, height: 0, active: false };
 
         const trail = [];
         const maxTrailLength = 20;
@@ -270,10 +274,10 @@
         let buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
+            'survival-rectangle': { level: 1, lives: 3, maxLives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
+            'endurance-rectangle': { level: 1, lives: Infinity, maxLives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
+            'survival-circle': { level: 1, lives: 3, maxLives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
+            'endurance-circle': { level: 1, lives: Infinity, maxLives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
         };
 
         function setCanvasSize() {
@@ -466,6 +470,7 @@
             gameStates[key] = {
                 level,
                 lives,
+                maxLives,
                 hiScore,
                 circle: {
                     x: circle.x,
@@ -500,6 +505,7 @@
             const state = gameStates[key];
             level = state.level;
             lives = state.lives;
+            maxLives = state.maxLives || (mode === 'survival' ? 3 : Infinity);
             hiScore = state.hiScore;
             wallHits = state.wallHits;
             isTrackingHits = state.isTrackingHits;
@@ -508,6 +514,9 @@
             countdown = state.countdown;
             countdownOpacity = state.countdownOpacity;
             circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
+
+            greenZone.active = false;
+            redZone.active = false;
 
             if (state.circle.x !== undefined) {
                 circle.x = state.circle.x;
@@ -575,7 +584,6 @@
             livesWindow.style.backgroundColor = invertedStyle;
             hiScoreWindow.style.backgroundColor = invertedStyle;
 
-            // Update countdown color and shadow
             countdownDisplay.style.color = invertedStyle;
             countdownDisplay.style.textShadow = `0 0 10px rgb(${r}, ${g}, ${b})`;
 
@@ -603,8 +611,38 @@
             return `rgba(${Math.min(r + 100, 255)}, ${Math.min(g + 100, 255)}, ${Math.min(b + 100, 255)},`;
         }
 
+        function setRandomZones() {
+            if (currentMode !== 'survival' || !isTrackingHits) {
+                greenZone.active = false;
+                redZone.active = false;
+                return;
+            }
+
+            const zoneHeight = canvas.height / 3;
+            const positions = [0, zoneHeight, zoneHeight * 2];
+            const greenIndex = Math.floor(Math.random() * 3);
+            greenZone.y = positions[greenIndex];
+            greenZone.height = zoneHeight;
+            greenZone.active = true;
+
+            const remainingPositions = positions.filter((_, i) => i !== greenIndex);
+            const redIndex = Math.floor(Math.random() * 2);
+            redZone.y = remainingPositions[redIndex];
+            redZone.height = zoneHeight;
+            redZone.active = true;
+        }
+
         function drawScene(color) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (greenZone.active) {
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.2)'; // Subtle green
+                ctx.fillRect(0, greenZone.y, canvas.width, greenZone.height);
+            }
+            if (redZone.active) {
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.2)'; // Subtle red
+                ctx.fillRect(0, redZone.y, canvas.width, redZone.height);
+            }
 
             ctx.strokeStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             ctx.lineWidth = borderWidth * 2;
@@ -827,6 +865,7 @@
                 countdownOpacity = 1;
                 shownTexts.clear();
                 sighhhVisible = false;
+                if (currentMode === 'survival') setRandomZones();
             } else {
                 isCountingDown = true;
             }
@@ -904,8 +943,18 @@
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                lives = 3;
-                                showText('yee haw BII');
+                                if (circle.y >= greenZone.y && circle.y <= greenZone.y + greenZone.height) {
+                                    maxLives++;
+                                    lives = maxLives;
+                                    showText('yee haw BII');
+                                } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
+                                    maxLives = Math.max(1, maxLives - 1);
+                                    lives = maxLives;
+                                    showText('sighhh');
+                                } else {
+                                    lives = maxLives;
+                                    showText('yee haw BII');
+                                }
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
                             wallHits = 0;
@@ -922,21 +971,31 @@
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                lives = 3;
-                                showText('yee haw BII');
+                                if (circle.y >= greenZone.y && circle.y <= greenZone.y + greenZone.height) {
+                                    maxLives++;
+                                    lives = maxLives;
+                                    showText('yee haw BII');
+                                } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
+                                    maxLives = Math.max(1, maxLives - 1);
+                                    lives = maxLives;
+                                    showText('sighhh');
+                                } else {
+                                    lives = maxLives;
+                                    showText('yee haw BII');
+                                }
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
                             wallHits = 0;
                         } else if (currentMode === 'survival') {
                             lives--;
                             let text = '';
-                            if (previousLives === 3 && lives === 2) {
+                            if (previousLives === maxLives && lives === maxLives - 1) {
                                 text = 'sighhh';
                             } else if (previousLives === 2 && lives === 1) {
                                 text = 'SighhhAFF';
                             } else if (lives <= 0) {
                                 level = 1;
-                                lives = 3;
+                                lives = maxLives = 3; // Reset maxLives to 3 on game over
                                 text = 'SIGHHH me to FLEEP';
                             }
                             if (text) showText(text);
