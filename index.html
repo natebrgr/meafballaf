@@ -92,7 +92,7 @@
         #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white { animation: glowWhite 1s linear forwards; }
         #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede { animation: recedeGlow 0.2s linear forwards; }
         @keyframes glowGreen {
-            80% { box-shadow: 0 0 5px #00ff00; }
+            0% { box-shadow: 0 0 5px #00ff00; }
             100% { box-shadow: 0 0 20px #00ff00; }
         }
         @keyframes glowRed {
@@ -229,7 +229,6 @@
         const friction = 0.98;
         const bounciness = 0.9;
         const bounceTimeWindow = 100;
-        const minVelocity = 0.1; // Threshold below which velocity is set to 0
 
         const colors = [
             { r: 0, g: 0, b: 0 },
@@ -632,8 +631,7 @@
                 }
             }
 
-            // Draw red ring first (below green)
-            if (redRing.visible && wallHits <= level) {
+            if (redRing.visible) {
                 ctx.beginPath();
                 ctx.arc(redRing.x, redRing.y, redRing.radius, 0, Math.PI * 2);
                 ctx.strokeStyle = '#ff0000';
@@ -643,8 +641,7 @@
                 ctx.setLineDash([]);
             }
 
-            // Draw green ring second (above red)
-            if (greenRing.visible && wallHits < level) {
+            if (greenRing.visible) {
                 ctx.beginPath();
                 ctx.arc(greenRing.x, greenRing.y, greenRing.radius, 0, Math.PI * 2);
                 ctx.strokeStyle = '#00ff00';
@@ -740,29 +737,22 @@
             let simDx = circle.dx;
             let simDy = circle.dy;
             let simHits = wallHits;
-            let maxHits = simHits;
 
-            const maxIterations = 500; // Reduced to avoid excessive simulation
+            const maxIterations = 1000;
             let greenX = 0;
             let greenY = 0;
             let redX = 0;
             let redY = 0;
             let greenFound = false;
             let redFound = false;
+            let maxHits = simHits;
 
-            for (let i = 0; i < maxIterations && (!greenFound || !redFound); i++) {
+            for (let i = 0; i < maxIterations; i++) {
                 simDy += gravity;
                 simX += simDx;
                 simY += simDy;
                 simDx *= friction;
                 simDy *= friction;
-
-                const velocity = Math.sqrt(simDx * simDx + simDy * simDy);
-                if (velocity < minVelocity) {
-                    simDx = 0;
-                    simDy = 0;
-                    break; // Stop simulation if velocity is negligible
-                }
 
                 if (currentMap === 'rectangle') {
                     if (simX + circle.radius > canvas.width) {
@@ -811,15 +801,22 @@
                     redY = simY;
                     redFound = true;
                 }
+
+                // Stop simulation if we've exceeded the level + 1 hits
+                if (simHits > level + 1) break;
+
+                // Check if the circle has effectively stopped
+                const velocity = Math.sqrt(simDx * simDx + simDy * simDy);
+                if (velocity < 0.01 && simY + circle.radius >= canvas.height - 0.1) break;
             }
 
             greenRing.x = greenX;
             greenRing.y = greenY;
-            greenRing.visible = greenFound && maxHits >= level;
+            greenRing.visible = greenFound && maxHits === level && !redFound;
 
             redRing.x = redX;
             redRing.y = redY;
-            redRing.visible = redFound && maxHits >= level;
+            redRing.visible = redFound && maxHits > level;
         }
 
         function updatePhysics() {
@@ -841,11 +838,6 @@
                 circle.dy *= friction;
 
                 const velocity = Math.sqrt(circle.dx * circle.dx + circle.dy * circle.dy);
-                if (velocity < minVelocity) {
-                    circle.dx = 0;
-                    circle.dy = 0;
-                }
-
                 const trailLength = Math.min(maxTrailLength, Math.floor(velocity / 10));
                 trail.unshift({ x: circle.x, y: circle.y, opacity: 1 });
                 while (trail.length > trailLength) trail.pop();
@@ -1454,7 +1446,7 @@
                     constrainCircle();
                     circle.dx = 0;
                     circle.dy = 0;
-                    if (isTrackingHits && !isCountingDown) predictTargetPositions(); // Show rings on resume drop
+                    if (isTrackingHits) predictTargetPositions(); // Show rings on resume, even during countdown
                 } else {
                     constrainCircle();
                     circle.dx = circle.dx || 0;
