@@ -52,7 +52,7 @@
             transition: opacity 0.5s ease; 
         }
         #centerWallHits { opacity: 0; }
-        #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
+        #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: visible; }
         #lives { top: 80px; font-size: 1em; }
         #hiScore { top: 80px; font-size: 1em; }
         #sighhh { 
@@ -161,7 +161,7 @@
     <div id="level">Level: <span id="levelNumber">1</span></div>
     <div id="countdown" style="opacity: 0;"></div>
     <div id="centerWallHits" style="opacity: 0;">0</div>
-    <div id="wallHits" style="visibility: hidden;">0</div>
+    <div id="wallHits">0</div>
     <div id="livesCount">3</div>
     <button id="lives">LIVES</button>
     <div id="hiScoreCount">0</div>
@@ -318,7 +318,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            wallHitsDisplay.style.visibility = 'hidden';
+            wallHitsDisplay.style.visibility = 'visible';
             void wallHitsDisplay.offsetHeight;
             setCanvasSize();
             requestAnimationFrame(() => setCanvasSize());
@@ -350,14 +350,14 @@
             }
 
             wallHitsDisplay.textContent = `${wallHits}`;
-            wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
+            wallHitsDisplay.style.visibility = 'visible';
 
             centerWallHitsDisplay.textContent = `${wallHits}`;
             let counterColor = '#e0e0e0';
             if (wallHits === level) counterColor = '#00ff00';
             else if (wallHits > level) counterColor = '#ff0000';
             centerWallHitsDisplay.style.color = counterColor;
-            wallHitsDisplay.style.color = counterColor; // Sync color with top counter
+            wallHitsDisplay.style.color = counterColor;
             centerWallHitsDisplay.style.opacity = (!isCountingDown && isTrackingHits && !isPaused) ? 1 : 0;
         }
 
@@ -390,7 +390,7 @@
 
             if (countdownInterval) clearInterval(countdownInterval);
             if (sighhhTimer) clearTimeout(sighhhTimer);
-            circle.dx = 0;
+            circle.dx ge = 0;
             circle.dy = 0;
 
             blackOverlay.style.transition = 'background 1s ease';
@@ -706,7 +706,7 @@
             ctx.shadowOffsetY = 0;
 
             wallHitsDisplay.style.color = counterColor;
-            centerWallHitsDisplay.style.color = counterColor; // Ensure sync in drawScene
+            centerWallHitsDisplay.style.color = counterColor;
         }
 
         function updatePhysics() {
@@ -761,7 +761,7 @@
                             contact.time = currentTime;
                             if (isTrackingHits) {
                                 wallHits++;
-                                updateDisplay(); // Update immediately on bounce
+                                updateDisplay();
                                 if (currentMode === 'survival' && wallHits > level) {
                                     const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
                                     showText(text);
@@ -804,14 +804,6 @@
                         circle.dy = -Math.sin(angle) * speed * bounciness;
                     }
                 }
-            }
-
-            if (isTrackingHits && !isPaused) {
-                wallHitsDisplay.textContent = `${wallHits}`;
-                wallHitsDisplay.style.visibility = 'visible';
-            } else if (!isTrackingHits) {
-                wallHitsDisplay.textContent = '0';
-                wallHitsDisplay.style.visibility = 'hidden';
             }
         }
 
@@ -882,57 +874,45 @@
             };
         }
 
-        function handleCircleTap(e) {
-            if (isPaused || isFleepSequence) {
-                if (isPaused && circle.wasDraggingWhenPaused) {
-                    const screenPos = getScreenPos(e);
-                    const target = document.elementFromPoint(screenPos.x, screenPos.y);
-                    const canvasRect = canvas.getBoundingClientRect();
-                    const isOverCanvas = (
-                        screenPos.x >= canvasRect.left &&
-                        screenPos.x <= canvasRect.right &&
-                        screenPos.y >= canvasRect.top &&
-                        screenPos.y <= canvasRect.bottom
-                    );
+        function handleCanvasTap(e) {
+            if (isFleepSequence) return;
 
-                    if (isOverCanvas && target === canvas) {
-                        console.log('Canvas tapped while paused and was dragging, resuming game');
-                        const pos = getMousePos(e);
-                        const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
-                        const isFingerOnCircle = dist < circle.radius;
+            const screenPos = getScreenPos(e);
+            const target = document.elementFromPoint(screenPos.x, screenPos.y);
+            const canvasRect = canvas.getBoundingClientRect();
+            const isOverCanvas = (
+                screenPos.x >= canvasRect.left &&
+                screenPos.x <= canvasRect.right &&
+                screenPos.y >= canvasRect.top &&
+                screenPos.y <= canvasRect.bottom
+            );
 
-                        isPaused = false;
-                        if (isFingerOnCircle) {
-                            circle.isDragging = true;
-                            circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
-                            circle.lastX = pos.x;
-                            circle.lastY = pos.y;
-                            circle.lastTime = Date.now();
-                            circle.dx = 0;
-                            circle.dy = 0;
-                        } else {
-                            circle.isDragging = false;
-                            circle.dragTouchId = null;
-                            constrainCircle();
-                            circle.dx = circle.dx || 0;
-                            circle.dy = circle.dy || 0;
-                        }
-                        circle.wasDraggingWhenPaused = false;
-                        if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
-                        updateDisplay();
-                        e.preventDefault();
-                        return;
-                    }
-                }
-                return;
-            }
+            if (!isOverCanvas || target !== canvas) return;
 
             const pos = getMousePos(e);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
-            if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
-                console.log('Circle tapped');
-                e.preventDefault();
-                if (isTrackingHits) {
+
+            if (isPaused && circle.wasDraggingWhenPaused && e.touches && e.touches.length > 1) {
+                // Resume game only with second finger tap on canvas while holding circle
+                const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
+                if (dragTouchIndex !== -1 && e.touches.length > 1) {
+                    console.log('Second finger tapped canvas while paused and holding circle, resuming game');
+                    isPaused = false;
+                    circle.lastX = circle.x;
+                    circle.lastY = circle.y;
+                    circle.lastTime = Date.now();
+                    circle.dx = 0;
+                    circle.dy = 0;
+                    circle.wasDraggingWhenPaused = false;
+                    if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
+                    updateDisplay();
+                    e.preventDefault();
+                }
+            } else if (!isPaused && isTrackingHits) {
+                // End game if tapping circle while game is active
+                if (dist < circle.radius) {
+                    console.log('Circle tapped to end game');
+                    e.preventDefault();
                     if (isCountingDown) {
                         if (wallHits === level) {
                             isTrackingHits = false;
@@ -949,7 +929,6 @@
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
                             wallHits = 0;
-                            wallHitsDisplay.style.visibility = 'hidden';
                             saveState();
                             updateDisplay();
                             startCountdown();
@@ -981,28 +960,17 @@
                             }
                             if (text) showText(text);
                         }
-                        wallHitsDisplay.style.visibility = 'hidden';
                         saveState();
                         updateDisplay();
                         startCountdown();
                     }
                 }
             } else if (circle.isDragging && e.touches && e.touches.length > 1) {
-                // Start game only with second finger tap on canvas
-                const screenPos = getScreenPos(e, e.touches[e.touches.length - 1].identifier);
-                const target = document.elementFromPoint(screenPos.x, screenPos.y);
-                const canvasRect = canvas.getBoundingClientRect();
-                const isOverCanvas = (
-                    screenPos.x >= canvasRect.left &&
-                    screenPos.x <= canvasRect.right &&
-                    screenPos.y >= canvasRect.top &&
-                    screenPos.y <= canvasRect.bottom
-                );
-
-                if (isOverCanvas && target === canvas && !isTrackingHits && !isCountingDown) {
+                // Start game with second finger tap on canvas while holding circle
+                const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
+                if (dragTouchIndex !== -1 && !isTrackingHits && !isCountingDown) {
                     console.log('Second finger tapped canvas while holding circle, starting game');
                     wallHits = 0;
-                    wallHitsDisplay.style.visibility = 'hidden';
                     startCountdown();
                     e.preventDefault();
                 }
@@ -1430,11 +1398,11 @@
         canvas.addEventListener('mousedown', startDragging);
         canvas.addEventListener('mousemove', drag);
         canvas.addEventListener('mouseup', stopDragging);
-        canvas.addEventListener('click', handleCircleTap);
+        canvas.addEventListener('click', handleCanvasTap);
 
         canvas.addEventListener('touchstart', (e) => {
             startDragging(e);
-            handleCircleTap(e);
+            handleCanvasTap(e);
             handleMultiTouchDrop(e);
         });
         canvas.addEventListener('touchmove', drag);
