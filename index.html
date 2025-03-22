@@ -250,8 +250,8 @@
         let currentMap = 'rectangle';
 
         const trail = [];
-        const maxTrailLength = 20; // Max segments, adjusted by velocity
-        const trailFadeRate = 0.1; // Faster fade for quick disappearance
+        const maxTrailLength = 20;
+        const trailFadeRate = 0.1;
 
         let shownTexts = new Set();
         let currentSighhhText = '';
@@ -357,6 +357,7 @@
             if (wallHits === level) counterColor = '#00ff00';
             else if (wallHits > level) counterColor = '#ff0000';
             centerWallHitsDisplay.style.color = counterColor;
+            wallHitsDisplay.style.color = counterColor; // Sync color with top counter
             centerWallHitsDisplay.style.opacity = (!isCountingDown && isTrackingHits && !isPaused) ? 1 : 0;
         }
 
@@ -585,9 +586,9 @@
         }
 
         function getCircleColor(counterColor) {
-            if (counterColor === '#00ff00') return '#00ff00'; // Green when wallHits === level
-            if (counterColor === '#ff0000') return '#ff0000'; // Red when wallHits > level
-            return null; // Null means use the looping color
+            if (counterColor === '#00ff00') return '#00ff00';
+            if (counterColor === '#ff0000') return '#ff0000';
+            return null;
         }
 
         function lightenColor(color) {
@@ -705,6 +706,7 @@
             ctx.shadowOffsetY = 0;
 
             wallHitsDisplay.style.color = counterColor;
+            centerWallHitsDisplay.style.color = counterColor; // Ensure sync in drawScene
         }
 
         function updatePhysics() {
@@ -759,6 +761,7 @@
                             contact.time = currentTime;
                             if (isTrackingHits) {
                                 wallHits++;
+                                updateDisplay(); // Update immediately on bounce
                                 if (currentMode === 'survival' && wallHits > level) {
                                     const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
                                     showText(text);
@@ -983,10 +986,25 @@
                         updateDisplay();
                         startCountdown();
                     }
-                } else if (!isCountingDown) {
+                }
+            } else if (circle.isDragging && e.touches && e.touches.length > 1) {
+                // Start game only with second finger tap on canvas
+                const screenPos = getScreenPos(e, e.touches[e.touches.length - 1].identifier);
+                const target = document.elementFromPoint(screenPos.x, screenPos.y);
+                const canvasRect = canvas.getBoundingClientRect();
+                const isOverCanvas = (
+                    screenPos.x >= canvasRect.left &&
+                    screenPos.x <= canvasRect.right &&
+                    screenPos.y >= canvasRect.top &&
+                    screenPos.y <= canvasRect.bottom
+                );
+
+                if (isOverCanvas && target === canvas && !isTrackingHits && !isCountingDown) {
+                    console.log('Second finger tapped canvas while holding circle, starting game');
                     wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
                     startCountdown();
+                    e.preventDefault();
                 }
             }
         }
