@@ -856,7 +856,7 @@
             }
         }
 
-        function startCountdown(isResuming = false, resetLives = false) {
+        function startCountdown(isResuming = false) {
             if (!isResuming) {
                 isCountingDown = true;
                 countdown = 3;
@@ -867,12 +867,8 @@
                 sighhhVisible = false;
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     setRandomZones();
-                    if (resetLives) {
-                        lives = defaultMaxLives; // Reset to max only for new level
-                    }
-                } else if (resetLives) {
-                    lives = defaultMaxLives; // For circle map or endurance
                 }
+                // Do not reset lives here; let handleCircleTap manage it
             } else {
                 isCountingDown = true;
             }
@@ -939,94 +935,74 @@
                 console.log('Circle tapped');
                 e.preventDefault();
                 if (isTrackingHits) {
+                    isTrackingHits = false;
                     if (isCountingDown) {
-                        if (wallHits === level) {
-                            isTrackingHits = false;
-                            isCountingDown = false;
-                            clearInterval(countdownInterval);
-                            countdownInterval = null;
-                            countdownOpacity = 0;
-                            countdownDisplay.style.opacity = countdownOpacity;
-                            const completedLevel = level;
-                            level++;
-                            if (currentMode === 'survival') {
-                                if (currentMap === 'rectangle') {
-                                    if (circle.y >= greenZone.y && circle.y <= greenZone.y + greenZone.height) {
-                                        defaultMaxLives++;
-                                        lives = defaultMaxLives;
-                                        showText('yee haw BII');
-                                    } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
-                                        defaultMaxLives = Math.max(1, defaultMaxLives - 1);
-                                        lives = defaultMaxLives;
-                                        showText('sighhh');
-                                    } else {
-                                        lives = defaultMaxLives;
-                                        showText('yee haw BII');
-                                    }
+                        clearInterval(countdownInterval);
+                        countdownInterval = null;
+                        countdownOpacity = 0;
+                        countdownDisplay.style.opacity = countdownOpacity;
+                    }
+                    const previousWallHits = wallHits;
+                    const previousLives = lives;
+
+                    if (wallHits === level) {
+                        const completedLevel = level;
+                        level++;
+                        if (currentMode === 'survival') {
+                            if (currentMap === 'rectangle') {
+                                if (circle.y >= greenZone.y && circle.y <= greenZone.y + greenZone.height) {
+                                    defaultMaxLives++;
+                                    lives = defaultMaxLives;
+                                    showText('yee haw BII');
+                                } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
+                                    defaultMaxLives = Math.max(1, defaultMaxLives - 1);
+                                    lives = defaultMaxLives;
+                                    showText('sighhh');
                                 } else {
                                     lives = defaultMaxLives;
                                     showText('yee haw BII');
                                 }
-                            }
-                            if (completedLevel > hiScore) hiScore = completedLevel;
-                            wallHits = 0;
-                            wallHitsDisplay.style.visibility = 'hidden';
-                            saveState();
-                            updateDisplay();
-                            startCountdown(false, true); // Reset lives for new level
-                        }
-                    } else {
-                        isTrackingHits = false;
-                        const previousWallHits = wallHits;
-                        const previousLives = lives;
-                        if (wallHits === level) {
-                            const completedLevel = level;
-                            level++;
-                            if (currentMode === 'survival') {
-                                if (currentMap === 'rectangle') {
-                                    if (circle.y >= greenZone.y && circle.y <= greenZone.y + greenZone.height) {
-                                        defaultMaxLives++;
-                                        lives = defaultMaxLives;
-                                        showText('yee haw BII');
-                                    } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
-                                        defaultMaxLives = Math.max(1, defaultMaxLives - 1);
-                                        lives = defaultMaxLives;
-                                        showText('sighhh');
-                                    } else {
-                                        lives = defaultMaxLives;
-                                        showText('yee haw BII');
-                                    }
-                                } else {
-                                    lives = defaultMaxLives;
-                                    showText('yee haw BII');
-                                }
-                            }
-                            if (completedLevel > hiScore) hiScore = completedLevel;
-                            wallHits = 0;
-                        } else if (currentMode === 'survival') {
-                            lives--;
-                            let text = '';
-                            if (previousLives === defaultMaxLives && lives === defaultMaxLives - 1) {
-                                text = 'sighhh';
-                            } else if (previousLives === 2 && lives === 1) {
-                                text = 'SighhhAFF';
-                            } else if (lives <= 0) {
-                                level = 1;
-                                defaultMaxLives = 3;
+                            } else {
                                 lives = defaultMaxLives;
-                                text = 'SIGHHH me to FLEEP';
+                                showText('yee haw BII');
                             }
-                            if (text) showText(text);
                         }
+                        if (completedLevel > hiScore) hiScore = completedLevel;
+                        wallHits = 0;
                         wallHitsDisplay.style.visibility = 'hidden';
                         saveState();
                         updateDisplay();
-                        startCountdown(false, wallHits === level); // Reset lives only if level completed
+                        startCountdown(false); // Start next level, lives already set
+                    } else if (currentMode === 'survival') {
+                        lives--;
+                        let text = '';
+                        if (previousLives === defaultMaxLives && lives === defaultMaxLives - 1) {
+                            text = 'sighhh';
+                        } else if (previousLives === 2 && lives === 1) {
+                            text = 'SighhhAFF';
+                        } else if (lives <= 0) {
+                            level = 1;
+                            defaultMaxLives = 3;
+                            lives = defaultMaxLives;
+                            text = 'SIGHHH me to FLEEP';
+                        }
+                        if (text) showText(text);
+                        wallHits = 0;
+                        wallHitsDisplay.style.visibility = 'hidden';
+                        saveState();
+                        updateDisplay();
+                        startCountdown(false); // Start next attempt, lives reduced
+                    } else {
+                        wallHits = 0;
+                        wallHitsDisplay.style.visibility = 'hidden';
+                        saveState();
+                        updateDisplay();
+                        startCountdown(false); // Endurance mode, no lives change
                     }
                 } else if (!isCountingDown) {
                     wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
-                    startCountdown(false, false); // New game, no lives reset
+                    startCountdown(false); // Start new game, lives unchanged
                 }
             }
         }
