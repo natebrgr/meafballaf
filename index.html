@@ -211,6 +211,13 @@
             }
         };
 
+        const targetRing = {
+            x: 0,
+            y: 0,
+            radius: 30,
+            visible: false
+        };
+
         const gravity = 0.5;
         const friction = 0.98;
         const bounciness = 0.9;
@@ -241,8 +248,8 @@
         let currentMap = 'rectangle';
 
         const trail = [];
-        const maxTrailLength = 20; // Max segments, adjusted by velocity
-        const trailFadeRate = 0.1; // Faster fade for quick disappearance
+        const maxTrailLength = 20;
+        const trailFadeRate = 0.1;
 
         let shownTexts = new Set();
         let currentSighhhText = '';
@@ -569,9 +576,9 @@
         }
 
         function getCircleColor(counterColor) {
-            if (counterColor === '#00ff00') return '#00ff00'; // Green when wallHits === level
-            if (counterColor === '#ff0000') return '#ff0000'; // Red when wallHits > level
-            return null; // Null means use the looping color
+            if (counterColor === '#00ff00') return '#00ff00';
+            if (counterColor === '#ff0000') return '#ff0000';
+            return null;
         }
 
         function lightenColor(color) {
@@ -602,15 +609,14 @@
             const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             const trailBaseColor = lightenColor(circleColor);
 
-            // Draw the trail as a solid, fading line
             if (trail.length > 1) {
                 ctx.beginPath();
-                ctx.lineWidth = circle.radius * 2; // Width matches circle diameter
+                ctx.lineWidth = circle.radius * 2;
                 ctx.lineCap = 'round';
                 for (let i = 0; i < trail.length - 1; i++) {
                     const start = trail[i];
                     const end = trail[i + 1];
-                    const opacity = start.opacity * (1 - (i / trail.length)); // Fade from circle outward
+                    const opacity = start.opacity * (1 - (i / trail.length));
                     ctx.strokeStyle = `${trailBaseColor} ${opacity})`;
                     ctx.moveTo(start.x, start.y);
                     ctx.lineTo(end.x, end.y);
@@ -618,7 +624,16 @@
                 }
             }
 
-            // Draw the circle
+            if (targetRing.visible && wallHits <= level) {
+                ctx.beginPath();
+                ctx.arc(targetRing.x, targetRing.y, targetRing.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = circleColor;
@@ -636,15 +651,15 @@
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`; // Always looping color
+                ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
                 ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
                 ctx.shadowBlur = 5;
 
                 const startAngles = [
-                    -Math.PI / 2,  // Top (0°)
-                    0,             // Right (90°)
-                    Math.PI / 2,   // Bottom (180°)
-                    Math.PI        // Left (270°)
+                    -Math.PI / 2,
+                    0,
+                    Math.PI / 2,
+                    Math.PI
                 ];
 
                 for (let instance = 0; instance < 4; instance++) {
@@ -691,6 +706,76 @@
             ctx.shadowOffsetY = 0;
 
             wallHitsDisplay.style.color = counterColor;
+        }
+
+        function predictTargetPosition() {
+            if (!isTrackingHits || isPaused || isFleepSequence) {
+                targetRing.visible = false;
+                return;
+            }
+
+            let simX = circle.x;
+            let simY = circle.y;
+            let simDx = circle.dx;
+            let simDy = circle.dy;
+            let simHits = wallHits;
+
+            const maxIterations = 1000;
+            let targetX = simX;
+            let targetY = simY;
+
+            for (let i = 0; i < maxIterations && simHits <= level; i++) {
+                simDy += gravity;
+                simX += simDx;
+                simY += simDy;
+                simDx *= friction;
+                simDy *= friction;
+
+                if (currentMap === 'rectangle') {
+                    if (simX + circle.radius > canvas.width) {
+                        simX = canvas.width - circle.radius;
+                        simDx = -simDx * bounciness;
+                        simHits++;
+                    } else if (simX - circle.radius < 0) {
+                        simX = circle.radius;
+                        simDx = -simDx * bounciness;
+                        simHits++;
+                    }
+                    if (simY + circle.radius > canvas.height) {
+                        simY = canvas.height - circle.radius;
+                        simDy = -simDy * bounciness;
+                        simHits++;
+                    } else if (simY - circle.radius < 0) {
+                        simY = circle.radius;
+                        simDy = -simDy * bounciness;
+                        simHits++;
+                    }
+                } else {
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
+                    const distFromCenter = Math.sqrt((simX - centerX) ** 2 + (simY - centerY) ** 2);
+                    if (distFromCenter + circle.radius >= radius) {
+                        const angle = Math.atan2(simY - centerY, simX - centerX);
+                        simX = centerX + Math.cos(angle) * (radius - circle.radius);
+                        simY = centerY + Math.sin(angle) * (radius - circle.radius);
+                        const speed = Math.sqrt(simDx ** 2 + simDy ** 2);
+                        simDx = -Math.cos(angle) * speed * bounciness;
+                        simDy = -Math.sin(angle) * speed * bounciness;
+                        simHits++;
+                    }
+                }
+
+                if (simHits === level) {
+                    targetX = simX;
+                    targetY = simY;
+                    break;
+                }
+            }
+
+            targetRing.x = targetX;
+            targetRing.y = targetY;
+            targetRing.visible = simHits >= level;
         }
 
         function updatePhysics() {
@@ -748,6 +833,7 @@
                                 if (currentMode === 'survival' && wallHits > level) {
                                     const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
                                     showText(text);
+                                    targetRing.visible = false;
                                 }
                             }
                         }
@@ -795,6 +881,7 @@
             } else if (!isTrackingHits) {
                 wallHitsDisplay.textContent = '0';
                 wallHitsDisplay.style.visibility = 'hidden';
+                targetRing.visible = false;
             }
         }
 
@@ -807,6 +894,7 @@
                 countdownOpacity = 1;
                 shownTexts.clear();
                 sighhhVisible = false;
+                targetRing.visible = false;
             } else {
                 isCountingDown = true;
             }
@@ -1195,6 +1283,7 @@
                 toggleWindow(hiScoreWindow);
             } else if (isOverCanvas && !isPaused) {
                 console.log('Circle thrown, dx:', circle.dx, 'dy:', circle.dy);
+                predictTargetPosition();
             }
 
             circle.isDragging = false;
@@ -1250,6 +1339,7 @@
                         circle.dx = 0;
                         circle.dy = 0;
                         console.log('Circle dropped via multi-touch on canvas');
+                        predictTargetPosition();
                         return;
                     }
                 }
