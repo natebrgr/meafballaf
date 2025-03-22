@@ -250,8 +250,7 @@
         let level = 1;
         let isTrackingHits = false;
         let lives = 3;
-        let defaultMaxLives = 3; // Permanent max lives, adjusted by red zone
-        let extraLives = 0;     // One-time-use bonus from green zone
+        let defaultMaxLives = 3; // Permanent max lives, adjusted by zones
         let hiScore = 0;
         let isPaused = false;
         let isFleepSequence = false;
@@ -275,10 +274,10 @@
         let buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, defaultMaxLives: 3, extraLives: 0, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'endurance-rectangle': { level: 1, lives: Infinity, defaultMaxLives: Infinity, extraLives: 0, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'survival-circle': { level: 1, lives: 3, defaultMaxLives: 3, extraLives: 0, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'endurance-circle': { level: 1, lives: Infinity, defaultMaxLives: Infinity, extraLives: 0, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
+            'survival-rectangle': { level: 1, lives: 3, defaultMaxLives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
+            'endurance-rectangle': { level: 1, lives: Infinity, defaultMaxLives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
+            'survival-circle': { level: 1, lives: 3, defaultMaxLives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
+            'endurance-circle': { level: 1, lives: Infinity, defaultMaxLives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
         };
 
         function setCanvasSize() {
@@ -472,7 +471,6 @@
                 level,
                 lives,
                 defaultMaxLives,
-                extraLives,
                 hiScore,
                 circle: {
                     x: circle.x,
@@ -508,7 +506,6 @@
             level = state.level;
             lives = state.lives;
             defaultMaxLives = state.defaultMaxLives || (mode === 'survival' ? 3 : Infinity);
-            extraLives = state.extraLives || 0;
             hiScore = state.hiScore;
             wallHits = state.wallHits;
             isTrackingHits = state.isTrackingHits;
@@ -871,13 +868,10 @@
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     setRandomZones();
                     if (resetLives) {
-                        lives = defaultMaxLives + extraLives; // Reset to max only for new level
+                        lives = defaultMaxLives; // Reset to max only for new level
                     }
-                    // Otherwise, lives retains its current value for new game
-                } else {
-                    if (resetLives) {
-                        lives = defaultMaxLives; // No zones for circle map or endurance
-                    }
+                } else if (resetLives) {
+                    lives = defaultMaxLives; // For circle map or endurance
                 }
             } else {
                 isCountingDown = true;
@@ -956,24 +950,20 @@
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                const livesLost = defaultMaxLives + extraLives - lives;
                                 if (currentMap === 'rectangle') {
                                     if (circle.y >= greenZone.y && circle.y <= greenZone.y + greenZone.height) {
-                                        extraLives = Math.max(1, extraLives - livesLost + 1);
-                                        lives = defaultMaxLives + extraLives;
+                                        defaultMaxLives++;
+                                        lives = defaultMaxLives;
                                         showText('yee haw BII');
                                     } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
                                         defaultMaxLives = Math.max(1, defaultMaxLives - 1);
-                                        extraLives = Math.max(0, extraLives - livesLost);
-                                        lives = defaultMaxLives + extraLives;
+                                        lives = defaultMaxLives;
                                         showText('sighhh');
                                     } else {
-                                        extraLives = Math.max(0, extraLives - livesLost);
-                                        lives = defaultMaxLives + extraLives;
+                                        lives = defaultMaxLives;
                                         showText('yee haw BII');
                                     }
                                 } else {
-                                    extraLives = 0; // No extra lives on circle map
                                     lives = defaultMaxLives;
                                     showText('yee haw BII');
                                 }
@@ -993,24 +983,20 @@
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                const livesLost = defaultMaxLives + extraLives - lives;
                                 if (currentMap === 'rectangle') {
                                     if (circle.y >= greenZone.y && circle.y <= greenZone.y + greenZone.height) {
-                                        extraLives = Math.max(1, extraLives - livesLost + 1);
-                                        lives = defaultMaxLives + extraLives;
+                                        defaultMaxLives++;
+                                        lives = defaultMaxLives;
                                         showText('yee haw BII');
                                     } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
                                         defaultMaxLives = Math.max(1, defaultMaxLives - 1);
-                                        extraLives = Math.max(0, extraLives - livesLost);
-                                        lives = defaultMaxLives + extraLives;
+                                        lives = defaultMaxLives;
                                         showText('sighhh');
                                     } else {
-                                        extraLives = Math.max(0, extraLives - livesLost);
-                                        lives = defaultMaxLives + extraLives;
+                                        lives = defaultMaxLives;
                                         showText('yee haw BII');
                                     }
                                 } else {
-                                    extraLives = 0;
                                     lives = defaultMaxLives;
                                     showText('yee haw BII');
                                 }
@@ -1020,15 +1006,14 @@
                         } else if (currentMode === 'survival') {
                             lives--;
                             let text = '';
-                            if (previousLives === defaultMaxLives + extraLives && lives === defaultMaxLives + extraLives - 1) {
+                            if (previousLives === defaultMaxLives && lives === defaultMaxLives - 1) {
                                 text = 'sighhh';
                             } else if (previousLives === 2 && lives === 1) {
                                 text = 'SighhhAFF';
                             } else if (lives <= 0) {
                                 level = 1;
                                 defaultMaxLives = 3;
-                                extraLives = 0;
-                                lives = defaultMaxLives; // New game, start with defaultMaxLives only
+                                lives = defaultMaxLives;
                                 text = 'SIGHHH me to FLEEP';
                             }
                             if (text) showText(text);
