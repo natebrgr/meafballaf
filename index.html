@@ -868,7 +868,6 @@
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     setRandomZones();
                 }
-                // Do not reset lives here; let handleCircleTap manage it
             } else {
                 isCountingDown = true;
             }
@@ -934,15 +933,15 @@
             if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
                 console.log('Circle tapped');
                 e.preventDefault();
-                if (isTrackingHits) {
+
+                if (!isTrackingHits && !isCountingDown) {
+                    // Start new game
+                    wallHits = 0;
+                    wallHitsDisplay.style.visibility = 'hidden';
+                    startCountdown(false);
+                } else if (isTrackingHits && !isCountingDown) {
+                    // Process win/loss after countdown
                     isTrackingHits = false;
-                    if (isCountingDown) {
-                        clearInterval(countdownInterval);
-                        countdownInterval = null;
-                        countdownOpacity = 0;
-                        countdownDisplay.style.opacity = countdownOpacity;
-                    }
-                    const previousWallHits = wallHits;
                     const previousLives = lives;
 
                     if (wallHits === level) {
@@ -956,14 +955,22 @@
                                     showText('yee haw BII');
                                 } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
                                     defaultMaxLives = Math.max(1, defaultMaxLives - 1);
-                                    lives = defaultMaxLives;
+                                    lives = (lives === 1) ? 1 : defaultMaxLives; // Grace rule
                                     showText('sighhh');
                                 } else {
-                                    lives = defaultMaxLives;
+                                    if (lives >= 3) {
+                                        // Keep current lives if 3 or more
+                                    } else if (defaultMaxLives >= 3) {
+                                        lives = 3; // Reset to 3 if below 3 and max allows
+                                    }
                                     showText('yee haw BII');
                                 }
                             } else {
-                                lives = defaultMaxLives;
+                                if (lives >= 3) {
+                                    // Keep current lives if 3 or more
+                                } else if (defaultMaxLives >= 3) {
+                                    lives = 3; // Reset to 3 if below 3 and max allows
+                                }
                                 showText('yee haw BII');
                             }
                         }
@@ -972,7 +979,7 @@
                         wallHitsDisplay.style.visibility = 'hidden';
                         saveState();
                         updateDisplay();
-                        startCountdown(false); // Start next level, lives already set
+                        startCountdown(false);
                     } else if (currentMode === 'survival') {
                         lives--;
                         let text = '';
@@ -983,7 +990,7 @@
                         } else if (lives <= 0) {
                             level = 1;
                             defaultMaxLives = 3;
-                            lives = defaultMaxLives;
+                            lives = 3;
                             text = 'SIGHHH me to FLEEP';
                         }
                         if (text) showText(text);
@@ -991,19 +998,17 @@
                         wallHitsDisplay.style.visibility = 'hidden';
                         saveState();
                         updateDisplay();
-                        startCountdown(false); // Start next attempt, lives reduced
+                        startCountdown(false);
                     } else {
+                        // Endurance mode
                         wallHits = 0;
                         wallHitsDisplay.style.visibility = 'hidden';
                         saveState();
                         updateDisplay();
-                        startCountdown(false); // Endurance mode, no lives change
+                        startCountdown(false);
                     }
-                } else if (!isCountingDown) {
-                    wallHits = 0;
-                    wallHitsDisplay.style.visibility = 'hidden';
-                    startCountdown(false); // Start new game, lives unchanged
                 }
+                // Ignore taps during countdown (isCountingDown === true)
             }
         }
 
