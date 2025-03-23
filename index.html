@@ -960,7 +960,8 @@
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                lives = resetLives; // Reset to starting lives for this level
+                                // Reset lives based on current lives, not resetLives
+                                lives = lives < 3 ? 3 : lives;
                                 const section = getSectionAtY(circle.y);
                                 if (section === 'green') {
                                     lives += 1; // No cap
@@ -985,7 +986,8 @@
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                lives = resetLives; // Reset to starting lives for this level
+                                // Reset lives based on current lives, not resetLives
+                                lives = lives < 3 ? 3 : lives;
                                 const section = getSectionAtY(circle.y);
                                 if (section === 'green') {
                                     lives += 1; // No cap
