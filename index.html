@@ -347,6 +347,7 @@
             wallHitsDisplay.style.visibility = 'hidden';
             void wallHitsDisplay.offsetHeight;
             setCanvasSize();
+            randomizeSections(); // Initial section placement on page load
             requestAnimationFrame(() => setCanvasSize());
         });
         window.addEventListener('resize', setCanvasSize);
@@ -640,7 +641,7 @@
         function drawScene(color) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (currentMode === 'survival' && currentMap === 'rectangle' && !isCountingDown) {
+            if (currentMode === 'survival' && currentMap === 'rectangle') { // Show sections always
                 const sectionHeight = canvas.height / 3;
                 const sections = [
                     { pos: sectionPositions.green, color: 'rgba(0, 255, 0, 0.5)' },
@@ -874,9 +875,6 @@
             countdownOpacity = 1;
             shownTexts.clear();
             sighhhVisible = false;
-            if (!isResuming && currentMode === 'survival' && currentMap === 'rectangle') {
-                randomizeSections();
-            }
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
 
@@ -933,7 +931,7 @@
         }
 
         function getSectionAtY(y) {
-            if (currentMode !== 'survival' || currentMap !== 'rectangle' || isCountingDown) return 'normal';
+            if (currentMode !== 'survival' || currentMap !== 'rectangle') return 'normal';
             const sectionHeight = canvas.height / 3;
             const sectionIndex = Math.floor(y / sectionHeight);
             if (sectionIndex === sectionPositions.green) return 'green';
@@ -960,8 +958,8 @@
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                // Reset lives based on current lives, not resetLives
-                                lives = lives < 3 ? 3 : lives;
+                                // Use resetLives if < 3, otherwise use current lives with a minimum of 3
+                                lives = resetLives < 3 ? resetLives : (lives < 3 ? 3 : lives);
                                 const section = getSectionAtY(circle.y);
                                 if (section === 'green') {
                                     lives += 1; // No cap
@@ -969,6 +967,7 @@
                                     lives = Math.max(1, lives - 1); // Minimum 1
                                 }
                                 resetLives = lives; // Update resetLives for next level
+                                randomizeSections(); // Randomize sections when level advances
                                 showText('yee haw BII');
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
@@ -986,8 +985,8 @@
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                // Reset lives based on current lives, not resetLives
-                                lives = lives < 3 ? 3 : lives;
+                                // Use resetLives if < 3, otherwise use current lives with a minimum of 3
+                                lives = resetLives < 3 ? resetLives : (lives < 3 ? 3 : lives);
                                 const section = getSectionAtY(circle.y);
                                 if (section === 'green') {
                                     lives += 1; // No cap
@@ -995,6 +994,7 @@
                                     lives = Math.max(1, lives - 1); // Minimum 1
                                 }
                                 resetLives = lives; // Update resetLives for next level
+                                randomizeSections(); // Randomize sections when level advances
                                 showText('yee haw BII');
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
@@ -1011,6 +1011,7 @@
                                 lives = 3;
                                 resetLives = 3;
                                 text = 'SIGHHH me to FLEEP';
+                                randomizeSections(); // Randomize sections on full reset
                             }
                             if (text) showText(text);
                         }
