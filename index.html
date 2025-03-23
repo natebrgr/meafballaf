@@ -250,7 +250,7 @@
         let level = 1;
         let isTrackingHits = false;
         let lives = 3;
-        let defaultMaxLives = 3; // Permanent max lives, adjusted by zones
+        let startLives = 3; // Tracks lives at the start of each level
         let hiScore = 0;
         let isPaused = false;
         let isFleepSequence = false;
@@ -274,10 +274,10 @@
         let buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, defaultMaxLives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'endurance-rectangle': { level: 1, lives: Infinity, defaultMaxLives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'survival-circle': { level: 1, lives: 3, defaultMaxLives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'endurance-circle': { level: 1, lives: Infinity, defaultMaxLives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
+            'survival-rectangle': { level: 1, lives: 3, startLives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
+            'endurance-rectangle': { level: 1, lives: Infinity, startLives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
+            'survival-circle': { level: 1, lives: 3, startLives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
+            'endurance-circle': { level: 1, lives: Infinity, startLives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
         };
 
         function setCanvasSize() {
@@ -470,7 +470,7 @@
             gameStates[key] = {
                 level,
                 lives,
-                defaultMaxLives,
+                startLives,
                 hiScore,
                 circle: {
                     x: circle.x,
@@ -505,7 +505,7 @@
             const state = gameStates[key];
             level = state.level;
             lives = state.lives;
-            defaultMaxLives = state.defaultMaxLives || (mode === 'survival' ? 3 : Infinity);
+            startLives = state.startLives || (mode === 'survival' ? 3 : Infinity);
             hiScore = state.hiScore;
             wallHits = state.wallHits;
             isTrackingHits = state.isTrackingHits;
@@ -863,6 +863,7 @@
                 wallHits = 0;
                 isTrackingHits = true;
                 countdownOpacity = 1;
+                startLives = lives; // Set starting lives for this level
                 shownTexts.clear();
                 sighhhVisible = false;
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
@@ -939,6 +940,40 @@
                     wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
                     startCountdown(false);
+                } else if (isCountingDown && wallHits === level) {
+                    // Win during countdown
+                    isTrackingHits = false;
+                    isCountingDown = false;
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                    countdownOpacity = 0;
+                    countdownDisplay.style.opacity = countdownOpacity;
+
+                    const completedLevel = level;
+                    level++;
+                    if (currentMode === 'survival') {
+                        if (currentMap === 'rectangle') {
+                            if (circle.y >= greenZone.y && circle.y <= greenZone.y + greenZone.height) {
+                                lives = (startLives >= 3 && lives < 3) ? 4 : lives + 1;
+                                showText('yee haw BII');
+                            } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
+                                lives = (startLives >= 3 && lives < 3) ? 2 : Math.max(1, lives - 1);
+                                showText('sighhh');
+                            } else {
+                                lives = (startLives >= 3 && lives < 3) ? 3 : (startLives < 3 ? startLives : lives);
+                                showText('yee haw BII');
+                            }
+                        } else {
+                            lives = (startLives >= 3 && lives < 3) ? 3 : (startLives < 3 ? startLives : lives);
+                            showText('yee haw BII');
+                        }
+                    }
+                    if (completedLevel > hiScore) hiScore = completedLevel;
+                    wallHits = 0;
+                    wallHitsDisplay.style.visibility = 'hidden';
+                    saveState();
+                    updateDisplay();
+                    startCountdown(false);
                 } else if (isTrackingHits && !isCountingDown) {
                     // Process win/loss after countdown
                     isTrackingHits = false;
@@ -950,27 +985,17 @@
                         if (currentMode === 'survival') {
                             if (currentMap === 'rectangle') {
                                 if (circle.y >= greenZone.y && circle.y <= greenZone.y + greenZone.height) {
-                                    defaultMaxLives++;
-                                    lives = defaultMaxLives;
+                                    lives = (startLives >= 3 && lives < 3) ? 4 : lives + 1;
                                     showText('yee haw BII');
                                 } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
-                                    defaultMaxLives = Math.max(1, defaultMaxLives - 1);
-                                    lives = (lives === 1) ? 1 : defaultMaxLives; // Grace rule
+                                    lives = (startLives >= 3 && lives < 3) ? 2 : Math.max(1, lives - 1);
                                     showText('sighhh');
                                 } else {
-                                    if (lives >= 3) {
-                                        // Keep current lives if 3 or more
-                                    } else if (defaultMaxLives >= 3) {
-                                        lives = 3; // Reset to 3 if below 3 and max allows
-                                    }
+                                    lives = (startLives >= 3 && lives < 3) ? 3 : (startLives < 3 ? startLives : lives);
                                     showText('yee haw BII');
                                 }
                             } else {
-                                if (lives >= 3) {
-                                    // Keep current lives if 3 or more
-                                } else if (defaultMaxLives >= 3) {
-                                    lives = 3; // Reset to 3 if below 3 and max allows
-                                }
+                                lives = (startLives >= 3 && lives < 3) ? 3 : (startLives < 3 ? startLives : lives);
                                 showText('yee haw BII');
                             }
                         }
@@ -983,14 +1008,14 @@
                     } else if (currentMode === 'survival') {
                         lives--;
                         let text = '';
-                        if (previousLives === defaultMaxLives && lives === defaultMaxLives - 1) {
+                        if (previousLives === startLives && lives === startLives - 1) {
                             text = 'sighhh';
                         } else if (previousLives === 2 && lives === 1) {
                             text = 'SighhhAFF';
                         } else if (lives <= 0) {
                             level = 1;
-                            defaultMaxLives = 3;
                             lives = 3;
+                            startLives = 3;
                             text = 'SIGHHH me to FLEEP';
                         }
                         if (text) showText(text);
@@ -1008,7 +1033,7 @@
                         startCountdown(false);
                     }
                 }
-                // Ignore taps during countdown (isCountingDown === true)
+                // Ignore all other taps during countdown (no loss or game end)
             }
         }
 
