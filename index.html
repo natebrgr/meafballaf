@@ -270,7 +270,7 @@
         let buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
 
         let sectionPositions = { green: 0, red: 1, normal: 2 };
-        let resetLives = 3;
+        let resetLives = 3; // Tracks lives at the start of a level
 
         const gameStates = {
             'survival-rectangle': { 
@@ -867,20 +867,15 @@
         }
 
         function startCountdown(isResuming = false) {
-            if (!isResuming) {
-                isCountingDown = true;
-                countdown = 3;
-                wallHits = 0;
-                isTrackingHits = true;
-                countdownOpacity = 1;
-                shownTexts.clear();
-                sighhhVisible = false;
-                if (currentMode === 'survival' && currentMap === 'rectangle') {
-                    randomizeSections();
-                    resetLives = Math.min(lives, 3);
-                }
-            } else {
-                isCountingDown = true;
+            isCountingDown = true;
+            countdown = 3;
+            wallHits = 0;
+            isTrackingHits = true;
+            countdownOpacity = 1;
+            shownTexts.clear();
+            sighhhVisible = false;
+            if (!isResuming && currentMode === 'survival' && currentMap === 'rectangle') {
+                randomizeSections();
             }
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
@@ -965,13 +960,14 @@
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                lives = resetLives; // Reset to starting lives first
+                                lives = resetLives; // Reset to starting lives for this level
                                 const section = getSectionAtY(circle.y);
                                 if (section === 'green') {
-                                    lives += 1;
+                                    lives += 1; // No cap
                                 } else if (section === 'red') {
-                                    lives = Math.max(1, lives - 1);
+                                    lives = Math.max(1, lives - 1); // Minimum 1
                                 }
+                                resetLives = lives; // Update resetLives for next level
                                 showText('yee haw BII');
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
@@ -989,13 +985,14 @@
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                lives = resetLives; // Reset to starting lives first
+                                lives = resetLives; // Reset to starting lives for this level
                                 const section = getSectionAtY(circle.y);
                                 if (section === 'green') {
-                                    lives += 1;
+                                    lives += 1; // No cap
                                 } else if (section === 'red') {
-                                    lives = Math.max(1, lives - 1);
+                                    lives = Math.max(1, lives - 1); // Minimum 1
                                 }
+                                resetLives = lives; // Update resetLives for next level
                                 showText('yee haw BII');
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
@@ -1021,6 +1018,10 @@
                         startCountdown();
                     }
                 } else if (!isCountingDown) {
+                    // First game of a level or after a mode/map switch
+                    if (currentMode === 'survival' && currentMap === 'rectangle' && resetLives === gameStates['survival-rectangle'].resetLives) {
+                        resetLives = lives; // Set initial resetLives only once per level
+                    }
                     wallHits = 0;
                     wallHitsDisplay.style.visibility = 'hidden';
                     startCountdown();
