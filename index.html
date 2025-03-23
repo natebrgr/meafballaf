@@ -952,19 +952,20 @@
                     const completedLevel = level;
                     level++;
                     if (currentMode === 'survival') {
+                        const isSpecialStart = startLives === 1 || startLives === 2 || startLives === 3;
                         if (currentMap === 'rectangle') {
                             if (circle.y >= greenZone.y && circle.y <= greenZone.y + greenZone.height) {
-                                lives = (startLives >= 3 && lives < 3) ? 4 : lives + 1;
+                                lives = isSpecialStart ? (startLives + 1) : (lives + 1);
                                 showText('yee haw BII');
                             } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
-                                lives = (startLives >= 3 && lives < 3) ? 2 : Math.max(1, lives - 1);
+                                lives = isSpecialStart ? Math.max(1, startLives - 1) : Math.max(1, lives - 1);
                                 showText('sighhh');
                             } else {
-                                lives = (startLives >= 3 && lives < 3) ? 3 : (startLives < 3 ? startLives : lives);
+                                lives = isSpecialStart ? startLives : lives;
                                 showText('yee haw BII');
                             }
                         } else {
-                            lives = (startLives >= 3 && lives < 3) ? 3 : (startLives < 3 ? startLives : lives);
+                            lives = isSpecialStart ? startLives : lives;
                             showText('yee haw BII');
                         }
                     }
@@ -983,19 +984,20 @@
                         const completedLevel = level;
                         level++;
                         if (currentMode === 'survival') {
+                            const isSpecialStart = startLives === 1 || startLives === 2 || startLives === 3;
                             if (currentMap === 'rectangle') {
                                 if (circle.y >= greenZone.y && circle.y <= greenZone.y + greenZone.height) {
-                                    lives = (startLives >= 3 && lives < 3) ? 4 : lives + 1;
+                                    lives = isSpecialStart ? (startLives + 1) : (lives + 1);
                                     showText('yee haw BII');
                                 } else if (circle.y >= redZone.y && circle.y <= redZone.y + redZone.height) {
-                                    lives = (startLives >= 3 && lives < 3) ? 2 : Math.max(1, lives - 1);
+                                    lives = isSpecialStart ? Math.max(1, startLives - 1) : Math.max(1, lives - 1);
                                     showText('sighhh');
                                 } else {
-                                    lives = (startLives >= 3 && lives < 3) ? 3 : (startLives < 3 ? startLives : lives);
+                                    lives = isSpecialStart ? startLives : lives;
                                     showText('yee haw BII');
                                 }
                             } else {
-                                lives = (startLives >= 3 && lives < 3) ? 3 : (startLives < 3 ? startLives : lives);
+                                lives = isSpecialStart ? startLives : lives;
                                 showText('yee haw BII');
                             }
                         }
@@ -1008,15 +1010,22 @@
                     } else if (currentMode === 'survival') {
                         lives--;
                         let text = '';
-                        if (previousLives === startLives && lives === startLives - 1) {
-                            text = 'sighhh';
-                        } else if (previousLives === 2 && lives === 1) {
-                            text = 'SighhhAFF';
-                        } else if (lives <= 0) {
+                        if (lives <= 0) {
+                            text = 'SIGHHH me to FLEEP';
                             level = 1;
                             lives = 3;
                             startLives = 3;
-                            text = 'SIGHHH me to FLEEP';
+                            showText(text);
+                            wallHits = 0;
+                            wallHitsDisplay.style.visibility = 'hidden';
+                            saveState();
+                            updateDisplay();
+                            startCountdown(false);
+                            return; // Exit early after reset
+                        } else if (previousLives === startLives && lives === startLives - 1) {
+                            text = 'sighhh';
+                        } else if (previousLives === 2 && lives === 1) {
+                            text = 'SighhhAFF';
                         }
                         if (text) showText(text);
                         wallHits = 0;
@@ -1033,7 +1042,6 @@
                         startCountdown(false);
                     }
                 }
-                // Ignore all other taps during countdown (no loss or game end)
             }
         }
 
@@ -1318,297 +1326,45 @@
                 }
                 if (buttonActivated.hiScore && target !== hiScoreDisplay) buttonActivated.hiScore = false;
             }
-
-            if (isPaused) saveState();
         }
 
         function stopDragging(e) {
-            if (!circle.isDragging || isFleepSequence) return;
-            let touchId = circle.dragTouchId;
-            if (e.touches && e.touches.length > 0) return;
-            if (e.changedTouches) {
-                let matched = false;
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === touchId) {
-                        matched = true;
-                        break;
-                    }
-                }
-                if (!matched) return;
-            }
+            if (isFleepSequence) return;
 
-            const screenPos = getScreenPos(e, touchId);
-            const target = document.elementFromPoint(screenPos.x, screenPos.y);
-            const canvasRect = canvas.getBoundingClientRect();
-            const isOverCanvas = (
-                screenPos.x >= canvasRect.left &&
-                screenPos.x <= canvasRect.right &&
-                screenPos.y >= canvasRect.top &&
-                screenPos.y <= canvasRect.bottom
-            );
-
-            console.log('Stop dragging, target:', target.id, 'isOverCanvas:', isOverCanvas, 'isPaused:', isPaused);
-
-            if (target === playButton && !buttonActivated.play) {
-                target.click();
-            } else if (target === modeButton && !buttonActivated.mode) {
-                modeButton.classList.remove('glow-white');
-                modeButton.classList.add('recede');
-                target.click();
-            } else if (target === mapButton && !buttonActivated.map) {
-                mapButton.classList.remove('glow-white');
-                mapButton.classList.add('recede');
-                target.click();
-            } else if (target === livesDisplay && !buttonActivated.lives) {
-                toggleWindow(livesWindow);
-            } else if (target === hiScoreDisplay && !buttonActivated.hiScore) {
-                toggleWindow(hiScoreWindow);
-            }
-
-            circle.isDragging = false;
-            circle.dragTouchId = null;
-            Object.keys(holdTimers).forEach(key => {
-                if (holdTimers[key]) {
-                    clearTimeout(holdTimers[key]);
-                    holdTimers[key] = null;
-                    if (key === 'play') {
-                        playButton.classList.remove('glow-green', 'glow-red');
-                        playButton.classList.add('recede');
-                    } else {
-                        document.getElementById(key).classList.remove('glow-white');
-                        document.getElementById(key).classList.add('recede');
-                    }
-                }
-            });
-            if (target !== playButton) buttonActivated.play = false;
-            if (target !== modeButton) buttonActivated.mode = false;
-            if (target !== mapButton) buttonActivated.map = false;
-            if (target !== livesDisplay) buttonActivated.lives = false;
-            if (target !== hiScoreDisplay) buttonActivated.hiScore = false;
-
-            if (!circle.isDragging && isPaused) saveState();
-        }
-
-        function stopResizing(e) {
-            if (circle.resizeTouchId === null || isFleepSequence) return;
-            if (e.touches && e.touches.length > 1) return;
-            if (e.changedTouches) {
-                let matched = false;
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === circle.resizeTouchId) {
-                        matched = true;
-                        break;
-                    }
-                }
-                if (!matched) return;
-            }
-
-            const elapsed = Date.now() - circle.resizeStartTime;
-            if (!circle.isResizing && elapsed < resizeHoldThreshold && !isPaused) {
-                console.log('Quick tap detected, dropping circle');
+            if (circle.isDragging && (!e.touches || !Array.from(e.touches).some(t => t.identifier === circle.dragTouchId))) {
                 circle.isDragging = false;
                 circle.dragTouchId = null;
-                circle.dx = 0;
-                circle.dy = 0;
-            } else if (circle.isResizing) {
-                console.log('Resizing stopped, new radius:', circle.radius);
+                console.log('Dragging stopped');
+            }
+
+            if (circle.isResizing && (!e.touches || !Array.from(e.touches).some(t => t.identifier === circle.resizeTouchId))) {
                 circle.isResizing = false;
-            }
-
-            if (circle.resizeTimer) {
-                clearTimeout(circle.resizeTimer);
-                circle.resizeTimer = null;
-            }
-            circle.resizeTouchId = null;
-            constrainCircle();
-            if (isPaused) saveState();
-        }
-
-        function handleMultiTouch(e) {
-            if (isFleepSequence || e.touches.length < 2) return;
-            const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
-            if (dragTouchIndex === -1) return;
-
-            const otherTouch = e.touches[dragTouchIndex === 0 ? 1 : 0];
-            const screenPos = { x: otherTouch.clientX, y: otherTouch.clientY };
-            const canvasRect = canvas.getBoundingClientRect();
-            const isOverCanvas = (
-                screenPos.x >= canvasRect.left &&
-                screenPos.x <= canvasRect.right &&
-                screenPos.y >= canvasRect.top &&
-                screenPos.y <= canvasRect.bottom
-            );
-
-            if (isOverCanvas && !circle.isResizing && !isPaused) {
-                handleCircleTap({ touches: [otherTouch] });
-            }
-        }
-
-        modeButton.addEventListener('click', () => {
-            if (isFleepSequence) return;
-            console.log('MODE button clicked');
-            if (!isPaused) {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-            }
-            saveState();
-            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-            sighhhVisible = false;
-            if (sighhhTimer) clearTimeout(sighhhTimer);
-            shownTexts.clear();
-            loadState(currentMode, currentMap);
-            updateDisplay();
-        });
-
-        mapButton.addEventListener('click', () => {
-            if (isFleepSequence) return;
-            console.log('MAP button clicked');
-            if (!isPaused) {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-            }
-            saveState();
-            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-            sighhhVisible = false;
-            if (sighhhTimer) clearTimeout(sighhhTimer);
-            shownTexts.clear();
-            loadState(currentMode, currentMap);
-            updateDisplay();
-        });
-
-        playButton.addEventListener('click', (e) => {
-            if (isFleepSequence) return;
-            console.log('PAUSE/RESUME button clicked');
-            if (isPaused) {
-                isPaused = false;
-                if (circle.isDragging) {
-                    const pos = getMousePos(e);
-                    circle.lastX = pos.x;
-                    circle.lastY = pos.y;
-                    circle.lastTime = Date.now();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                } else if (circle.wasDraggingWhenPaused) {
-                    circle.isDragging = false;
-                    circle.dragTouchId = null;
-                    constrainCircle();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                } else {
-                    constrainCircle();
-                    circle.dx = circle.dx || 0;
-                    circle.dy = circle.dy || 0;
+                circle.resizeTouchId = null;
+                if (circle.resizeTimer) {
+                    clearTimeout(circle.resizeTimer);
+                    circle.resizeTimer = null;
                 }
-                circle.wasDraggingWhenPaused = false;
-                if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
-                updateDisplay();
-            } else {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-                saveState();
-                updateDisplay();
+                console.log('Resizing stopped');
             }
-        });
-
-        livesDisplay.addEventListener('click', () => {
-            if (!circle.isDragging || isFleepSequence) return;
-            toggleWindow(livesWindow);
-        });
-
-        hiScoreDisplay.addEventListener('click', () => {
-            if (!circle.isDragging || isFleepSequence) return;
-            toggleWindow(hiScoreWindow);
-        });
-
-        document.addEventListener('click', (e) => {
-            if (isFleepSequence) return;
-            if (livesWindow.classList.contains('active') && e.target !== livesWindow) {
-                livesWindow.classList.remove('active');
-            }
-            if (hiScoreWindow.classList.contains('active') && e.target !== hiScoreWindow) {
-                hiScoreWindow.classList.remove('active');
-            }
-        });
-
-        document.addEventListener('touchend', (e) => {
-            if (isFleepSequence) return;
-            if (livesWindow.classList.contains('active') && e.target !== livesWindow) {
-                livesWindow.classList.remove('active');
-            }
-            if (hiScoreWindow.classList.contains('active') && e.target !== hiScoreWindow) {
-                hiScoreWindow.classList.remove('active');
-            }
-        });
+        }
 
         canvas.addEventListener('mousedown', startDragging);
         canvas.addEventListener('mousemove', drag);
         canvas.addEventListener('mouseup', stopDragging);
-        canvas.addEventListener('click', handleCircleTap);
-
         canvas.addEventListener('touchstart', (e) => {
             startDragging(e);
-            handleCircleTap(e);
             startResizing(e);
-            handleMultiTouch(e);
+            handleCircleTap(e);
         });
         canvas.addEventListener('touchmove', drag);
-        canvas.addEventListener('touchend', (e) => {
-            stopDragging(e);
-            stopResizing(e);
-        });
-
-        document.addEventListener('mouseup', stopDragging);
-        document.addEventListener('touchend', (e) => {
-            stopDragging(e);
-            stopResizing(e);
-        });
-
-        modeButton.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
-                console.log('MODE button tapped during drag');
-                modeButton.click();
-            }
-        });
-
-        mapButton.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
-                console.log('MAP button tapped during drag');
-                mapButton.click();
-            }
-        });
-
-        playButton.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
-                console.log('PAUSE/RESUME button tapped during drag');
-                playButton.click();
-            }
-        });
-
-        livesDisplay.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
-                console.log('LIVES button tapped during drag');
-                toggleWindow(livesWindow);
-            }
-        });
-
-        hiScoreDisplay.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
-                console.log('HI SCORE button tapped during drag');
-                toggleWindow(hiScoreWindow);
-            }
-        });
+        canvas.addEventListener('touchend', stopDragging);
 
         function animate() {
             updatePhysics();
-            const color = updateColors();
-            drawScene(color);
+            drawScene(updateColors());
             requestAnimationFrame(animate);
         }
 
-        circle.x = window.innerWidth * 0.45;
-        circle.y = window.innerHeight * 0.5;
-
-        updateDisplay();
         animate();
     </script>
 </body>
