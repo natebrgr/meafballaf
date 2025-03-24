@@ -43,7 +43,7 @@
         }
         #title { top: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5em; }
         #level { top: 40px; left: 50%; transform: translateX(-50%); font-size: 2em; }
-        #levelNumber { color: #FFD700; } /* Gold for level number */
+        #levelNumber { color: #FFD700; } /* Gold */
         #countdown { 
             top: 50%; 
             left: 50%; 
@@ -60,10 +60,7 @@
             font-size: 2em; 
             visibility: hidden; 
             font-family: 'Impact', sans-serif; 
-            background: linear-gradient(45deg, #C0C0C0, #E0E0E0, #C0C0C0); /* Silver gradient */
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+            color: #C0C0C0; /* Silver */
         }
         #lives { top: 80px; font-size: 1em; }
         #hiScore { top: 80px; font-size: 1em; }
@@ -75,18 +72,20 @@
             text-shadow: 0 0 10px #ff0000; 
             z-index: 10;
         }
-        #sighhh.yee-haw { text-shadow: 0 0 10px #FFD700; } /* Gold for yee-haw */
+        #sighhh.yee-haw { text-shadow: 0 0 10px #FFD700; } /* Gold */
         #fleepSpan { 
             cursor: pointer; 
             display: inline-block; 
             pointer-events: auto; 
         }
         #livesCount, #hiScoreCount {
-            color: #e0e0e0;
+            font-family: 'Impact', sans-serif;
+            color: #C0C0C0; /* Silver */
             text-shadow: 0 0 5px #fff;
             font-size: 1.8em;
             position: absolute;
             z-index: 2;
+            transition: color 0.5s ease; /* For flash effect */
         }
         #modeButton, #mapButton { position: absolute; z-index: 15; }
         #playButton { position: absolute; z-index: 20; left: 50%; transform: translateX(-50%); padding: 8px 16px; font-size: 1em; display: block; }
@@ -106,9 +105,9 @@
             pointer-events: auto;
         }
         button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
-        #playButton.glow-green { animation: glowGold 1s linear forwards; } /* Updated to gold */
-        #playButton.glow-red { animation: glowRuby 1s linear forwards; } /* Updated to ruby */
-        #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white { animation: glowSilver 1s linear forwards; } /* Updated to silver */
+        #playButton.glow-green { animation: glowGold 1s linear forwards; }
+        #playButton.glow-red { animation: glowRuby 1s linear forwards; }
+        #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white { animation: glowSilver 1s linear forwards; }
         #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede { animation: recedeGlow 0.2s linear forwards; }
         @keyframes glowGold {
             0% { box-shadow: 0 0 5px #FFD700; }
@@ -150,7 +149,7 @@
             transform: translate(-50%, -50%);
             font-size: 1.5em;
             color: #e0e0e0;
-            text-shadow: 0 0 10px #8B0000; /* Ruby for fleep */
+            text-shadow: 0 0 10px #8B0000; /* Ruby */
             opacity: 0;
             z-index: 30;
             pointer-events: none;
@@ -363,7 +362,17 @@
         });
         window.addEventListener('resize', setCanvasSize);
 
+        function flashNumber(element, color) {
+            element.style.color = color;
+            setTimeout(() => {
+                element.style.color = '#C0C0C0'; // Back to silver
+            }, 500); // Flash duration
+        }
+
         function updateDisplay() {
+            const prevLives = parseInt(livesCount.textContent) || lives;
+            const prevHiScore = parseInt(hiScoreCount.textContent) || hiScore;
+
             levelNumber.textContent = `${level}`;
             livesDisplay.textContent = 'LIVES';
             livesCount.textContent = lives === Infinity ? '∞' : lives;
@@ -389,6 +398,13 @@
 
             wallHitsDisplay.textContent = `${wallHits}`;
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
+
+            // Flash effects
+            if (lives !== prevLives && lives !== Infinity) {
+                if (lives > prevLives) flashNumber(livesCount, '#FFD700'); // Gold flash
+                else if (lives < prevLives) flashNumber(livesCount, '#8B0000'); // Ruby flash
+            }
+            if (hiScore > prevHiScore) flashNumber(hiScoreCount, '#FFD700'); // Gold flash
         }
 
         function showText(text) {
@@ -676,10 +692,10 @@
                 ctx.stroke();
             }
 
-            const goldColor = '#FFD700'; // Shiny gold
-            let counterColor = '#C0C0C0'; // Shiny silver (default)
+            const goldColor = '#FFD700'; // Gold replaces green
+            let counterColor = '#C0C0C0'; // Silver replaces white
             if (wallHits === level) counterColor = goldColor;
-            else if (wallHits > level) counterColor = '#8B0000'; // Shiny ruby
+            else if (wallHits > level) counterColor = '#8B0000'; // Ruby replaces red
 
             const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             const trailBaseColor = lightenColor(circleColor);
@@ -746,27 +762,19 @@
 
             const offset = circle.radius + 20;
 
-            // Numbers around circle
-            ctx.font = 'bold 20px Impact'; // 3D-looking font
+            ctx.font = 'bold 20px Impact'; // 3D font
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`; // Looping shadow
             ctx.shadowBlur = 5;
 
-            // Wall hits (silver, gold, or ruby)
-            ctx.fillStyle = counterColor === '#C0C0C0' 
-                ? 'linear-gradient(45deg, #C0C0C0, #E0E0E0, #C0C0C0)' // Silver gradient
-                : counterColor === '#FFD700' 
-                ? 'linear-gradient(45deg, #FFD700, #FFFFE0, #FFD700)' // Gold gradient
-                : 'linear-gradient(45deg, #8B0000, #FF4040, #8B0000)'; // Ruby gradient
-            
+            ctx.fillStyle = counterColor;
             ctx.fillText(wallHits, circle.x, circle.y - offset);
             ctx.fillText(wallHits, circle.x, circle.y + offset);
             ctx.fillText(wallHits, circle.x - offset, circle.y);
             ctx.fillText(wallHits, circle.x + offset, circle.y);
 
-            // Level (always gold)
-            ctx.fillStyle = 'linear-gradient(45deg, #FFD700, #FFFFE0, #FFD700)'; // Gold gradient
+            ctx.fillStyle = goldColor;
             const diagonalOffset = offset * Math.sqrt(2) / 2;
             ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset);
             ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset);
@@ -775,14 +783,8 @@
 
             ctx.shadowBlur = 0;
 
-            // Update wallHitsDisplay color
-            wallHitsDisplay.style.background = counterColor === '#C0C0C0' 
-                ? 'linear-gradient(45deg, #C0C0C0, #E0E0E0, #C0C0C0)' // Silver
-                : counterColor === '#FFD700' 
-                ? 'linear-gradient(45deg, #FFD700, #FFFFE0, #FFD700)' // Gold
-                : 'linear-gradient(45deg, #8B0000, #FF4040, #8B0000)'; // Ruby
-            wallHitsDisplay.style.textShadow = `0 0 5px rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`; // Looping shadow
-            wallHitsDisplay.style.color = 'transparent'; // Ensure gradient shows through
+            wallHitsDisplay.style.color = counterColor;
+            wallHitsDisplay.style.textShadow = `0 0 5px rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
         }
 
         function updatePhysics() {
@@ -866,7 +868,7 @@
                         circle.dy = -circle.dy * bounciness;
                     }
                 } else {
-                    const centerX = canvas.width / 2;
+                    const centerX = canvas.width /  руководством2;
                     const centerY = canvas.height / 2;
                     const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
                     const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
@@ -1599,7 +1601,7 @@
             }
         });
 
-       _livesDisplay.addEventListener('touchstart', (e) => {
+        livesDisplay.addEventListener('touchstart', (e) => {
             if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
                 console.log('LIVES button tapped during drag');
                 toggleWindow(livesWindow);
