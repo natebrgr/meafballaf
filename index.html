@@ -13,7 +13,7 @@
             align-items: center;
             height: 100vh;
             font-family: Arial, sans-serif;
-            transition: background-color 0.5s ease;
+            background-color: rgb(5, 5, 25); /* Dark Blue */
             position: relative;
         }
         body::before {
@@ -31,13 +31,13 @@
             position: absolute;
             z-index: 5;
             background: transparent;
-            filter: drop-shadow(0 0 5px #fff);
+            filter: drop-shadow(0 0 5px rgb(232, 237, 234)); /* White glow */
             pointer-events: auto;
         }
         #level, #countdown, #wallHits, #lives, #hiScore, #title, #sighhh {
             position: absolute;
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
+            color: rgb(232, 237, 234); /* White */
+            text-shadow: 0 0 5px rgb(232, 237, 234); /* White glow */
             font-weight: bold;
             z-index: 2;
         }
@@ -45,7 +45,7 @@
         #level { top: 40px; left: 50%; transform: translateX(-50%); font-size: 2em; }
         #levelNumber { 
             font-family: 'Impact', sans-serif; 
-            color: #C0C0C0; /* Silver */
+            color: rgb(11, 74, 28); /* Green */
             transition: color 0.5s ease; 
         }
         #countdown { 
@@ -64,14 +64,14 @@
             font-size: 2em; 
             visibility: hidden; 
             font-family: 'Impact', sans-serif; 
-            color: #C0C0C0; /* Silver */
+            color: rgb(232, 237, 234); /* White */
         }
         #lives { top: 80px; font-size: 1em; }
         #hiScore { top: 80px; font-size: 1em; }
         #livesCount, #hiScoreCount {
             font-family: 'Impact', sans-serif;
-            color: #C0C0C0; /* Silver */
-            text-shadow: 0 0 5px #fff;
+            color: rgb(232, 237, 234); /* White */
+            text-shadow: 0 0 5px rgb(232, 237, 234); /* White glow */
             font-size: 1.8em;
             position: absolute;
             z-index: 2;
@@ -85,31 +85,37 @@
             font-weight: bold;
             font-family: Arial, sans-serif;
             cursor: pointer;
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
+            color: rgb(5, 5, 25); /* Dark Blue */
+            text-shadow: 0 0 5px rgb(232, 237, 234); /* White glow */
             border: none;
             border-radius: 5px;
-            filter: drop-shadow(0 0 5px #fff);
+            background-color: rgb(232, 237, 234); /* White */
+            filter: drop-shadow(0 0 5px rgb(232, 237, 234)); /* White glow */
             transition: background-color 0.5s ease, color 0.5s ease;
             z-index: 25;
             pointer-events: auto;
         }
-        button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
-        #playButton.glow-green { animation: glowGold 1s linear forwards; }
-        #playButton.glow-red { animation: glowRuby 1s linear forwards; }
-        #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white { animation: glowSilver 1s linear forwards; }
+        button:hover { filter: drop-shadow(0 0 5px rgb(232, 237, 234)) brightness(85%); }
+        #playButton.glow-green { animation: glowGreen 1s linear forwards; }
+        #playButton.glow-red { animation: glowRed 1s linear forwards; }
+        #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white { animation: glowWhite 1s linear forwards; }
+        #playButton.glow-blue, #lives.glow-blue { animation: glowBlue 1s linear forwards; }
         #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede { animation: recedeGlow 0.2s linear forwards; }
-        @keyframes glowGold {
-            0% { box-shadow: 0 0 5px #FFD700; }
-            100% { box-shadow: 0 0 20px #FFD700; }
+        @keyframes glowGreen {
+            0% { box-shadow: 0 0 5px rgb(11, 74, 28); }
+            100% { box-shadow: 0 0 20px rgb(11, 74, 28); }
         }
-        @keyframes glowRuby {
-            0% { box-shadow: 0 0 5px #8B0000; }
-            100% { box-shadow: 0 0 20px #8B0000; }
+        @keyframes glowRed {
+            0% { box-shadow: 0 0 5px rgb(130, 33, 33); }
+            100% { box-shadow: 0 0 20px rgb(130, 33, 33); }
         }
-        @keyframes glowSilver {
-            0% { box-shadow: 0 0 5px #C0C0C0; }
-            100% { box-shadow: 0 0 20px #C0C0C0; }
+        @keyframes glowWhite {
+            0% { box-shadow: 0 0 5px rgb(232, 237, 234); }
+            100% { box-shadow: 0 0 20px rgb(232, 237, 234); }
+        }
+        @keyframes glowBlue {
+            0% { box-shadow: 0 0 5px rgb(5, 5, 25); }
+            100% { box-shadow: 0 0 20px rgb(5, 5, 25); }
         }
         @keyframes recedeGlow {
             0% { box-shadow: 0 0 20px; }
@@ -122,13 +128,14 @@
             transform: translate(-50%, -50%) scale(0);
             padding: 20px;
             font-size: 1.5em;
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
+            color: rgb(232, 237, 234); /* White */
+            text-shadow: 0 0 5px rgb(232, 237, 234); /* White glow */
+            background-color: rgb(5, 5, 25); /* Dark Blue */
             border-radius: 10px;
             opacity: 0;
-            transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.5s ease;
+            transition: transform 0.3s ease, opacity 0.3s ease;
             z-index: 20;
-            filter: drop-shadow(0 0 5px #fff);
+            filter: drop-shadow(0 0 5px rgb(232, 237, 234)); /* White glow */
             pointer-events: auto;
         }
         #livesWindow.active, #hiScoreWindow.active { transform: translate(-50%, -50%) scale(1); opacity: 1; }
@@ -138,8 +145,8 @@
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 1.5em;
-            color: #e0e0e0;
-            text-shadow: 0 0 10px #8B0000; /* Ruby */
+            color: rgb(232, 237, 234); /* White */
+            text-shadow: 0 0 10px rgb(130, 33, 33); /* New Red */
             opacity: 0;
             z-index: 30;
             pointer-events: none;
@@ -160,10 +167,10 @@
             transform: translateX(-50%); 
             font-size: 1em; 
             visibility: hidden; 
-            text-shadow: 0 0 10px #8B0000; /* Ruby */
+            text-shadow: 0 0 10px rgb(130, 33, 33); /* New Red */
             z-index: 10;
         }
-        #sighhh.yee-haw { text-shadow: 0 0 10px #FFD700; } /* Gold */
+        #sighhh.yee-haw { text-shadow: 0 0 10px rgb(11, 74, 28); } /* Green */
         #fleepSpan { 
             cursor: pointer; 
             display: inline-block; 
@@ -246,15 +253,6 @@
         const friction = 0.98;
         const bounciness = 0.9;
         const bounceTimeWindow = 100;
-
-        const colors = [
-            { r: 0, g: 0, b: 0 },
-            { r: 5, g: 5, b: 25 },
-            { r: 15, g: 5, b: 25 }
-        ];
-        let currentColorIndex = 0;
-        let colorProgress = 0;
-        const colorTransitionSpeed = 0.01;
 
         let isCountingDown = false;
         let countdown = 3;
@@ -415,11 +413,22 @@
         });
         window.addEventListener('resize', setCanvasSize);
 
-        function flashNumber(element, color) {
+        function flashElement(element, button, color, duration = 500) {
             element.style.color = color;
+            if (button) {
+                button.classList.remove('glow-green', 'glow-red', 'glow-blue', 'glow-white', 'recede');
+                if (color === 'rgb(11, 74, 28)') button.classList.add('glow-green');
+                else if (color === 'rgb(130, 33, 33)') button.classList.add('glow-red');
+                else if (color === 'rgb(5, 5, 25)') button.classList.add('glow-blue');
+                else if (color === 'rgb(232, 237, 234)') button.classList.add('glow-white');
+            }
             setTimeout(() => {
-                element.style.color = '#C0C0C0'; // Back to silver
-            }, 500);
+                element.style.color = element === levelNumber ? 'rgb(11, 74, 28)' : 'rgb(232, 237, 234)';
+                if (button) {
+                    button.classList.remove('glow-green', 'glow-red', 'glow-blue', 'glow-white');
+                    button.classList.add('recede');
+                }
+            }, duration);
         }
 
         function updateDisplay() {
@@ -454,13 +463,21 @@
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
 
             if (lives !== prevLives && lives !== Infinity) {
-                if (lives > prevLives) flashNumber(livesCount, '#FFD700');
-                else if (lives < prevLives) flashNumber(livesCount, '#8B0000');
+                let flashColor = null;
+                const section = getSectionAtY(circle.y);
+                if (lives > prevLives) {
+                    if (section === 'red') flashColor = 'rgb(130, 33, 33)';
+                    else if (section === 'normal') flashColor = 'rgb(5, 5, 25)';
+                    else flashColor = 'rgb(11, 74, 28)';
+                } else if (lives < prevLives) {
+                    flashColor = 'rgb(130, 33, 33)';
+                }
+                if (flashColor) flashElement(livesCount, livesDisplay, flashColor);
             }
-            if (hiScore > prevHiScore) flashNumber(hiScoreCount, '#FFD700');
+            if (hiScore > prevHiScore) flashElement(hiScoreCount, hiScoreDisplay, 'rgb(11, 74, 28)');
             if (level !== prevLevel) {
-                if (level > prevLevel) flashNumber(levelNumber, '#FFD700');
-                else if (level < prevLevel) flashNumber(levelNumber, '#8B0000');
+                if (level > prevLevel) flashElement(levelNumber, null, 'rgb(232, 237, 234)');
+                else if (level < prevLevel) flashElement(levelDisplay, null, 'rgb(130, 33, 33)');
             }
         }
 
@@ -485,7 +502,6 @@
             const savedState = {
                 circleDx: circle.dx,
                 circleDy: circle.dy,
-                colorProgress: colorProgress,
                 countdownInterval: countdownInterval,
                 countdownStartTime: countdownStartTime,
                 countdownPausedTime: countdownPausedTime,
@@ -515,7 +531,6 @@
                             setTimeout(() => {
                                 circle.dx = savedState.circleDx;
                                 circle.dy = savedState.circleDy;
-                                colorProgress = savedState.colorProgress;
                                 countdownStartTime = savedState.countdownStartTime;
                                 countdownPausedTime = savedState.countdownPausedTime;
                                 if (isCountingDown) {
@@ -622,7 +637,7 @@
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
                 circle.isDragging = state.circle.isDragging;
-                circle.dragTouchId = state.dragTouchId;
+                circle.dragTouchId = state.circle.dragTouchId;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime || Date.now();
@@ -647,94 +662,17 @@
 
             updateDisplay();
             if (isCountingDown && !isPaused) resumeCountdown();
-            requestAnimationFrame(() => drawScene(updateColors()));
+            requestAnimationFrame(() => drawScene());
         }
 
-        function invertColor(rgb) {
-            return { r: 255 - rgb.r, g: 255 - rgb.g, b: 255 - rgb.b };
-        }
-
-        function updateColors() {
-            const currentColor = colors[currentColorIndex];
-            const nextColorIndex = (currentColorIndex + 1) % colors.length;
-            const nextColor = colors[nextColorIndex];
-
-            const r = Math.round(currentColor.r + (nextColor.r - currentColor.r) * colorProgress);
-            const g = Math.round(currentColor.g + (nextColor.g - currentColor.g) * colorProgress);
-            const b = Math.round(currentColor.b + (nextColor.b - currentColor.b) * colorProgress);
-
-            document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-
-            const textColor = `rgb(${r}, ${g}, ${b})`;
-            modeButton.style.color = textColor;
-            mapButton.style.color = textColor;
-            livesDisplay.style.color = textColor;
-            hiScoreDisplay.style.color = textColor;
-            playButton.style.color = textColor;
-
-            const invertedColor = invertColor({ r, g, b });
-            const invertedStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
-            modeButton.style.backgroundColor = invertedStyle;
-            mapButton.style.backgroundColor = invertedStyle;
-            livesDisplay.style.backgroundColor = invertedStyle;
-            hiScoreDisplay.style.backgroundColor = invertedStyle;
-            playButton.style.backgroundColor = invertedStyle;
-            livesWindow.style.backgroundColor = invertedStyle;
-            hiScoreWindow.style.backgroundColor = invertedStyle;
-
-            countdownDisplay.style.color = invertedStyle;
-            countdownDisplay.style.textShadow = `0 0 10px rgb(${r}, ${g}, ${b})`;
-
-            if (!isFleepSequence) {
-                colorProgress += colorTransitionSpeed;
-                if (colorProgress >= 1) {
-                    colorProgress = 0;
-                    currentColorIndex = (currentColorIndex + 1) % colors.length;
-                }
-            }
-
-            return { r, g, b, inverted: invertedColor };
-        }
-
-        function getCircleColor(counterColor) {
-            if (counterColor === '#FFD700') return '#FFD700'; // Gold
-            if (counterColor === '#8B0000') return '#8B0000'; // Ruby
-            return null;
-        }
-
-        function lightenColor(color) {
-            if (color === '#FFD700') return 'rgba(255, 215, 0,'; // Gold trail
-            if (color === '#8B0000') return 'rgba(139, 0, 0,'; // Ruby trail
-            const [r, g, b] = color.match(/\d+/g).map(Number);
-            return `rgba(${Math.min(r + 100, 255)}, ${Math.min(g + 100, 255)}, ${Math.min(b + 100, 255)},`;
-        }
-
-        function randomizeSections() {
-            if (currentMode === 'survival' && currentMap === 'rectangle') {
-                const positions = [0, 1, 2];
-                const greenPos = positions.splice(Math.floor(Math.random() * positions.length), 1)[0];
-                const redPos = positions.splice(Math.floor(Math.random() * positions.length), 1)[0];
-                const normalPos = positions[0];
-                sectionPositions = { green: greenPos, red: redPos, normal: normalPos };
-            }
-        }
-
-        function calculatePotentialLives(section) {
-            if (currentMode !== 'survival' || currentMap !== 'rectangle') return lives;
-            let potentialLives = resetLives < 3 ? resetLives : (lives < 3 ? 3 : lives);
-            if (section === 'green') return potentialLives + 1;
-            if (section === 'red') return Math.max(1, potentialLives - 1);
-            return potentialLives;
-        }
-
-        function drawScene(color) {
+        function drawScene() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (currentMode === 'survival' && currentMap === 'rectangle') {
                 const sectionHeight = canvas.height / 3;
                 const sections = [
-                    { pos: sectionPositions.green, color: 'rgba(255, 215, 0, 0.5)' }, // Gold
-                    { pos: sectionPositions.red, color: 'rgba(139, 0, 0, 0.5)' },   // Ruby
+                    { pos: sectionPositions.green, color: 'rgba(11, 74, 28, 0.5)' }, // Green
+                    { pos: sectionPositions.red, color: 'rgba(130, 33, 33, 0.5)' },   // New Red
                     { pos: sectionPositions.normal, color: 'transparent' }
                 ];
 
@@ -743,16 +681,16 @@
                     ctx.fillRect(0, section.pos * sectionHeight, canvas.width, sectionHeight);
 
                     const sectionY = section.pos * sectionHeight + sectionHeight / 2;
-                    const leftX = 50; // Closer to left edge
-                    const rightX = canvas.width - 50; // Closer to right edge
+                    const leftX = 50;
+                    const rightX = canvas.width - 50;
                     const potentialLives = calculatePotentialLives(
                         section.pos === sectionPositions.green ? 'green' :
                         section.pos === sectionPositions.red ? 'red' : 'normal'
                     );
 
-                    ctx.font = 'bold 40px Impact'; // Larger section numbers
-                    ctx.fillStyle = '#C0C0C0'; // Silver
-                    ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+                    ctx.font = 'bold 40px Impact';
+                    ctx.fillStyle = 'rgb(232, 237, 234)'; // White
+                    ctx.shadowColor = 'rgb(232, 237, 234)'; // White
                     ctx.shadowBlur = 5;
                     ctx.fillText(potentialLives === Infinity ? '∞' : potentialLives, leftX, sectionY);
                     ctx.fillText(potentialLives === Infinity ? '∞' : potentialLives, rightX, sectionY);
@@ -760,7 +698,7 @@
                 });
             }
 
-            ctx.strokeStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+            ctx.strokeStyle = 'rgb(232, 237, 234)'; // White
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
                 ctx.strokeRect(0, 0, canvas.width, canvas.height);
@@ -770,13 +708,15 @@
                 ctx.stroke();
             }
 
-            const goldColor = '#FFD700';
-            let counterColor = '#C0C0C0'; // Silver
-            if (wallHits === level) counterColor = goldColor;
-            else if (wallHits > level) counterColor = '#8B0000'; // Ruby
+            const greenColor = 'rgb(11, 74, 28)';
+            let counterColor = 'rgb(232, 237, 234)'; // White
+            if (wallHits === level) counterColor = greenColor;
+            else if (wallHits > level) counterColor = 'rgb(130, 33, 33)'; // New Red
 
-            const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
-            const trailBaseColor = lightenColor(circleColor);
+            const circleColor = counterColor;
+            const trailBaseColor = counterColor === greenColor ? 'rgba(11, 74, 28,' : 
+                                   counterColor === 'rgb(130, 33, 33)' ? 'rgba(130, 33, 33,' : 
+                                   'rgba(232, 237, 234,';
 
             if (trail.length > 1) {
                 ctx.beginPath();
@@ -799,6 +739,19 @@
             ctx.fill();
             ctx.closePath();
 
+            // Draw crosshair
+            ctx.beginPath();
+            ctx.moveTo(circle.x - 10, circle.y);
+            ctx.lineTo(circle.x + 10, circle.y);
+            ctx.moveTo(circle.x, circle.y - 10);
+            ctx.lineTo(circle.x, circle.y + 10);
+            ctx.strokeStyle = 'rgb(5, 5, 25)'; // Dark Blue
+            ctx.lineWidth = 2;
+            ctx.shadowColor = 'rgb(232, 237, 234)'; // White glow
+            ctx.shadowBlur = 5;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
             const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
             if (shouldShowHoldingText) {
                 const text = "HOLDING";
@@ -810,17 +763,11 @@
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
-                ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+                ctx.fillStyle = 'rgb(232, 237, 234)'; // White
+                ctx.shadowColor = 'rgb(232, 237, 234)'; // White
                 ctx.shadowBlur = 5;
 
-                const startAngles = [
-                    -Math.PI / 2,
-                    0,
-                    Math.PI / 2,
-                    Math.PI
-                ];
-
+                const startAngles = [-Math.PI / 2, 0, Math.PI / 2, Math.PI];
                 for (let instance = 0; instance < 4; instance++) {
                     const startAngle = startAngles[instance];
                     for (let i = 0; i < text.length; i++) {
@@ -838,13 +785,13 @@
             }
             ctx.shadowBlur = 0;
 
-            const holdingRadius = circle.radius + 50; // "HOLDING" position
-            const numberOffset = circle.radius + (holdingRadius - circle.radius) / 2; // Halfway between circle edge and "HOLDING"
+            const holdingRadius = circle.radius + 50;
+            const numberOffset = circle.radius + (holdingRadius - circle.radius) / 2;
 
-            ctx.font = '900 40px Impact'; // Larger circle numbers
+            ctx.font = '900 40px Impact';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+            ctx.shadowColor = 'rgb(232, 237, 234)'; // White
             ctx.shadowBlur = 5;
 
             ctx.fillStyle = counterColor;
@@ -853,7 +800,7 @@
             ctx.fillText(wallHits, circle.x - numberOffset, circle.y); // West
             ctx.fillText(wallHits, circle.x + numberOffset, circle.y); // East
 
-            ctx.fillStyle = goldColor;
+            ctx.fillStyle = greenColor;
             const diagonalOffset = numberOffset * Math.sqrt(2) / 2;
             ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset); // NE
             ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset); // NW
@@ -863,7 +810,7 @@
             ctx.shadowBlur = 0;
 
             wallHitsDisplay.style.color = counterColor;
-            wallHitsDisplay.style.textShadow = `0 0 5px rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+            wallHitsDisplay.style.textShadow = `0 0 5px rgb(232, 237, 234)`; // White
         }
 
         function updatePhysics() {
@@ -980,6 +927,8 @@
             countdownStartTime = Date.now();
             shownTexts.clear();
             sighhhVisible = false;
+            countdownDisplay.style.color = 'rgb(232, 237, 234)'; // White
+            countdownDisplay.style.textShadow = '0 0 10px rgb(5, 5, 25)'; // Dark Blue
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
 
@@ -1005,7 +954,7 @@
             if (countdownInterval) clearInterval(countdownInterval);
 
             const elapsedBeforePause = countdownPausedTime;
-            const remainingTime = 3000 - elapsedBeforePause; // Total duration is 3 seconds (3000ms)
+            const remainingTime = 3000 - elapsedBeforePause;
             if (remainingTime <= 0) {
                 countdown = 0;
                 countdownOpacity = 0;
@@ -1018,8 +967,10 @@
             }
 
             countdownStartTime = Date.now() - elapsedBeforePause;
-            countdown = Math.ceil(remainingTime / 1000); // Round up to next whole number
+            countdown = Math.max(0, 3 - Math.floor((Date.now() - countdownStartTime) / 1000));
             countdownOpacity = 1;
+            countdownDisplay.style.color = 'rgb(232, 237, 234)'; // White
+            countdownDisplay.style.textShadow = '0 0 10px rgb(5, 5, 25)'; // Dark Blue
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
 
@@ -1310,11 +1261,11 @@
 
             if (target === playButton) {
                 if (!holdTimers.play && !buttonActivated.play) {
-                    playButton.classList.remove('glow-green', 'glow-red', 'recede');
+                    playButton.classList.remove('glow-green', 'glow-red', 'glow-blue', 'recede');
                     playButton.classList.add(isPaused ? 'glow-green' : 'glow-red');
                     holdTimers.play = setTimeout(() => {
                         if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
-                            playButton.classList.remove('glow-green', 'glow-red');
+                            playButton.classList.remove('glow-green', 'glow-red', 'glow-blue');
                             playButton.classList.add('recede');
                             if (isPaused) {
                                 isPaused = false;
@@ -1339,7 +1290,7 @@
                 if (holdTimers.play) {
                     clearTimeout(holdTimers.play);
                     holdTimers.play = null;
-                    playButton.classList.remove('glow-green', 'glow-red');
+                    playButton.classList.remove('glow-green', 'glow-red', 'glow-blue');
                     playButton.classList.add('recede');
                 }
                 if (buttonActivated.play && target !== playButton) buttonActivated.play = false;
@@ -1510,7 +1461,7 @@
                     clearTimeout(holdTimers[key]);
                     holdTimers[key] = null;
                     if (key === 'play') {
-                        playButton.classList.remove('glow-green', 'glow-red');
+                        playButton.classList.remove('glow-green', 'glow-red', 'glow-blue');
                         playButton.classList.add('recede');
                     } else {
                         document.getElementById(key).classList.remove('glow-white');
@@ -1738,9 +1689,26 @@
 
         function animate() {
             updatePhysics();
-            const color = updateColors();
-            drawScene(color);
+            drawScene();
             requestAnimationFrame(animate);
+        }
+
+        function randomizeSections() {
+            if (currentMode === 'survival' && currentMap === 'rectangle') {
+                const positions = [0, 1, 2];
+                const greenPos = positions.splice(Math.floor(Math.random() * positions.length), 1)[0];
+                const redPos = positions.splice(Math.floor(Math.random() * positions.length), 1)[0];
+                const normalPos = positions[0];
+                sectionPositions = { green: greenPos, red: redPos, normal: normalPos };
+            }
+        }
+
+        function calculatePotentialLives(section) {
+            if (currentMode !== 'survival' || currentMap !== 'rectangle') return lives;
+            let potentialLives = resetLives < 3 ? resetLives : (lives < 3 ? 3 : lives);
+            if (section === 'green') return potentialLives + 1;
+            if (section === 'red') return Math.max(1, potentialLives - 1);
+            return potentialLives;
         }
 
         circle.x = window.innerWidth * 0.45;
