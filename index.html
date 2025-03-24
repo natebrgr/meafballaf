@@ -34,7 +34,7 @@
             filter: drop-shadow(0 0 5px #fff);
             pointer-events: auto;
         }
-        #levelContainer, #countdown, #lives, #hiScore, #title, #sighhh {
+        #levelContainer, #countdown, #title, #sighhh {
             position: absolute;
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
@@ -70,6 +70,9 @@
         #wallHits {
             border-right: 2px solid #e0e0e0;
         }
+        #levelNumber {
+            color: rgb(11, 74, 28); /* Always green */
+        }
         #countdown {
             top: 50%;
             left: 50%;
@@ -78,14 +81,6 @@
             transition: opacity 0.5s ease;
             z-index: 10;
             pointer-events: none;
-        }
-        #lives {
-            top: 80px;
-            font-size: 1em;
-        }
-        #hiScore {
-            top: 80px;
-            font-size: 1em;
         }
         #sighhh {
             left: 50%;
@@ -106,10 +101,18 @@
         #livesCount, #hiScoreCount {
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
-            font-size: 1.8em;
+            font-size: 2.5em; /* Match rectangle numbers */
             position: absolute;
             z-index: 2;
             font-family: 'Impact', sans-serif;
+            width: 60px; /* Square dimensions */
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            top: 40px; /* Level with the rectangle */
         }
         #modeButton, #mapButton {
             position: absolute;
@@ -148,10 +151,10 @@
         #playButton.glow-red {
             animation: glowRed 1s linear forwards;
         }
-        #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white {
+        #modeButton.glow-white, #mapButton.glow-white {
             animation: glowWhite 1s linear forwards;
         }
-        #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede {
+        #playButton.recede, #modeButton.recede, #mapButton.recede {
             animation: recedeGlow 0.2s linear forwards;
         }
         @keyframes glowGreen {
@@ -169,26 +172,6 @@
         @keyframes recedeGlow {
             0% { box-shadow: 0 0 20px; }
             100% { box-shadow: 0 0 0; }
-        }
-        #livesWindow, #hiScoreWindow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            padding: 20px;
-            font-size: 1.5em;
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
-            border-radius: 10px;
-            opacity: 0;
-            transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.5s ease;
-            z-index: 20;
-            filter: drop-shadow(0 0 5px #fff);
-            pointer-events: auto;
-        }
-        #livesWindow.active, #hiScoreWindow.active {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 1;
         }
         #fleepMessage {
             position: absolute;
@@ -223,15 +206,11 @@
     </div>
     <div id="countdown" style="opacity: 0;"></div>
     <div id="livesCount">3</div>
-    <button id="lives">LIVES</button>
     <div id="hiScoreCount">0</div>
-    <button id="hiScore">HI SCORE</button>
     <button id="modeButton">MODE</button>
     <button id="mapButton">MAP</button>
     <canvas id="canvas"></canvas>
     <button id="playButton">PAUSE</button>
-    <div id="livesWindow">MEAF yourself Leroy</div>
-    <div id="hiScoreWindow">eat my MEAF LERoYYY!</div>
     <div id="sighhh"></div>
     <div id="fleepMessage">Fleep is nigh...</div>
     <div id="blackOverlay"></div>
@@ -242,16 +221,12 @@
         const levelNumber = document.getElementById('levelNumber');
         const countdownDisplay = document.getElementById('countdown');
         const wallHitsDisplay = document.getElementById('wallHits');
-        const livesDisplay = document.getElementById('lives');
-        const hiScoreDisplay = document.getElementById('hiScore');
         const livesCount = document.getElementById('livesCount');
         const hiScoreCount = document.getElementById('hiScoreCount');
         const titleDisplay = document.getElementById('title');
         const modeButton = document.getElementById('modeButton');
         const mapButton = document.getElementById('mapButton');
         const playButton = document.getElementById('playButton');
-        const livesWindow = document.getElementById('livesWindow');
-        const hiScoreWindow = document.getElementById('hiScoreWindow');
         const sighhhDisplay = document.getElementById('sighhh');
         const fleepMessage = document.getElementById('fleepMessage');
         const blackOverlay = document.getElementById('blackOverlay');
@@ -326,8 +301,8 @@
         let sighhhVisible = false;
         let sighhhTimer = null;
 
-        let holdTimers = { play: null, mode: null, map: null, lives: null, hiScore: null };
-        let buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
+        let holdTimers = { play: null, mode: null, map: null };
+        let buttonActivated = { play: false, mode: false, map: false };
 
         const gameStates = {
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
@@ -367,18 +342,9 @@
             playButton.style.top = `${buttonTop}px`;
             playButton.style.bottom = '';
 
-            livesDisplay.style.left = `${canvasLeft}px`;
-            hiScoreDisplay.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
-
-            const livesLeft = canvasLeft + (livesDisplay.offsetWidth / 2);
-            livesCount.style.left = `${livesLeft}px`;
-            livesCount.style.top = `${80 - livesCount.offsetHeight - 5}px`;
-            livesCount.style.transform = 'translateX(-50%)';
-
-            const hiScoreLeft = (canvasLeft + canvas.width) - (hiScoreDisplay.offsetWidth / 2);
-            hiScoreCount.style.left = `${hiScoreLeft}px`;
-            hiScoreCount.style.top = `${80 - hiScoreCount.offsetHeight - 5}px`;
-            hiScoreCount.style.transform = 'translateX(-50%)';
+            // Position livesCount and hiScoreCount
+            livesCount.style.left = `${canvasLeft}px`; // Align left edge with canvas left
+            hiScoreCount.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`; // Align right edge with canvas right
 
             sighhhDisplay.style.top = `${wallHitsBottom + 10}px`;
 
@@ -393,9 +359,7 @@
 
         function updateDisplay() {
             levelNumber.textContent = `${level}`;
-            livesDisplay.textContent = 'LIVES';
             livesCount.textContent = lives === Infinity ? '∞' : lives;
-            hiScoreDisplay.textContent = 'HI SCORE';
             hiScoreCount.textContent = hiScore;
             titleDisplay.textContent = currentMode === 'survival' ? 'Survival Mode' : 'Endurance Mode';
             setCanvasSize();
@@ -618,19 +582,13 @@
             const textColor = `rgb(${r}, ${g}, ${b})`;
             modeButton.style.color = textColor;
             mapButton.style.color = textColor;
-            livesDisplay.style.color = textColor;
-            hiScoreDisplay.style.color = textColor;
             playButton.style.color = textColor;
 
             const invertedColor = invertColor({ r, g, b });
             const invertedStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
             modeButton.style.backgroundColor = invertedStyle;
             mapButton.style.backgroundColor = invertedStyle;
-            livesDisplay.style.backgroundColor = invertedStyle;
-            hiScoreDisplay.style.backgroundColor = invertedStyle;
             playButton.style.backgroundColor = invertedStyle;
-            livesWindow.style.backgroundColor = invertedStyle;
-            hiScoreWindow.style.backgroundColor = invertedStyle;
 
             countdownDisplay.style.color = invertedStyle;
             countdownDisplay.style.textShadow = `0 0 10px rgb(${r}, ${g}, ${b})`;
@@ -742,12 +700,12 @@
 
             const offset = circle.radius + 20;
 
-            ctx.font = 'bold 30px Impact, sans-serif';
+            ctx.font = 'bold 40px Impact, sans-serif'; // Match rectangle numbers (2.5em ≈ 40px assuming 16px base)
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = counterColor;
-            ctx.shadowColor = 'black';
-            ctx.shadowBlur = 6;
+            ctx.shadowColor = '#fff'; // Match rectangle text-shadow
+            ctx.shadowBlur = 5; // Match rectangle text-shadow
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             ctx.fillText(wallHits, circle.x, circle.y - offset);
@@ -756,17 +714,14 @@
             ctx.fillText(wallHits, circle.x + offset, circle.y);
 
             ctx.fillStyle = greenColor;
-            const diagonalOffset = offset * Math.sqrt(2) / 2;
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset);
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset);
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset);
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset);
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
 
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-
-            wallHitsDisplay.style.color = counterColor;
         }
 
         function updatePhysics() {
@@ -821,6 +776,13 @@
                             contact.time = currentTime;
                             if (isTrackingHits) {
                                 wallHits++;
+                                // Update wallHitsDisplay immediately
+                                wallHitsDisplay.textContent = `${wallHits}`;
+                                const greenColor = 'rgb(11, 74, 28)';
+                                let counterColor = '#e0e0e0';
+                                if (wallHits === level) counterColor = greenColor;
+                                else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
+                                wallHitsDisplay.style.color = counterColor;
                                 if (wallHits > level && currentMode === 'survival') {
                                     const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
                                     showText(text);
@@ -871,6 +833,8 @@
                 isCountingDown = true;
                 countdown = 3;
                 wallHits = 0;
+                wallHitsDisplay.textContent = `${wallHits}`; // Update immediately
+                wallHitsDisplay.style.color = '#e0e0e0'; // Reset color
                 isTrackingHits = true;
                 countdownOpacity = 1;
                 shownTexts.clear();
@@ -1013,7 +977,7 @@
                 circle.dx = 0;
                 circle.dy = 0;
                 if (!isPaused) trail.length = 0;
-                buttonActivated = { play: false, mode: false, map: false, lives: false, hiScore: false };
+                buttonActivated = { play: false, mode: false, map: false };
                 console.log('Dragging started, touchId:', circle.dragTouchId);
             }
         }
@@ -1049,14 +1013,6 @@
                 }, resizeHoldThreshold);
                 console.log('Resize touch initiated, waiting for hold threshold');
             }
-        }
-
-        function toggleWindow(windowToToggle) {
-            const otherWindow = windowToToggle === livesWindow ? hiScoreWindow : livesWindow;
-            if (otherWindow.classList.contains('active')) {
-                otherWindow.classList.remove('active');
-            }
-            windowToToggle.classList.toggle('active');
         }
 
         function drag(e) {
@@ -1233,54 +1189,6 @@
                 if (buttonActivated.map && target !== mapButton) buttonActivated.map = false;
             }
 
-            if (target === livesDisplay) {
-                if (!holdTimers.lives && !buttonActivated.lives) {
-                    livesDisplay.classList.remove('glow-white', 'recede');
-                    livesDisplay.classList.add('glow-white');
-                    holdTimers.lives = setTimeout(() => {
-                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === livesDisplay) {
-                            livesDisplay.classList.remove('glow-white');
-                            livesDisplay.classList.add('recede');
-                            toggleWindow(livesWindow);
-                            buttonActivated.lives = true;
-                        }
-                        holdTimers.lives = null;
-                    }, 1000);
-                }
-            } else {
-                if (holdTimers.lives) {
-                    clearTimeout(holdTimers.lives);
-                    holdTimers.lives = null;
-                    livesDisplay.classList.remove('glow-white');
-                    livesDisplay.classList.add('recede');
-                }
-                if (buttonActivated.lives && target !== livesDisplay) buttonActivated.lives = false;
-            }
-
-            if (target === hiScoreDisplay) {
-                if (!holdTimers.hiScore && !buttonActivated.hiScore) {
-                    hiScoreDisplay.classList.remove('glow-white', 'recede');
-                    hiScoreDisplay.classList.add('glow-white');
-                    holdTimers.hiScore = setTimeout(() => {
-                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === hiScoreDisplay) {
-                            hiScoreDisplay.classList.remove('glow-white');
-                            hiScoreDisplay.classList.add('recede');
-                            toggleWindow(hiScoreWindow);
-                            buttonActivated.hiScore = true;
-                        }
-                        holdTimers.hiScore = null;
-                    }, 1000);
-                }
-            } else {
-                if (holdTimers.hiScore) {
-                    clearTimeout(holdTimers.hiScore);
-                    holdTimers.hiScore = null;
-                    hiScoreDisplay.classList.remove('glow-white');
-                    hiScoreDisplay.classList.add('recede');
-                }
-                if (buttonActivated.hiScore && target !== hiScoreDisplay) buttonActivated.hiScore = false;
-            }
-
             if (isPaused) saveState();
         }
 
@@ -1321,10 +1229,6 @@
                 mapButton.classList.remove('glow-white');
                 mapButton.classList.add('recede');
                 target.click();
-            } else if (target === livesDisplay && !buttonActivated.lives) {
-                toggleWindow(livesWindow);
-            } else if (target === hiScoreDisplay && !buttonActivated.hiScore) {
-                toggleWindow(hiScoreWindow);
             }
 
             circle.isDragging = false;
@@ -1345,8 +1249,6 @@
             if (target !== playButton) buttonActivated.play = false;
             if (target !== modeButton) buttonActivated.mode = false;
             if (target !== mapButton) buttonActivated.map = false;
-            if (target !== livesDisplay) buttonActivated.lives = false;
-            if (target !== hiScoreDisplay) buttonActivated.hiScore = false;
 
             if (!circle.isDragging && isPaused) saveState();
         }
@@ -1472,36 +1374,6 @@
             }
         });
 
-        livesDisplay.addEventListener('click', () => {
-            if (!circle.isDragging || isFleepSequence) return;
-            toggleWindow(livesWindow);
-        });
-
-        hiScoreDisplay.addEventListener('click', () => {
-            if (!circle.isDragging || isFleepSequence) return;
-            toggleWindow(hiScoreWindow);
-        });
-
-        document.addEventListener('click', (e) => {
-            if (isFleepSequence) return;
-            if (livesWindow.classList.contains('active') && e.target !== livesWindow) {
-                livesWindow.classList.remove('active');
-            }
-            if (hiScoreWindow.classList.contains('active') && e.target !== hiScoreWindow) {
-                hiScoreWindow.classList.remove('active');
-            }
-        });
-
-        document.addEventListener('touchend', (e) => {
-            if (isFleepSequence) return;
-            if (livesWindow.classList.contains('active') && e.target !== livesWindow) {
-                livesWindow.classList.remove('active');
-            }
-            if (hiScoreWindow.classList.contains('active') && e.target !== hiScoreWindow) {
-                hiScoreWindow.classList.remove('active');
-            }
-        });
-
         canvas.addEventListener('mousedown', startDragging);
         canvas.addEventListener('mousemove', drag);
         canvas.addEventListener('mouseup', stopDragging);
@@ -1543,20 +1415,6 @@
             if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
                 console.log('PAUSE/RESUME button tapped during drag');
                 playButton.click();
-            }
-        });
-
-        livesDisplay.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
-                console.log('LIVES button tapped during drag');
-                toggleWindow(livesWindow);
-            }
-        });
-
-        hiScoreDisplay.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
-                console.log('HI SCORE button tapped during drag');
-                toggleWindow(hiScoreWindow);
             }
         });
 
