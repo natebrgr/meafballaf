@@ -68,20 +68,6 @@
         }
         #lives { top: 80px; font-size: 1em; }
         #hiScore { top: 80px; font-size: 1em; }
-        #sighhh { 
-            left: 50%; 
-            transform: translateX(-50%); 
-            font-size: 1em; 
-            visibility: hidden; 
-            text-shadow: 0 0 10px #8B0000; /* Ruby */
-            z-index: 10;
-        }
-        #sighhh.yee-haw { text-shadow: 0 0 10px #FFD700; } /* Gold */
-        #fleepSpan { 
-            cursor: pointer; 
-            display: inline-block; 
-            pointer-events: auto; 
-        }
         #livesCount, #hiScoreCount {
             font-family: 'Impact', sans-serif;
             color: #C0C0C0; /* Silver */
@@ -168,6 +154,20 @@
             z-index: 25;
             pointer-events: none;
             transition: background 1s ease;
+        }
+        #sighhh { 
+            left: 50%; 
+            transform: translateX(-50%); 
+            font-size: 1em; 
+            visibility: hidden; 
+            text-shadow: 0 0 10px #8B0000; /* Ruby */
+            z-index: 10;
+        }
+        #sighhh.yee-haw { text-shadow: 0 0 10px #FFD700; } /* Gold */
+        #fleepSpan { 
+            cursor: pointer; 
+            display: inline-block; 
+            pointer-events: auto; 
         }
     </style>
 </head>
@@ -260,8 +260,8 @@
         let countdown = 3;
         let countdownInterval = null;
         let countdownOpacity = 0;
-        let countdownStartTime = null; // Track when countdown started
-        let countdownPausedTime = 0;   // Track elapsed time when paused
+        let countdownStartTime = null;
+        let countdownPausedTime = 0;
         let wallHits = 0;
         let level = 1;
         let isTrackingHits = false;
@@ -453,7 +453,6 @@
             wallHitsDisplay.textContent = `${wallHits}`;
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
 
-            // Flash effects
             if (lives !== prevLives && lives !== Infinity) {
                 if (lives > prevLives) flashNumber(livesCount, '#FFD700');
                 else if (lives < prevLives) flashNumber(livesCount, '#8B0000');
@@ -743,16 +742,15 @@
                     ctx.fillStyle = section.color;
                     ctx.fillRect(0, section.pos * sectionHeight, canvas.width, sectionHeight);
 
-                    // Lives indicators
                     const sectionY = section.pos * sectionHeight + sectionHeight / 2;
-                    const leftX = canvas.width / 3;
-                    const rightX = canvas.width * 2 / 3;
+                    const leftX = 50; // Closer to left edge
+                    const rightX = canvas.width - 50; // Closer to right edge
                     const potentialLives = calculatePotentialLives(
                         section.pos === sectionPositions.green ? 'green' :
                         section.pos === sectionPositions.red ? 'red' : 'normal'
                     );
 
-                    ctx.font = 'bold 20px Impact';
+                    ctx.font = 'bold 40px Impact'; // Larger section numbers
                     ctx.fillStyle = '#C0C0C0'; // Silver
                     ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
                     ctx.shadowBlur = 5;
@@ -840,26 +838,27 @@
             }
             ctx.shadowBlur = 0;
 
-            const offset = circle.radius + 50; // Adjusted for larger numbers
+            const holdingRadius = circle.radius + 50; // "HOLDING" position
+            const numberOffset = circle.radius + (holdingRadius - circle.radius) / 2; // Halfway between circle edge and "HOLDING"
 
-            ctx.font = '900 30px Impact'; // Larger, bolder numbers
+            ctx.font = '900 40px Impact'; // Larger circle numbers
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             ctx.shadowBlur = 5;
 
             ctx.fillStyle = counterColor;
-            ctx.fillText(wallHits, circle.x, circle.y - offset);
-            ctx.fillText(wallHits, circle.x, circle.y + offset);
-            ctx.fillText(wallHits, circle.x - offset, circle.y);
-            ctx.fillText(wallHits, circle.x + offset, circle.y);
+            ctx.fillText(wallHits, circle.x, circle.y - numberOffset); // North
+            ctx.fillText(wallHits, circle.x, circle.y + numberOffset); // South
+            ctx.fillText(wallHits, circle.x - numberOffset, circle.y); // West
+            ctx.fillText(wallHits, circle.x + numberOffset, circle.y); // East
 
             ctx.fillStyle = goldColor;
-            const diagonalOffset = offset * Math.sqrt(2) / 2;
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset);
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset);
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset);
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset);
+            const diagonalOffset = numberOffset * Math.sqrt(2) / 2;
+            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset); // NE
+            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset); // NW
+            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset); // SW
+            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset); // SE
 
             ctx.shadowBlur = 0;
 
@@ -1006,8 +1005,20 @@
             if (countdownInterval) clearInterval(countdownInterval);
 
             const elapsedBeforePause = countdownPausedTime;
+            const remainingTime = 3000 - elapsedBeforePause; // Total duration is 3 seconds (3000ms)
+            if (remainingTime <= 0) {
+                countdown = 0;
+                countdownOpacity = 0;
+                countdownDisplay.style.opacity = countdownOpacity;
+                isCountingDown = false;
+                countdownStartTime = null;
+                countdownInterval = null;
+                updateDisplay();
+                return;
+            }
+
             countdownStartTime = Date.now() - elapsedBeforePause;
-            countdown = Math.max(0, 3 - Math.floor(elapsedBeforePause / 1000));
+            countdown = Math.ceil(remainingTime / 1000); // Round up to next whole number
             countdownOpacity = 1;
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
