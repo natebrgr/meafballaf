@@ -260,6 +260,8 @@
         let countdown = 3;
         let countdownInterval = null;
         let countdownOpacity = 0;
+        let countdownStartTime = null; // Track when countdown started
+        let countdownPausedTime = 0;   // Track elapsed time when paused
         let wallHits = 0;
         let level = 1;
         let isTrackingHits = false;
@@ -299,13 +301,60 @@
                 isCountingDown: false, 
                 countdown: 3, 
                 countdownOpacity: 0, 
+                countdownStartTime: null,
+                countdownPausedTime: 0,
                 wasDraggingWhenPaused: false,
                 sectionPositions: { green: 0, red: 1, normal: 2 },
                 resetLives: 3
             },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
+            'endurance-rectangle': { 
+                level: 1, 
+                lives: Infinity, 
+                hiScore: 0, 
+                circle: {}, 
+                trail: [], 
+                wallHits: 0, 
+                isTrackingHits: false, 
+                isPaused: false, 
+                isCountingDown: false, 
+                countdown: 3, 
+                countdownOpacity: 0, 
+                countdownStartTime: null,
+                countdownPausedTime: 0,
+                wasDraggingWhenPaused: false 
+            },
+            'survival-circle': { 
+                level: 1, 
+                lives: 3, 
+                hiScore: 0, 
+                circle: {}, 
+                trail: [], 
+                wallHits: 0, 
+                isTrackingHits: false, 
+                isPaused: false, 
+                isCountingDown: false, 
+                countdown: 3, 
+                countdownOpacity: 0, 
+                countdownStartTime: null,
+                countdownPausedTime: 0,
+                wasDraggingWhenPaused: false 
+            },
+            'endurance-circle': { 
+                level: 1, 
+                lives: Infinity, 
+                hiScore: 0, 
+                circle: {}, 
+                trail: [], 
+                wallHits: 0, 
+                isTrackingHits: false, 
+                isPaused: false, 
+                isCountingDown: false, 
+                countdown: 3, 
+                countdownOpacity: 0, 
+                countdownStartTime: null,
+                countdownPausedTime: 0,
+                wasDraggingWhenPaused: false 
+            }
         };
 
         function setCanvasSize() {
@@ -439,6 +488,8 @@
                 circleDy: circle.dy,
                 colorProgress: colorProgress,
                 countdownInterval: countdownInterval,
+                countdownStartTime: countdownStartTime,
+                countdownPausedTime: countdownPausedTime,
                 sighhhTimer: sighhhTimer,
                 sighhhTimerStart: sighhhTimer ? Date.now() : null
             };
@@ -466,20 +517,10 @@
                                 circle.dx = savedState.circleDx;
                                 circle.dy = savedState.circleDy;
                                 colorProgress = savedState.colorProgress;
-                                if (savedState.countdownInterval) {
-                                    countdownInterval = setInterval(() => {
-                                        countdown--;
-                                        if (countdown > 0) {
-                                            countdownDisplay.textContent = countdown;
-                                        } else {
-                                            countdownOpacity = 0;
-                                            countdownDisplay.style.opacity = countdownOpacity;
-                                            clearInterval(countdownInterval);
-                                            countdownInterval = null;
-                                            isCountingDown = false;
-                                            updateDisplay();
-                                        }
-                                    }, 1000);
+                                countdownStartTime = savedState.countdownStartTime;
+                                countdownPausedTime = savedState.countdownPausedTime;
+                                if (isCountingDown) {
+                                    resumeCountdown();
                                 }
                                 if (savedState.sighhhTimer) {
                                     const elapsed = Date.now() - savedState.sighhhTimerStart;
@@ -542,6 +583,8 @@
                 isCountingDown,
                 countdown,
                 countdownOpacity,
+                countdownStartTime,
+                countdownPausedTime: isCountingDown ? Date.now() - countdownStartTime : countdownPausedTime,
                 wasDraggingWhenPaused: circle.wasDraggingWhenPaused,
                 sectionPositions: currentMode === 'survival' && currentMap === 'rectangle' ? { ...sectionPositions } : undefined,
                 resetLives: currentMode === 'survival' && currentMap === 'rectangle' ? resetLives : undefined
@@ -564,6 +607,8 @@
             isCountingDown = state.isCountingDown;
             countdown = state.countdown;
             countdownOpacity = state.countdownOpacity;
+            countdownStartTime = state.countdownStartTime;
+            countdownPausedTime = state.countdownPausedTime;
             circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
 
             if (mode === 'survival' && map === 'rectangle') {
@@ -602,6 +647,7 @@
             }
 
             updateDisplay();
+            if (isCountingDown && !isPaused) resumeCountdown();
             requestAnimationFrame(() => drawScene(updateColors()));
         }
 
@@ -686,7 +732,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (currentMode === 'survival' && currentMap === 'rectangle') {
-                const sectionHeight = canvas Postedcanvas.height / 3;
+                const sectionHeight = canvas.height / 3;
                 const sections = [
                     { pos: sectionPositions.green, color: 'rgba(255, 215, 0, 0.5)' }, // Gold
                     { pos: sectionPositions.red, color: 'rgba(139, 0, 0, 0.5)' },   // Ruby
@@ -794,7 +840,7 @@
             }
             ctx.shadowBlur = 0;
 
-            const offset = circle.radius + 50; // Adjusted to maintain "HOLDING" spacing
+            const offset = circle.radius + 50; // Adjusted for larger numbers
 
             ctx.font = '900 30px Impact'; // Larger, bolder numbers
             ctx.textAlign = 'center';
@@ -926,12 +972,13 @@
             }
         }
 
-        function startCountdown(isResuming = false) {
+        function startCountdown() {
             isCountingDown = true;
             countdown = 3;
             wallHits = 0;
             isTrackingHits = true;
             countdownOpacity = 1;
+            countdownStartTime = Date.now();
             shownTexts.clear();
             sighhhVisible = false;
             countdownDisplay.style.opacity = countdownOpacity;
@@ -939,18 +986,46 @@
 
             if (countdownInterval) clearInterval(countdownInterval);
             countdownInterval = setInterval(() => {
-                countdown--;
-                if (countdown > 0) {
-                    countdownDisplay.textContent = countdown;
-                } else {
+                const elapsed = Date.now() - countdownStartTime;
+                countdown = Math.max(0, 3 - Math.floor(elapsed / 1000));
+                countdownDisplay.textContent = countdown;
+                if (countdown <= 0) {
                     countdownOpacity = 0;
                     countdownDisplay.style.opacity = countdownOpacity;
                     clearInterval(countdownInterval);
                     countdownInterval = null;
                     isCountingDown = false;
+                    countdownStartTime = null;
                     updateDisplay();
                 }
-            }, 1000);
+            }, 100);
+        }
+
+        function resumeCountdown() {
+            if (!isCountingDown || countdownStartTime === null) return;
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            const elapsedBeforePause = countdownPausedTime;
+            countdownStartTime = Date.now() - elapsedBeforePause;
+            countdown = Math.max(0, 3 - Math.floor(elapsedBeforePause / 1000));
+            countdownOpacity = 1;
+            countdownDisplay.style.opacity = countdownOpacity;
+            countdownDisplay.textContent = countdown;
+
+            countdownInterval = setInterval(() => {
+                const elapsed = Date.now() - countdownStartTime;
+                countdown = Math.max(0, 3 - Math.floor(elapsed / 1000));
+                countdownDisplay.textContent = countdown;
+                if (countdown <= 0) {
+                    countdownOpacity = 0;
+                    countdownDisplay.style.opacity = countdownOpacity;
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                    isCountingDown = false;
+                    countdownStartTime = null;
+                    updateDisplay();
+                }
+            }, 100);
         }
 
         function getMousePos(e, touchId = null) {
@@ -1014,6 +1089,7 @@
                             countdownInterval = null;
                             countdownOpacity = 0;
                             countdownDisplay.style.opacity = countdownOpacity;
+                            countdownStartTime = null;
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
@@ -1236,7 +1312,7 @@
                                 circle.lastTime = Date.now();
                                 circle.dx = 0;
                                 circle.dy = 0;
-                                if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
+                                if (isCountingDown) resumeCountdown();
                             } else {
                                 circle.wasDraggingWhenPaused = circle.isDragging;
                                 isPaused = true;
@@ -1551,7 +1627,7 @@
                     circle.dy = circle.dy || 0;
                 }
                 circle.wasDraggingWhenPaused = false;
-                if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
+                if (isCountingDown) resumeCountdown();
                 updateDisplay();
             } else {
                 circle.wasDraggingWhenPaused = circle.isDragging;
