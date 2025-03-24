@@ -31,7 +31,7 @@
             position: absolute;
             z-index: 5;
             background: transparent;
-            filter: drop-shadow(0 0 5px rgb(232, 237, 234));
+            filter: drop-shadow(0 0 10px rgb(232, 237, 234));
             pointer-events: auto;
         }
         #level, #countdown, #wallHits, #lives, #hiScore, #title, #sighhh {
@@ -43,9 +43,9 @@
         }
         #title { top: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5em; }
         #level { top: 40px; left: 50%; transform: translateX(-50%); font-size: 2em; }
-        #levelNumber { color: rgb(11, 74, 28); font-family: Impact, sans-serif; }
+        #levelNumber { color: rgb(11, 74, 28); font-family: Impact, sans-serif; font-size: 2.2em; }
         #countdown { 
-            top: 16.67%; /* Center of top 1/3 (1/6 of height) */
+            top: 16.67%; /* Center of top 1/3 */
             left: 50%; 
             transform: translateX(-50%); 
             font-size: 4em; 
@@ -57,7 +57,7 @@
             top: 80px; 
             left: 50%; 
             transform: translateX(-50%); 
-            font-size: 2em; 
+            font-size: 2.2em; 
             visibility: hidden; 
             font-family: Impact, sans-serif; 
         }
@@ -80,7 +80,7 @@
         #livesCount, #hiScoreCount {
             color: rgb(232, 237, 234);
             text-shadow: 0 0 5px rgb(232, 237, 234);
-            font-size: 1.8em;
+            font-size: 2.2em;
             position: absolute;
             z-index: 2;
             font-family: Impact, sans-serif;
@@ -98,17 +98,25 @@
             border: none;
             border-radius: 5px;
             background-color: rgb(5, 5, 25);
-            filter: drop-shadow(0 0 5px rgb(232, 237, 234));
+            filter: drop-shadow(0 0 10px rgb(232, 237, 234));
             z-index: 25;
             pointer-events: auto;
         }
-        button:hover { filter: drop-shadow(0 0 5px rgb(232, 237, 234)) brightness(85%); }
-        #playButton.glow-green { animation: glowWhite 1s linear forwards; }
-        #playButton.glow-red { animation: glowWhite 1s linear forwards; }
+        button:hover { filter: drop-shadow(0 0 10px rgb(232, 237, 234)) brightness(85%); }
+        #playButton.glow-green { animation: glowGreen 1s linear forwards; }
+        #playButton.glow-red { animation: glowRed 1s linear forwards; }
         #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white { animation: glowWhite 1s linear forwards; }
         #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede { animation: recedeGlow 0.2s linear forwards; }
+        @keyframes glowGreen {
+            0% { box-shadow: 0 0 5px rgb(11, 74, 28); }
+            100% { box-shadow: 0 0 20px rgb(11, 74, 28); }
+        }
+        @keyframes glowRed {
+            0% { box-shadow: 0 0 5px rgb(130, 33, 33); }
+            100% { box-shadow: 0 0 20px rgb(130, 33, 33); }
+        }
         @keyframes glowWhite {
-            0% { box-shadow: 0 0 5px rgb(232, 237, 234); }
+            0% { box-shadow: 0 0 10px rgb(232, 237, 234); }
             100% { box-shadow: 0 0 20px rgb(232, 237, 234); }
         }
         @keyframes recedeGlow {
@@ -144,7 +152,7 @@
             opacity: 0;
             transition: transform 0.3s ease, opacity 0.3s ease;
             z-index: 20;
-            filter: drop-shadow(0 0 5px rgb(232, 237, 234));
+            filter: drop-shadow(0 0 10px rgb(232, 237, 234));
             pointer-events: auto;
         }
         #livesWindow.active, #hiScoreWindow.active { transform: translate(-50%, -50%) scale(1); opacity: 1; }
@@ -213,8 +221,8 @@
         const blackOverlay = document.getElementById('blackOverlay');
 
         const borderWidth = 2;
-        const defaultRadius = 60; // Initial size set to 60
-        const minRadius = 30;    // Minimum size set to 30
+        const defaultRadius = 60;
+        const minRadius = 30;
         const resizeHoldThreshold = 200;
 
         const circle = {
@@ -375,7 +383,18 @@
             // Flash effects
             if (level > prevLevel) {
                 levelNumber.style.animation = 'flashGlow 0.5s ease';
-                setTimeout(() => levelNumber.style.animation = '', 500);
+                levelDisplay.style.animation = 'flashGreen 0.5s ease';
+                setTimeout(() => {
+                    levelNumber.style.animation = '';
+                    levelDisplay.style.animation = '';
+                }, 500);
+            } else if (level < prevLevel) {
+                levelNumber.style.animation = 'flashRed 0.5s ease';
+                levelDisplay.style.animation = 'flashRed 0.5s ease';
+                setTimeout(() => {
+                    levelNumber.style.animation = '';
+                    levelDisplay.style.animation = '';
+                }, 500);
             }
             if (hiScore > prevHiScore) {
                 hiScoreCount.style.animation = 'flashGlow 0.5s ease';
@@ -684,14 +703,10 @@
 
             const offset = circle.radius + 20;
 
-            ctx.font = 'bold 32px Impact';
+            ctx.font = 'bold 36px Impact'; // Increased from 32px to 36px
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = counterColor;
-            ctx.shadowColor = 'black';
-            ctx.shadowBlur = 6;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
             ctx.fillText(wallHits, circle.x, circle.y - offset);
             ctx.fillText(wallHits, circle.x, circle.y + offset);
             ctx.fillText(wallHits, circle.x - offset, circle.y);
@@ -702,10 +717,6 @@
             ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
             ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
             ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
-
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
 
             wallHitsDisplay.style.color = counterColor;
         }
@@ -1061,7 +1072,7 @@
                 );
                 const distanceDelta = currentDistance - initialDistance;
 
-                const newRadius = Math.max(minRadius, circle.initialRadius + distanceDelta / 2); // Minimum set to 30
+                const newRadius = Math.max(minRadius, circle.initialRadius + distanceDelta / 2);
                 let maxAllowedRadius;
 
                 if (currentMap === 'rectangle') {
@@ -1086,11 +1097,11 @@
 
             if (target === playButton) {
                 if (!holdTimers.play && !buttonActivated.play) {
-                    playButton.classList.remove('glow-white', 'recede');
-                    playButton.classList.add('glow-white');
+                    playButton.classList.remove('glow-green', 'glow-red', 'recede');
+                    playButton.classList.add(isPaused ? 'glow-green' : 'glow-red');
                     holdTimers.play = setTimeout(() => {
                         if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
-                            playButton.classList.remove('glow-white');
+                            playButton.classList.remove('glow-green', 'glow-red');
                             playButton.classList.add('recede');
                             if (isPaused) {
                                 isPaused = false;
@@ -1115,7 +1126,7 @@
                 if (holdTimers.play) {
                     clearTimeout(holdTimers.play);
                     holdTimers.play = null;
-                    playButton.classList.remove('glow-white');
+                    playButton.classList.remove('glow-green', 'glow-red');
                     playButton.classList.add('recede');
                 }
                 if (buttonActivated.play && target !== playButton) buttonActivated.play = false;
@@ -1152,7 +1163,7 @@
                 }
                 if (buttonActivated.mode && target !== modeButton) buttonActivated.mode = false;
             }
-            
+
             if (target === mapButton) {
                 if (!holdTimers.map && !buttonActivated.map) {
                     mapButton.classList.remove('glow-white', 'recede');
