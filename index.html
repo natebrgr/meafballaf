@@ -43,17 +43,24 @@
         }
         #title { top: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5em; }
         #level { top: 40px; left: 50%; transform: translateX(-50%); font-size: 2em; }
-        #levelNumber { color: rgb(11, 74, 28); }
+        #levelNumber { color: rgb(11, 74, 28); font-family: Impact, sans-serif; }
         #countdown { 
-            top: 50%; 
+            top: 16.67%; /* Center of top 1/3 (1/6 of height) */
             left: 50%; 
-            transform: translate(-50%, -50%); 
+            transform: translateX(-50%); 
             font-size: 4em; 
             transition: opacity 0.5s ease; 
             z-index: 10; 
             pointer-events: none;
         }
-        #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
+        #wallHits { 
+            top: 80px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            font-size: 2em; 
+            visibility: hidden; 
+            font-family: Impact, sans-serif; 
+        }
         #lives { top: 80px; font-size: 1em; }
         #hiScore { top: 80px; font-size: 1em; }
         #sighhh { 
@@ -96,18 +103,10 @@
             pointer-events: auto;
         }
         button:hover { filter: drop-shadow(0 0 5px rgb(232, 237, 234)) brightness(85%); }
-        #playButton.glow-green { animation: glowGreen 1s linear forwards; }
-        #playButton.glow-red { animation: glowRed 1s linear forwards; }
+        #playButton.glow-green { animation: glowWhite 1s linear forwards; }
+        #playButton.glow-red { animation: glowWhite 1s linear forwards; }
         #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white { animation: glowWhite 1s linear forwards; }
         #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede { animation: recedeGlow 0.2s linear forwards; }
-        @keyframes glowGreen {
-            0% { box-shadow: 0 0 5px rgb(11, 74, 28); }
-            100% { box-shadow: 0 0 20px rgb(11, 74, 28); }
-        }
-        @keyframes glowRed {
-            0% { box-shadow: 0 0 5px rgb(130, 33, 33); }
-            100% { box-shadow: 0 0 20px rgb(130, 33, 33); }
-        }
         @keyframes glowWhite {
             0% { box-shadow: 0 0 5px rgb(232, 237, 234); }
             100% { box-shadow: 0 0 20px rgb(232, 237, 234); }
@@ -115,6 +114,21 @@
         @keyframes recedeGlow {
             0% { box-shadow: 0 0 20px; }
             100% { box-shadow: 0 0 0; }
+        }
+        @keyframes flashGlow {
+            0% { text-shadow: 0 0 5px rgb(232, 237, 234); }
+            50% { text-shadow: 0 0 20px rgb(232, 237, 234); }
+            100% { text-shadow: 0 0 5px rgb(232, 237, 234); }
+        }
+        @keyframes flashGreen {
+            0% { color: rgb(232, 237, 234); }
+            50% { color: rgb(11, 74, 28); }
+            100% { color: rgb(232, 237, 234); }
+        }
+        @keyframes flashRed {
+            0% { color: rgb(232, 237, 234); }
+            50% { color: rgb(130, 33, 33); }
+            100% { color: rgb(232, 237, 234); }
         }
         #livesWindow, #hiScoreWindow {
             position: absolute;
@@ -199,7 +213,8 @@
         const blackOverlay = document.getElementById('blackOverlay');
 
         const borderWidth = 2;
-        const defaultRadius = 50; // Increased from 30 to 50
+        const defaultRadius = 60; // Initial size set to 60
+        const minRadius = 30;    // Minimum size set to 30
         const resizeHoldThreshold = 200;
 
         const circle = {
@@ -327,6 +342,10 @@
         window.addEventListener('resize', setCanvasSize);
 
         function updateDisplay() {
+            const prevLevel = parseInt(levelNumber.textContent) || 1;
+            const prevLives = livesCount.textContent === '∞' ? Infinity : parseInt(livesCount.textContent) || 3;
+            const prevHiScore = parseInt(hiScoreCount.textContent) || 0;
+
             levelNumber.textContent = `${level}`;
             livesDisplay.textContent = 'LIVES';
             livesCount.textContent = lives === Infinity ? '∞' : lives;
@@ -352,6 +371,33 @@
 
             wallHitsDisplay.textContent = `${wallHits}`;
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
+
+            // Flash effects
+            if (level > prevLevel) {
+                levelNumber.style.animation = 'flashGlow 0.5s ease';
+                setTimeout(() => levelNumber.style.animation = '', 500);
+            }
+            if (hiScore > prevHiScore) {
+                hiScoreCount.style.animation = 'flashGlow 0.5s ease';
+                hiScoreDisplay.style.animation = 'flashGreen 0.5s ease';
+                setTimeout(() => {
+                    hiScoreCount.style.animation = '';
+                    hiScoreDisplay.style.animation = '';
+                }, 500);
+            }
+            if (lives !== prevLives) {
+                if (lives > prevLives) {
+                    livesCount.style.animation = 'flashGreen 0.5s ease';
+                    livesDisplay.style.animation = 'flashGreen 0.5s ease';
+                } else if (lives < prevLives) {
+                    livesCount.style.animation = 'flashRed 0.5s ease';
+                    livesDisplay.style.animation = 'flashRed 0.5s ease';
+                }
+                setTimeout(() => {
+                    livesCount.style.animation = '';
+                    livesDisplay.style.animation = '';
+                }, 500);
+            }
         }
 
         function showText(text) {
@@ -638,7 +684,7 @@
 
             const offset = circle.radius + 20;
 
-            ctx.font = 'bold 32px Impact'; // Increased from 20px to 32px, changed to Impact
+            ctx.font = 'bold 32px Impact';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = counterColor;
@@ -1015,7 +1061,7 @@
                 );
                 const distanceDelta = currentDistance - initialDistance;
 
-                const newRadius = Math.max(defaultRadius, circle.initialRadius + distanceDelta / 2);
+                const newRadius = Math.max(minRadius, circle.initialRadius + distanceDelta / 2); // Minimum set to 30
                 let maxAllowedRadius;
 
                 if (currentMap === 'rectangle') {
@@ -1040,11 +1086,11 @@
 
             if (target === playButton) {
                 if (!holdTimers.play && !buttonActivated.play) {
-                    playButton.classList.remove('glow-green', 'glow-red', 'recede');
-                    playButton.classList.add(isPaused ? 'glow-green' : 'glow-red');
+                    playButton.classList.remove('glow-white', 'recede');
+                    playButton.classList.add('glow-white');
                     holdTimers.play = setTimeout(() => {
                         if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
-                            playButton.classList.remove('glow-green', 'glow-red');
+                            playButton.classList.remove('glow-white');
                             playButton.classList.add('recede');
                             if (isPaused) {
                                 isPaused = false;
@@ -1069,7 +1115,7 @@
                 if (holdTimers.play) {
                     clearTimeout(holdTimers.play);
                     holdTimers.play = null;
-                    playButton.classList.remove('glow-green', 'glow-red');
+                    playButton.classList.remove('glow-white');
                     playButton.classList.add('recede');
                 }
                 if (buttonActivated.play && target !== playButton) buttonActivated.play = false;
@@ -1106,7 +1152,7 @@
                 }
                 if (buttonActivated.mode && target !== modeButton) buttonActivated.mode = false;
             }
-
+            
             if (target === mapButton) {
                 if (!holdTimers.map && !buttonActivated.map) {
                     mapButton.classList.remove('glow-white', 'recede');
