@@ -13,7 +13,7 @@
             align-items: center;
             height: 100vh;
             font-family: Arial, sans-serif;
-            transition: background-color 0.5s ease;
+            background-color: rgb(5, 5, 25);
             position: relative;
         }
         body::before {
@@ -31,19 +31,19 @@
             position: absolute;
             z-index: 5;
             background: transparent;
-            filter: drop-shadow(0 0 5px #fff);
+            filter: drop-shadow(0 0 5px rgb(232, 237, 234));
             pointer-events: auto;
         }
         #level, #countdown, #wallHits, #lives, #hiScore, #title, #sighhh {
             position: absolute;
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
+            color: rgb(232, 237, 234);
+            text-shadow: 0 0 5px rgb(232, 237, 234);
             font-weight: bold;
             z-index: 2;
         }
         #title { top: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5em; }
         #level { top: 40px; left: 50%; transform: translateX(-50%); font-size: 2em; }
-        #levelNumber { color: #00ff00; }
+        #levelNumber { color: rgb(11, 74, 28); }
         #countdown { 
             top: 50%; 
             left: 50%; 
@@ -51,7 +51,7 @@
             font-size: 4em; 
             transition: opacity 0.5s ease; 
             z-index: 10; 
-            pointer-events: none; /* Prevents blocking circle taps */
+            pointer-events: none;
         }
         #wallHits { top: 80px; left: 50%; transform: translateX(-50%); font-size: 2em; visibility: hidden; }
         #lives { top: 80px; font-size: 1em; }
@@ -61,21 +61,22 @@
             transform: translateX(-50%); 
             font-size: 1em; 
             visibility: hidden; 
-            text-shadow: 0 0 10px #ff0000; 
+            text-shadow: 0 0 10px rgb(130, 33, 33); 
             z-index: 10;
         }
-        #sighhh.yee-haw { text-shadow: 0 0 10px #00ff00; }
+        #sighhh.yee-haw { text-shadow: 0 0 10px rgb(11, 74, 28); }
         #fleepSpan { 
             cursor: pointer; 
             display: inline-block; 
             pointer-events: auto; 
         }
         #livesCount, #hiScoreCount {
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
+            color: rgb(232, 237, 234);
+            text-shadow: 0 0 5px rgb(232, 237, 234);
             font-size: 1.8em;
             position: absolute;
             z-index: 2;
+            font-family: Impact, sans-serif;
         }
         #modeButton, #mapButton { position: absolute; z-index: 15; }
         #playButton { position: absolute; z-index: 20; left: 50%; transform: translateX(-50%); padding: 8px 16px; font-size: 1em; display: block; }
@@ -85,31 +86,31 @@
             font-weight: bold;
             font-family: Arial, sans-serif;
             cursor: pointer;
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
+            color: rgb(232, 237, 234);
+            text-shadow: 0 0 5px rgb(232, 237, 234);
             border: none;
             border-radius: 5px;
-            filter: drop-shadow(0 0 5px #fff);
-            transition: background-color 0.5s ease, color 0.5s ease;
+            background-color: rgb(5, 5, 25);
+            filter: drop-shadow(0 0 5px rgb(232, 237, 234));
             z-index: 25;
             pointer-events: auto;
         }
-        button:hover { filter: drop-shadow(0 0 5px #fff) brightness(85%); }
+        button:hover { filter: drop-shadow(0 0 5px rgb(232, 237, 234)) brightness(85%); }
         #playButton.glow-green { animation: glowGreen 1s linear forwards; }
         #playButton.glow-red { animation: glowRed 1s linear forwards; }
         #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white { animation: glowWhite 1s linear forwards; }
         #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede { animation: recedeGlow 0.2s linear forwards; }
         @keyframes glowGreen {
-            0% { box-shadow: 0 0 5px #00ff00; }
-            100% { box-shadow: 0 0 20px #00ff00; }
+            0% { box-shadow: 0 0 5px rgb(11, 74, 28); }
+            100% { box-shadow: 0 0 20px rgb(11, 74, 28); }
         }
         @keyframes glowRed {
-            0% { box-shadow: 0 0 5px #ff0000; }
-            100% { box-shadow: 0 0 20px #ff0000; }
+            0% { box-shadow: 0 0 5px rgb(130, 33, 33); }
+            100% { box-shadow: 0 0 20px rgb(130, 33, 33); }
         }
         @keyframes glowWhite {
-            0% { box-shadow: 0 0 5px #ffffff; }
-            100% { box-shadow: 0 0 20px #ffffff; }
+            0% { box-shadow: 0 0 5px rgb(232, 237, 234); }
+            100% { box-shadow: 0 0 20px rgb(232, 237, 234); }
         }
         @keyframes recedeGlow {
             0% { box-shadow: 0 0 20px; }
@@ -122,13 +123,14 @@
             transform: translate(-50%, -50%) scale(0);
             padding: 20px;
             font-size: 1.5em;
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
+            color: rgb(232, 237, 234);
+            text-shadow: 0 0 5px rgb(232, 237, 234);
             border-radius: 10px;
+            background-color: rgb(5, 5, 25);
             opacity: 0;
-            transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.5s ease;
+            transition: transform 0.3s ease, opacity 0.3s ease;
             z-index: 20;
-            filter: drop-shadow(0 0 5px #fff);
+            filter: drop-shadow(0 0 5px rgb(232, 237, 234));
             pointer-events: auto;
         }
         #livesWindow.active, #hiScoreWindow.active { transform: translate(-50%, -50%) scale(1); opacity: 1; }
@@ -138,8 +140,8 @@
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 1.5em;
-            color: #e0e0e0;
-            text-shadow: 0 0 10px #ff0000;
+            color: rgb(232, 237, 234);
+            text-shadow: 0 0 10px rgb(130, 33, 33);
             opacity: 0;
             z-index: 30;
             pointer-events: none;
@@ -197,7 +199,7 @@
         const blackOverlay = document.getElementById('blackOverlay');
 
         const borderWidth = 2;
-        const defaultRadius = 30;
+        const defaultRadius = 50; // Increased from 30 to 50
         const resizeHoldThreshold = 200;
 
         const circle = {
@@ -232,15 +234,6 @@
         const friction = 0.98;
         const bounciness = 0.9;
         const bounceTimeWindow = 100;
-
-        const colors = [
-            { r: 0, g: 0, b: 0 },
-            { r: 5, g: 5, b: 25 },
-            { r: 15, g: 5, b: 25 }
-        ];
-        let currentColorIndex = 0;
-        let colorProgress = 0;
-        const colorTransitionSpeed = 0.01;
 
         let isCountingDown = false;
         let countdown = 3;
@@ -382,7 +375,6 @@
             const savedState = {
                 circleDx: circle.dx,
                 circleDy: circle.dy,
-                colorProgress: colorProgress,
                 countdownInterval: countdownInterval,
                 sighhhTimer: sighhhTimer,
                 sighhhTimerStart: sighhhTimer ? Date.now() : null
@@ -410,7 +402,6 @@
                             setTimeout(() => {
                                 circle.dx = savedState.circleDx;
                                 circle.dy = savedState.circleDy;
-                                colorProgress = savedState.colorProgress;
                                 if (savedState.countdownInterval) {
                                     countdownInterval = setInterval(() => {
                                         countdown--;
@@ -543,62 +534,23 @@
             requestAnimationFrame(() => drawScene(updateColors()));
         }
 
-        function invertColor(rgb) {
-            return { r: 255 - rgb.r, g: 255 - rgb.g, b: 255 - rgb.b };
-        }
-
         function updateColors() {
-            const currentColor = colors[currentColorIndex];
-            const nextColorIndex = (currentColorIndex + 1) % colors.length;
-            const nextColor = colors[nextColorIndex];
-
-            const r = Math.round(currentColor.r + (nextColor.r - currentColor.r) * colorProgress);
-            const g = Math.round(currentColor.g + (nextColor.g - currentColor.g) * colorProgress);
-            const b = Math.round(currentColor.b + (nextColor.b - currentColor.b) * colorProgress);
-
-            document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-
-            const textColor = `rgb(${r}, ${g}, ${b})`;
-            modeButton.style.color = textColor;
-            mapButton.style.color = textColor;
-            livesDisplay.style.color = textColor;
-            hiScoreDisplay.style.color = textColor;
-            playButton.style.color = textColor;
-
-            const invertedColor = invertColor({ r, g, b });
-            const invertedStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
-            modeButton.style.backgroundColor = invertedStyle;
-            mapButton.style.backgroundColor = invertedStyle;
-            livesDisplay.style.backgroundColor = invertedStyle;
-            hiScoreDisplay.style.backgroundColor = invertedStyle;
-            playButton.style.backgroundColor = invertedStyle;
-            livesWindow.style.backgroundColor = invertedStyle;
-            hiScoreWindow.style.backgroundColor = invertedStyle;
-
-            // Update countdown color and shadow
-            countdownDisplay.style.color = invertedStyle;
+            const r = 5, g = 5, b = 25;
+            const invertedColor = { r: 232, g: 237, b: 234 };
+            countdownDisplay.style.color = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
             countdownDisplay.style.textShadow = `0 0 10px rgb(${r}, ${g}, ${b})`;
-
-            if (!isFleepSequence) {
-                colorProgress += colorTransitionSpeed;
-                if (colorProgress >= 1) {
-                    colorProgress = 0;
-                    currentColorIndex = (currentColorIndex + 1) % colors.length;
-                }
-            }
-
             return { r, g, b, inverted: invertedColor };
         }
 
         function getCircleColor(counterColor) {
-            if (counterColor === '#00ff00') return '#00ff00';
-            if (counterColor === '#ff0000') return '#ff0000';
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgb(11, 74, 28)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgb(130, 33, 33)';
             return null;
         }
 
         function lightenColor(color) {
-            if (color === '#00ff00') return 'rgba(0, 255, 0,';
-            if (color === '#ff0000') return 'rgba(255, 0, 0,';
+            if (color === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28,';
+            if (color === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33,';
             const [r, g, b] = color.match(/\d+/g).map(Number);
             return `rgba(${Math.min(r + 100, 255)}, ${Math.min(g + 100, 255)}, ${Math.min(b + 100, 255)},`;
         }
@@ -616,10 +568,10 @@
                 ctx.stroke();
             }
 
-            const greenColor = '#00ff00';
-            let counterColor = '#e0e0e0';
+            const greenColor = 'rgb(11, 74, 28)';
+            let counterColor = 'rgb(232, 237, 234)';
             if (wallHits === level) counterColor = greenColor;
-            else if (wallHits > level) counterColor = '#ff0000';
+            else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
 
             const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             const trailBaseColor = lightenColor(circleColor);
@@ -686,7 +638,7 @@
 
             const offset = circle.radius + 20;
 
-            ctx.font = 'bold 20px Arial';
+            ctx.font = 'bold 32px Impact'; // Increased from 20px to 32px, changed to Impact
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = counterColor;
@@ -700,11 +652,10 @@
             ctx.fillText(wallHits, circle.x + offset, circle.y);
 
             ctx.fillStyle = greenColor;
-            const diagonalOffset = offset * Math.sqrt(2) / 2;
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset);
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset);
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset);
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset);
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
 
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
