@@ -15,7 +15,7 @@
             font-family: Arial, sans-serif;
             transition: background-color 0.5s ease;
             position: relative;
-            background-color: rgb(5, 5, 25); /* Dark background */
+            background-color: rgb(5, 5, 25);
         }
         body::before {
             content: '';
@@ -32,13 +32,11 @@
             position: absolute;
             z-index: 5;
             background: transparent;
-            filter: drop-shadow(0 0 5px #fff);
             pointer-events: auto;
         }
         #level, #countdown, #wallHits, #lives, #hiScore, #title, #sighhh {
             position: absolute;
             color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
             font-weight: bold;
             z-index: 2;
         }
@@ -54,100 +52,53 @@
             transform: translateX(-50%);
             font-size: 2em;
         }
-        #levelNumber {
-            color: #00ff00;
+        #levelNumber, #wallHits, #livesCount, #hiScoreCount {
             font-family: 'Impact', sans-serif;
             font-size: 2em;
-            text-shadow: 0 0 5px rgb(5, 5, 25);
+            text-shadow: 0 0 5px rgb(232, 237, 234);
+            color: #e0e0e0;
             position: relative;
-        }
-        #levelNumber::before {
-            content: '';
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background: rgb(232, 237, 234);
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: -1;
+            z-index: 2;
         }
         #countdown {
-            top: 16.67%; /* Center of top 1/3 */
+            top: 16.67%;
             left: 50%;
             transform: translateX(-50%);
             font-size: 4em;
             transition: opacity 0.5s ease;
             z-index: 10;
             pointer-events: none;
+            text-shadow: 0 0 5px rgb(232, 237, 234);
         }
         #wallHits {
             top: 80px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 2em;
             visibility: hidden;
-            font-family: 'Impact', sans-serif;
-            text-shadow: 0 0 5px rgb(5, 5, 25);
-            position: relative;
-        }
-        #wallHits::before {
-            content: '';
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background: rgb(232, 237, 234);
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: -1;
         }
         #lives {
             top: 80px;
             font-size: 1em;
-            filter: drop-shadow(0 0 10px rgb(232, 237, 234));
         }
         #hiScore {
             top: 80px;
             font-size: 1em;
-            filter: drop-shadow(0 0 10px rgb(232, 237, 234));
         }
         #sighhh {
             left: 50%;
             transform: translateX(-50%);
             font-size: 1em;
             visibility: hidden;
-            text-shadow: 0 0 10px #ff0000;
+            text-shadow: 0 0 10px rgb(130, 33, 33);
             z-index: 10;
         }
         #sighhh.yee-haw {
-            text-shadow: 0 0 10px #00ff00;
+            text-shadow: 0 0 10px rgb(11, 74, 28);
         }
         #fleepSpan {
             cursor: pointer;
             display: inline-block;
             pointer-events: auto;
-        }
-        #livesCount, #hiScoreCount {
-            color: #e0e0e0;
-            font-family: 'Impact', sans-serif;
-            font-size: 1.8em;
-            text-shadow: 0 0 5px rgb(5, 5, 25);
-            position: absolute;
-            z-index: 2;
-        }
-        #livesCount::before, #hiScoreCount::before {
-            content: '';
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background: rgb(232, 237, 234);
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: -1;
         }
         #modeButton, #mapButton {
             position: absolute;
@@ -170,59 +121,33 @@
             font-family: Arial, sans-serif;
             cursor: pointer;
             color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
             border: none;
             border-radius: 5px;
             transition: background-color 0.5s ease, color 0.5s ease;
             z-index: 25;
             pointer-events: auto;
         }
+        #modeButton, #mapButton, #lives, #hiScore {
+            filter: drop-shadow(0 0 10px rgb(232, 237, 234));
+        }
         button:hover {
-            filter: drop-shadow(0 0 5px #fff) brightness(85%);
+            filter: drop-shadow(0 0 10px rgb(232, 237, 234)) brightness(85%);
         }
-        #playButton.glow-green {
-            animation: glowGreen 1s linear forwards;
-        }
-        #playButton.glow-red {
-            animation: glowRed 1s linear forwards;
-        }
+        #playButton.glow-green { animation: glowGreen 1s linear forwards; }
+        #playButton.glow-red { animation: glowRed 1s linear forwards; }
         #modeButton.glow-white, #mapButton.glow-white, #lives.glow-white, #hiScore.glow-white {
             animation: glowWhite 1s linear forwards;
         }
         #playButton.recede, #modeButton.recede, #mapButton.recede, #lives.recede, #hiScore.recede {
             animation: recedeGlow 0.2s linear forwards;
         }
-        @keyframes glowGreen {
-            0% { box-shadow: 0 0 5px #00ff00; }
-            100% { box-shadow: 0 0 20px #00ff00; }
-        }
-        @keyframes glowRed {
-            0% { box-shadow: 0 0 5px #ff0000; }
-            100% { box-shadow: 0 0 20px #ff0000; }
-        }
-        @keyframes glowWhite {
-            0% { filter: drop-shadow(0 0 10px rgb(232, 237, 234)); }
-            100% { filter: drop-shadow(0 0 20px rgb(232, 237, 234)); }
-        }
-        @keyframes recedeGlow {
-            0% { box-shadow: 0 0 20px; }
-            100% { box-shadow: 0 0 0; }
-        }
-        @keyframes flashGlow {
-            0% { text-shadow: 0 0 5px rgb(5, 5, 25); }
-            50% { text-shadow: 0 0 20px rgb(232, 237, 234); }
-            100% { text-shadow: 0 0 5px rgb(5, 5, 25); }
-        }
-        @keyframes flashGreen {
-            0% { color: #e0e0e0; }
-            50% { color: rgb(11, 74, 28); }
-            100% { color: #e0e0e0; }
-        }
-        @keyframes flashRed {
-            0% { color: #e0e0e0; }
-            50% { color: rgb(130, 33, 33); }
-            100% { color: #e0e0e0; }
-        }
+        @keyframes glowGreen { 0% { box-shadow: 0 0 5px rgb(11, 74, 28); } 100% { box-shadow: 0 0 20px rgb(11, 74, 28); } }
+        @keyframes glowRed { 0% { box-shadow: 0 0 5px rgb(130, 33, 33); } 100% { box-shadow: 0 0 20px rgb(130, 33, 33); } }
+        @keyframes glowWhite { 0% { filter: drop-shadow(0 0 10px rgb(232, 237, 234)); } 100% { filter: drop-shadow(0 0 20px rgb(232, 237, 234)); } }
+        @keyframes recedeGlow { 0% { box-shadow: 0 0 20px; filter: drop-shadow(0 0 20px rgb(232, 237, 234)); } 100% { box-shadow: 0 0 0; filter: drop-shadow(0 0 10px rgb(232, 237, 234)); } }
+        @keyframes flashGlow { 0% { text-shadow: 0 0 5px rgb(232, 237, 234); } 50% { text-shadow: 0 0 20px rgb(232, 237, 234); } 100% { text-shadow: 0 0 5px rgb(232, 237, 234); } }
+        @keyframes flashGreen { 0% { color: #e0e0e0; } 50% { color: rgb(11, 74, 28); } 100% { color: #e0e0e0; } }
+        @keyframes flashRed { 0% { color: #e0e0e0; } 50% { color: rgb(130, 33, 33); } 100% { color: #e0e0e0; } }
         #livesWindow, #hiScoreWindow {
             position: absolute;
             top: 50%;
@@ -231,12 +156,12 @@
             padding: 20px;
             font-size: 1.5em;
             color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
+            text-shadow: 0 0 5px rgb(232, 237, 234);
             border-radius: 10px;
             opacity: 0;
             transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.5s ease;
             z-index: 20;
-            filter: drop-shadow(0 0 5px #fff);
+            filter: drop-shadow(0 0 5px rgb(232, 237, 234));
             pointer-events: auto;
         }
         #livesWindow.active, #hiScoreWindow.active {
@@ -250,7 +175,7 @@
             transform: translate(-50%, -50%);
             font-size: 1.5em;
             color: #e0e0e0;
-            text-shadow: 0 0 10px #ff0000;
+            text-shadow: 0 0 10px rgb(130, 33, 33);
             opacity: 0;
             z-index: 30;
             pointer-events: none;
@@ -308,8 +233,8 @@
         const blackOverlay = document.getElementById('blackOverlay');
 
         const borderWidth = 2;
-        const defaultRadius = 60; // Initial size set to 60px
-        const minRadius = 30; // Minimum size set to 30px
+        const defaultRadius = 60;
+        const minRadius = 30;
         const resizeHoldThreshold = 200;
 
         const circle = {
@@ -447,7 +372,7 @@
 
         function updateDisplay() {
             const prevLevel = parseInt(levelNumber.textContent);
-            const prevLives = parseInt(livesCount.textContent) || Infinity;
+            const prevLives = livesCount.textContent === '∞' ? Infinity : parseInt(livesCount.textContent);
             const prevHiScore = parseInt(hiScoreCount.textContent);
 
             levelNumber.textContent = `${level}`;
@@ -476,7 +401,6 @@
             wallHitsDisplay.textContent = `${wallHits}`;
             wallHitsDisplay.style.visibility = wallHits > 0 || isTrackingHits ? 'visible' : 'hidden';
 
-            // Flashing effects for level
             if (level > prevLevel) {
                 levelNumber.style.animation = 'flashGlow 0.5s';
                 levelDisplay.style.animation = 'flashGreen 0.5s';
@@ -493,7 +417,6 @@
                 }, 500);
             }
 
-            // Flashing effects for lives
             if (lives > prevLives) {
                 livesCount.style.animation = 'flashGreen 0.5s';
                 livesDisplay.style.animation = 'flashGreen 0.5s';
@@ -510,7 +433,6 @@
                 }, 500);
             }
 
-            // Flashing effects for hi-score
             if (hiScore > prevHiScore) {
                 hiScoreCount.style.animation = 'flashGlow 0.5s';
                 hiScoreDisplay.style.animation = 'flashGreen 0.5s';
@@ -750,14 +672,14 @@
         }
 
         function getCircleColor(counterColor) {
-            if (counterColor === '#00ff00') return '#00ff00';
-            if (counterColor === '#ff0000') return '#ff0000';
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgb(11, 74, 28)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgb(130, 33, 33)';
             return null;
         }
 
         function lightenColor(color) {
-            if (color === '#00ff00') return 'rgba(0, 255, 0,';
-            if (color === '#ff0000') return 'rgba(255, 0, 0,';
+            if (color === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28,';
+            if (color === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33,';
             const [r, g, b] = color.match(/\d+/g).map(Number);
             return `rgba(${Math.min(r + 100, 255)}, ${Math.min(g + 100, 255)}, ${Math.min(b + 100, 255)},`;
         }
@@ -775,10 +697,10 @@
                 ctx.stroke();
             }
 
-            const greenColor = '#00ff00';
+            const greenColor = 'rgb(11, 74, 28)';
             let counterColor = '#e0e0e0';
             if (wallHits === level) counterColor = greenColor;
-            else if (wallHits > level) counterColor = '#ff0000';
+            else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
 
             const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             const trailBaseColor = lightenColor(circleColor);
@@ -798,14 +720,12 @@
                 }
             }
 
-            ctx.shadowColor = 'rgb(232, 237, 234)';
-            ctx.shadowBlur = 10;
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = circleColor;
             ctx.fill();
             ctx.closePath();
-            ctx.shadowBlur = 0;
+            ctx.filter = 'drop-shadow(0 0 10px rgb(232, 237, 234))';
 
             const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
             if (shouldShowHoldingText) {
@@ -822,13 +742,7 @@
                 ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
                 ctx.shadowBlur = 5;
 
-                const startAngles = [
-                    -Math.PI / 2,
-                    0,
-                    Math.PI / 2,
-                    Math.PI
-                ];
-
+                const startAngles = [-Math.PI / 2, 0, Math.PI / 2, Math.PI];
                 for (let instance = 0; instance < 4; instance++) {
                     const startAngle = startAngles[instance];
                     for (let i = 0; i < text.length; i++) {
@@ -847,47 +761,27 @@
             ctx.shadowBlur = 0;
 
             const offset = circle.radius + 20;
-
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = counterColor;
-
-            // Draw white circles behind canvas numbers
-            ctx.beginPath();
-            ctx.arc(circle.x, circle.y - offset, 15, 0, Math.PI * 2);
-            ctx.arc(circle.x, circle.y + offset, 15, 0, Math.PI * 2);
-            ctx.arc(circle.x - offset, circle.y, 15, 0, Math.PI * 2);
-            ctx.arc(circle.x + offset, circle.y, 15, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgb(232, 237, 234)';
-            ctx.fill();
-
-            const diagonalOffset = offset * Math.sqrt(2) / 2;
-            ctx.beginPath();
-            ctx.arc(circle.x + diagonalOffset, circle.y - diagonalOffset, 15, 0, Math.PI * 2);
-            ctx.arc(circle.x - diagonalOffset, circle.y - diagonalOffset, 15, 0, Math.PI * 2);
-            ctx.arc(circle.x - diagonalOffset, circle.y + diagonalOffset, 15, 0, Math.PI * 2);
-            ctx.arc(circle.x + diagonalOffset, circle.y + diagonalOffset, 15, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = counterColor;
-            ctx.shadowColor = 'rgb(5, 5, 25)';
+            ctx.shadowColor = 'rgb(232, 237, 234)';
             ctx.shadowBlur = 5;
+
             ctx.fillText(wallHits, circle.x, circle.y - offset);
             ctx.fillText(wallHits, circle.x, circle.y + offset);
             ctx.fillText(wallHits, circle.x - offset, circle.y);
             ctx.fillText(wallHits, circle.x + offset, circle.y);
 
             ctx.fillStyle = greenColor;
+            const diagonalOffset = offset * Math.sqrt(2) / 2;
             ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset);
             ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset);
             ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset);
             ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset);
 
             ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-
+            ctx.filter = 'none';
             wallHitsDisplay.style.color = counterColor;
         }
 
@@ -1242,7 +1136,7 @@
                 );
                 const distanceDelta = currentDistance - initialDistance;
 
-                const newRadius = Math.max(minRadius, circle.initialRadius + distanceDelta / 2); // Enforce minRadius
+                const newRadius = Math.max(minRadius, circle.initialRadius + distanceDelta / 2);
                 let maxAllowedRadius;
 
                 if (currentMap === 'rectangle') {
