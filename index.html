@@ -43,7 +43,11 @@
         }
         #title { top: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5em; }
         #level { top: 40px; left: 50%; transform: translateX(-50%); font-size: 2em; }
-        #levelNumber { color: #FFD700; } /* Gold */
+        #levelNumber { 
+            font-family: 'Impact', sans-serif; 
+            color: #C0C0C0; /* Silver */
+            transition: color 0.5s ease; 
+        }
         #countdown { 
             top: 50%; 
             left: 50%; 
@@ -69,7 +73,7 @@
             transform: translateX(-50%); 
             font-size: 1em; 
             visibility: hidden; 
-            text-shadow: 0 0 10px #ff0000; 
+            text-shadow: 0 0 10px #8B0000; /* Ruby */
             z-index: 10;
         }
         #sighhh.yee-haw { text-shadow: 0 0 10px #FFD700; } /* Gold */
@@ -85,7 +89,7 @@
             font-size: 1.8em;
             position: absolute;
             z-index: 2;
-            transition: color 0.5s ease; /* For flash effect */
+            transition: color 0.5s ease;
         }
         #modeButton, #mapButton { position: absolute; z-index: 15; }
         #playButton { position: absolute; z-index: 20; left: 50%; transform: translateX(-50%); padding: 8px 16px; font-size: 1em; display: block; }
@@ -366,12 +370,13 @@
             element.style.color = color;
             setTimeout(() => {
                 element.style.color = '#C0C0C0'; // Back to silver
-            }, 500); // Flash duration
+            }, 500);
         }
 
         function updateDisplay() {
             const prevLives = parseInt(livesCount.textContent) || lives;
             const prevHiScore = parseInt(hiScoreCount.textContent) || hiScore;
+            const prevLevel = parseInt(levelNumber.textContent) || level;
 
             levelNumber.textContent = `${level}`;
             livesDisplay.textContent = 'LIVES';
@@ -401,10 +406,14 @@
 
             // Flash effects
             if (lives !== prevLives && lives !== Infinity) {
-                if (lives > prevLives) flashNumber(livesCount, '#FFD700'); // Gold flash
-                else if (lives < prevLives) flashNumber(livesCount, '#8B0000'); // Ruby flash
+                if (lives > prevLives) flashNumber(livesCount, '#FFD700');
+                else if (lives < prevLives) flashNumber(livesCount, '#8B0000');
             }
-            if (hiScore > prevHiScore) flashNumber(hiScoreCount, '#FFD700'); // Gold flash
+            if (hiScore > prevHiScore) flashNumber(hiScoreCount, '#FFD700');
+            if (level !== prevLevel) {
+                if (level > prevLevel) flashNumber(levelNumber, '#FFD700');
+                else if (level < prevLevel) flashNumber(levelNumber, '#8B0000');
+            }
         }
 
         function showText(text) {
@@ -665,20 +674,45 @@
             }
         }
 
+        function calculatePotentialLives(section) {
+            if (currentMode !== 'survival' || currentMap !== 'rectangle') return lives;
+            let potentialLives = resetLives < 3 ? resetLives : (lives < 3 ? 3 : lives);
+            if (section === 'green') return potentialLives + 1;
+            if (section === 'red') return Math.max(1, potentialLives - 1);
+            return potentialLives;
+        }
+
         function drawScene(color) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (currentMode === 'survival' && currentMap === 'rectangle') {
-                const sectionHeight = canvas.height / 3;
+                const sectionHeight = canvas Postedcanvas.height / 3;
                 const sections = [
-                    { pos: sectionPositions.green, color: 'rgba(0, 255, 0, 0.5)' },
-                    { pos: sectionPositions.red, color: 'rgba(255, 0, 0, 0.5)' },
+                    { pos: sectionPositions.green, color: 'rgba(255, 215, 0, 0.5)' }, // Gold
+                    { pos: sectionPositions.red, color: 'rgba(139, 0, 0, 0.5)' },   // Ruby
                     { pos: sectionPositions.normal, color: 'transparent' }
                 ];
 
                 sections.forEach(section => {
                     ctx.fillStyle = section.color;
                     ctx.fillRect(0, section.pos * sectionHeight, canvas.width, sectionHeight);
+
+                    // Lives indicators
+                    const sectionY = section.pos * sectionHeight + sectionHeight / 2;
+                    const leftX = canvas.width / 3;
+                    const rightX = canvas.width * 2 / 3;
+                    const potentialLives = calculatePotentialLives(
+                        section.pos === sectionPositions.green ? 'green' :
+                        section.pos === sectionPositions.red ? 'red' : 'normal'
+                    );
+
+                    ctx.font = 'bold 20px Impact';
+                    ctx.fillStyle = '#C0C0C0'; // Silver
+                    ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+                    ctx.shadowBlur = 5;
+                    ctx.fillText(potentialLives === Infinity ? '∞' : potentialLives, leftX, sectionY);
+                    ctx.fillText(potentialLives === Infinity ? '∞' : potentialLives, rightX, sectionY);
+                    ctx.shadowBlur = 0;
                 });
             }
 
@@ -692,10 +726,10 @@
                 ctx.stroke();
             }
 
-            const goldColor = '#FFD700'; // Gold replaces green
-            let counterColor = '#C0C0C0'; // Silver replaces white
+            const goldColor = '#FFD700';
+            let counterColor = '#C0C0C0'; // Silver
             if (wallHits === level) counterColor = goldColor;
-            else if (wallHits > level) counterColor = '#8B0000'; // Ruby replaces red
+            else if (wallHits > level) counterColor = '#8B0000'; // Ruby
 
             const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             const trailBaseColor = lightenColor(circleColor);
@@ -760,12 +794,12 @@
             }
             ctx.shadowBlur = 0;
 
-            const offset = circle.radius + 20;
+            const offset = circle.radius + 50; // Adjusted to maintain "HOLDING" spacing
 
-            ctx.font = 'bold 20px Impact'; // 3D font
+            ctx.font = '900 30px Impact'; // Larger, bolder numbers
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`; // Looping shadow
+            ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             ctx.shadowBlur = 5;
 
             ctx.fillStyle = counterColor;
@@ -868,7 +902,7 @@
                         circle.dy = -circle.dy * bounciness;
                     }
                 } else {
-                    const centerX = canvas.width /  руководством2;
+                    const centerX = canvas.width / 2;
                     const centerY = canvas.height / 2;
                     const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
                     const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
