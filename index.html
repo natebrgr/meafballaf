@@ -70,19 +70,21 @@
             border-right: 2px solid #e0e0e0;
         }
         #wallHits.bright-glow {
-            text-shadow: 0 0 10px #fff; /* White glow for green/red text */
+            text-shadow: 0 0 10px #fff, 0 0 2px var(--outline-color); /* White glow + outline */
         }
         #levelNumber {
             color: rgb(11, 74, 28); /* Always green */
-            text-shadow: 0 0 10px #fff; /* White glow */
+            text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); /* White glow + green outline */
         }
         #levelNumber.flash-red {
             animation: flashRedLevel 0.5s ease;
         }
+        #levelNumber.flash-white {
+            animation: flashWhiteLevel 0.5s ease;
+        }
         #countdown {
-            top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             font-size: 4em;
             transition: opacity 0.5s ease;
             z-index: 10;
@@ -189,19 +191,24 @@
             100% { box-shadow: 0 0 0; }
         }
         @keyframes flashGreen {
-            0% { text-shadow: 0 0 5px #fff; }
-            50% { text-shadow: 0 0 15px rgb(11, 74, 28); }
-            100% { text-shadow: 0 0 5px #fff; }
+            0% { color: #e0e0e0; text-shadow: 0 0 5px #fff; }
+            50% { color: rgb(11, 74, 28); text-shadow: 0 0 5px #fff; }
+            100% { color: #e0e0e0; text-shadow: 0 0 5px #fff; }
         }
         @keyframes flashRed {
-            0% { text-shadow: 0 0 5px #fff; }
-            50% { text-shadow: 0 0 15px rgb(130, 33, 33); }
-            100% { text-shadow: 0 0 5px #fff; }
+            0% { color: #e0e0e0; text-shadow: 0 0 5px #fff; }
+            50% { color: rgb(130, 33, 33); text-shadow: 0 0 5px #fff; }
+            100% { color: #e0e0e0; text-shadow: 0 0 5px #fff; }
         }
         @keyframes flashRedLevel {
-            0% { text-shadow: 0 0 10px #fff; }
-            50% { text-shadow: 0 0 15px rgb(130, 33, 33); }
-            100% { text-shadow: 0 0 10px #fff; }
+            0% { color: rgb(11, 74, 28); text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
+            50% { color: rgb(130, 33, 33); text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
+            100% { color: rgb(11, 74, 28); text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
+        }
+        @keyframes flashWhiteLevel {
+            0% { color: rgb(11, 74, 28); text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
+            50% { color: #e0e0e0; text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
+            100% { color: rgb(11, 74, 28); text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
         }
         #fleepMessage {
             position: absolute;
@@ -368,6 +375,9 @@
             canvas.style.left = `${canvasLeft}px`;
 
             const canvasBottom = canvasTop + (availableHeight - 2 * borderWidth);
+            const canvasHeight = availableHeight - 2 * borderWidth;
+            const countdownTop = canvasTop + (canvasHeight * 1 / 6); // 1/6 from the top of the canvas
+            countdownDisplay.style.top = `${countdownTop}px`;
 
             const buttonTop = canvasBottom + snugGap;
             modeButton.style.top = `${buttonTop}px`;
@@ -412,9 +422,13 @@
 
             if (level !== previousLevel) {
                 if (level < previousLevel) {
-                    levelNumber.classList.remove('flash-red');
+                    levelNumber.classList.remove('flash-red', 'flash-white');
                     void levelNumber.offsetHeight; // Trigger reflow to restart animation
                     levelNumber.classList.add('flash-red');
+                } else if (level > previousLevel) {
+                    levelNumber.classList.remove('flash-red', 'flash-white');
+                    void levelNumber.offsetHeight; // Trigger reflow to restart animation
+                    levelNumber.classList.add('flash-white');
                 }
                 previousLevel = level;
             }
@@ -787,14 +801,40 @@
             ctx.shadowBlur = (counterColor === '#e0e0e0' ? 5 : 10) * pixelRatio; // 5px for white, 10px for green/red
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
+            // Add extra shadow for green/red numbers
+            if (counterColor === 'rgb(11, 74, 28)') {
+                ctx.shadowColor = 'rgb(50, 200, 100)';
+                ctx.shadowBlur = 2 * pixelRatio;
+                ctx.fillText(wallHits, circle.x, circle.y - offset);
+                ctx.fillText(wallHits, circle.x, circle.y + offset);
+                ctx.fillText(wallHits, circle.x - offset, circle.y);
+                ctx.fillText(wallHits, circle.x + offset, circle.y);
+                ctx.shadowColor = '#fff';
+                ctx.shadowBlur = 10 * pixelRatio;
+            } else if (counterColor === 'rgb(130, 33, 33)') {
+                ctx.shadowColor = 'rgb(255, 80, 80)';
+                ctx.shadowBlur = 2 * pixelRatio;
+                ctx.fillText(wallHits, circle.x, circle.y - offset);
+                ctx.fillText(wallHits, circle.x, circle.y + offset);
+                ctx.fillText(wallHits, circle.x - offset, circle.y);
+                ctx.fillText(wallHits, circle.x + offset, circle.y);
+                ctx.shadowColor = '#fff';
+                ctx.shadowBlur = 10 * pixelRatio;
+            }
             ctx.fillText(wallHits, circle.x, circle.y - offset);
             ctx.fillText(wallHits, circle.x, circle.y + offset);
             ctx.fillText(wallHits, circle.x - offset, circle.y);
             ctx.fillText(wallHits, circle.x + offset, circle.y);
 
             ctx.fillStyle = greenColor;
-            ctx.shadowColor = '#fff'; // Always white glow
-            ctx.shadowBlur = 10 * pixelRatio; // Brighter for green
+            ctx.shadowColor = 'rgb(50, 200, 100)';
+            ctx.shadowBlur = 2 * pixelRatio;
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 10 * pixelRatio;
             ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
             ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
             ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
@@ -868,7 +908,9 @@
                                     wallHitsDisplay.style.textShadow = '0 0 5px #fff'; // White glow for white
                                 } else {
                                     wallHitsDisplay.classList.add('bright-glow');
-                                    wallHitsDisplay.style.textShadow = '0 0 10px #fff'; // White glow for green/red
+                                    const outlineColor = counterColor === greenColor ? 'rgb(50, 200, 100)' : 'rgb(255, 80, 80)';
+                                    wallHitsDisplay.style.setProperty('--outline-color', outlineColor);
+                                    wallHitsDisplay.style.textShadow = `0 0 10px #fff, 0 0 2px ${outlineColor}`; // White glow + outline
                                 }
                                 if (wallHits > level && currentMode === 'survival') {
                                     const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
@@ -1154,7 +1196,7 @@
                 );
                 const distanceDelta = currentDistance - initialDistance;
 
-                const newRadius = Math.max(defaultRadius, circle.initialRadius + distanceDelta / 2); // Minimum radius is 30
+                const newRadius = Math.max(defaultRadius, circle.initialRadius + distanceDelta / 2);
                 let maxAllowedRadius;
 
                 if (currentMap === 'rectangle') {
