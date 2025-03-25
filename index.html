@@ -76,6 +76,9 @@
             color: rgb(11, 74, 28); /* Always green */
             text-shadow: 0 0 10px rgb(11, 74, 28); /* Brighter glow for green */
         }
+        #levelNumber.flash-red {
+            animation: flashRed 0.5s ease;
+        }
         #countdown {
             top: 50%;
             left: 50%;
@@ -116,6 +119,15 @@
             border: 2px solid #e0e0e0;
             border-radius: 5px;
             top: 40px;
+        }
+        #livesCount.flash-green {
+            animation: flashGreen 0.5s ease;
+        }
+        #livesCount.flash-red {
+            animation: flashRed 0.5s ease;
+        }
+        #hiScoreCount.flash-green {
+            animation: flashGreen 0.5s ease;
         }
         #modeButton, #mapButton {
             position: absolute;
@@ -175,6 +187,16 @@
         @keyframes recedeGlow {
             0% { box-shadow: 0 0 20px; }
             100% { box-shadow: 0 0 0; }
+        }
+        @keyframes flashGreen {
+            0% { text-shadow: 0 0 5px #fff; }
+            50% { text-shadow: 0 0 15px rgb(11, 74, 28); }
+            100% { text-shadow: 0 0 5px #fff; }
+        }
+        @keyframes flashRed {
+            0% { text-shadow: 0 0 5px #fff; }
+            50% { text-shadow: 0 0 15px rgb(130, 33, 33); }
+            100% { text-shadow: 0 0 5px #fff; }
         }
         #fleepMessage {
             position: absolute;
@@ -292,6 +314,10 @@
         let isPaused = false;
         let isFleepSequence = false;
 
+        let previousLives = lives;
+        let previousLevel = level;
+        let previousHiScore = hiScore;
+
         let currentMode = 'survival';
         let currentMap = 'rectangle';
 
@@ -364,6 +390,34 @@
         window.addEventListener('resize', setCanvasSize);
 
         function updateDisplay() {
+            // Check for changes in lives, level, and hiScore to trigger flashes
+            if (lives !== previousLives) {
+                if (lives > previousLives) {
+                    livesCount.classList.remove('flash-green', 'flash-red');
+                    livesCount.classList.add('flash-green');
+                } else if (lives < previousLives) {
+                    livesCount.classList.remove('flash-green', 'flash-red');
+                    livesCount.classList.add('flash-red');
+                }
+                previousLives = lives;
+            }
+
+            if (level !== previousLevel) {
+                if (level < previousLevel) {
+                    levelNumber.classList.remove('flash-red');
+                    levelNumber.classList.add('flash-red');
+                }
+                previousLevel = level;
+            }
+
+            if (hiScore !== previousHiScore) {
+                if (hiScore > previousHiScore) {
+                    hiScoreCount.classList.remove('flash-green');
+                    hiScoreCount.classList.add('flash-green');
+                }
+                previousHiScore = hiScore;
+            }
+
             levelNumber.textContent = `${level}`;
             livesCount.textContent = lives === Infinity ? '∞' : lives;
             hiScoreCount.textContent = hiScore;
@@ -659,11 +713,23 @@
                 }
             }
 
+            // Draw the circle with glow
             ctx.beginPath();
+            const pixelRatio = window.devicePixelRatio || 1;
+            if (counterColor === '#e0e0e0') {
+                ctx.shadowColor = '#fff';
+                ctx.shadowBlur = 5 * pixelRatio; // Scale glow for pixel ratio
+            } else {
+                ctx.shadowColor = counterColor;
+                ctx.shadowBlur = 10 * pixelRatio; // Brighter for green/red
+            }
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = circleColor;
             ctx.fill();
             ctx.closePath();
+            ctx.shadowBlur = 0; // Reset glow
 
             const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
             if (shouldShowHoldingText) {
@@ -678,7 +744,9 @@
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
                 ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
-                ctx.shadowBlur = 5;
+                ctx.shadowBlur = 5 * pixelRatio; // Scale glow for pixel ratio
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
 
                 const startAngles = [
                     -Math.PI / 2,
@@ -701,8 +769,8 @@
                         ctx.restore();
                     }
                 }
+                ctx.shadowBlur = 0; // Reset glow
             }
-            ctx.shadowBlur = 0;
 
             const offset = circle.radius + 20;
 
@@ -710,13 +778,12 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = counterColor;
-            // Adjust glow based on color
             if (counterColor === '#e0e0e0') {
                 ctx.shadowColor = '#fff';
-                ctx.shadowBlur = 5; // Less bright for white, matching #wallHits
+                ctx.shadowBlur = 5 * pixelRatio; // Scale glow for pixel ratio
             } else {
                 ctx.shadowColor = counterColor;
-                ctx.shadowBlur = 10; // Brighter for green/red
+                ctx.shadowBlur = 10 * pixelRatio; // Brighter for green/red
             }
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
@@ -727,7 +794,7 @@
 
             ctx.fillStyle = greenColor;
             ctx.shadowColor = greenColor;
-            ctx.shadowBlur = 10; // Brighter for green
+            ctx.shadowBlur = 10 * pixelRatio; // Brighter for green
             ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
             ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
             ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
