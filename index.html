@@ -262,13 +262,14 @@
         const blackOverlay = document.getElementById('blackOverlay');
 
         const borderWidth = 2;
-        const defaultRadius = 30;
+        const defaultRadius = 30; // Minimum radius for resizing
+        const initialRadius = 60; // Initial radius on page load
         const resizeHoldThreshold = 200;
 
         const circle = {
             x: 0,
             y: 0,
-            radius: defaultRadius,
+            radius: initialRadius, // Start at 60
             dx: 0,
             dy: 0,
             isDragging: false,
@@ -288,7 +289,7 @@
             isResizing: false,
             resizeStartX: 0,
             resizeStartY: 0,
-            initialRadius: defaultRadius,
+            initialRadius: initialRadius, // Start at 60
             resizeStartTime: 0,
             resizeTimer: null
         };
@@ -399,9 +400,11 @@
             if (lives !== previousLives) {
                 if (lives > previousLives) {
                     livesCount.classList.remove('flash-green', 'flash-red');
+                    void livesCount.offsetHeight; // Trigger reflow to restart animation
                     livesCount.classList.add('flash-green');
                 } else if (lives < previousLives) {
                     livesCount.classList.remove('flash-green', 'flash-red');
+                    void livesCount.offsetHeight; // Trigger reflow to restart animation
                     livesCount.classList.add('flash-red');
                 }
                 previousLives = lives;
@@ -410,6 +413,7 @@
             if (level !== previousLevel) {
                 if (level < previousLevel) {
                     levelNumber.classList.remove('flash-red');
+                    void levelNumber.offsetHeight; // Trigger reflow to restart animation
                     levelNumber.classList.add('flash-red');
                 }
                 previousLevel = level;
@@ -418,6 +422,7 @@
             if (hiScore !== previousHiScore) {
                 if (hiScore > previousHiScore) {
                     hiScoreCount.classList.remove('flash-green');
+                    void hiScoreCount.offsetHeight; // Trigger reflow to restart animation
                     hiScoreCount.classList.add('flash-green');
                 }
                 previousHiScore = hiScore;
@@ -598,7 +603,7 @@
             if (state.circle.x !== undefined) {
                 circle.x = state.circle.x;
                 circle.y = state.circle.y;
-                circle.radius = state.circle.radius || defaultRadius;
+                circle.radius = state.circle.radius || initialRadius; // Use initialRadius (60) if no saved radius
                 circle.dx = state.circle.dx;
                 circle.dy = state.dy;
                 circle.isDragging = state.isDragging;
@@ -609,7 +614,7 @@
             } else {
                 circle.x = (canvas.width / (window.devicePixelRatio || 1)) / 2;
                 circle.y = (canvas.height / (window.devicePixelRatio || 1)) / 2;
-                circle.radius = defaultRadius;
+                circle.radius = initialRadius; // Start at 60
                 circle.dx = 0;
                 circle.dy = 0;
                 circle.isDragging = false;
@@ -735,7 +740,7 @@
             if (shouldShowHoldingText) {
                 const text = "HOLDING";
                 const fontSize = 24;
-                const textRadius = circle.radius + 50;
+                const textRadius = circle.radius + 60; // Increased spacing
                 const totalLetters = text.length * 4;
                 const anglePerLetter = (2 * Math.PI) / totalLetters;
 
@@ -772,7 +777,7 @@
                 ctx.shadowBlur = 0; // Reset glow
             }
 
-            const offset = circle.radius + 20;
+            const offset = circle.radius + 30; // Increased spacing
 
             ctx.font = 'bold 40px Impact, sans-serif';
             ctx.textAlign = 'center';
@@ -1149,7 +1154,7 @@
                 );
                 const distanceDelta = currentDistance - initialDistance;
 
-                const newRadius = Math.max(defaultRadius, circle.initialRadius + distanceDelta / 2);
+                const newRadius = Math.max(defaultRadius, circle.initialRadius + distanceDelta / 2); // Minimum radius is 30
                 let maxAllowedRadius;
 
                 if (currentMap === 'rectangle') {
