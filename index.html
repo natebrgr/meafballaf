@@ -31,8 +31,7 @@
             position: absolute;
             z-index: 5;
             background: transparent;
-            filter: drop-shadow(0 0 5px #fff);
-            pointer-events: auto;
+            /* Removed filter: drop-shadow to prevent fuzziness */
         }
         #levelContainer, #countdown, #title, #sighhh {
             position: absolute;
@@ -65,13 +64,19 @@
             align-items: center;
             font-family: 'Impact', sans-serif;
             font-size: 2.5em;
-            text-shadow: 0 0 5px #fff;
         }
         #wallHits {
             border-right: 2px solid #e0e0e0;
         }
+        #wallHits.white {
+            text-shadow: 0 0 3px #fff; /* Less bright glow when white */
+        }
+        #wallHits.green, #wallHits.red {
+            text-shadow: 0 0 5px #fff; /* Brighter glow when green or red */
+        }
         #levelNumber {
             color: rgb(11, 74, 28); /* Always green */
+            text-shadow: 0 0 5px #fff;
         }
         #countdown {
             top: 50%;
@@ -101,18 +106,18 @@
         #livesCount, #hiScoreCount {
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
-            font-size: 2.5em; /* Match rectangle numbers */
+            font-size: 2.5em;
             position: absolute;
             z-index: 2;
             font-family: 'Impact', sans-serif;
-            width: 60px; /* Square dimensions */
+            width: 60px;
             height: 60px;
             display: flex;
             justify-content: center;
             align-items: center;
             border: 2px solid #e0e0e0;
             border-radius: 5px;
-            top: 40px; /* Level with the rectangle */
+            top: 40px;
         }
         #modeButton, #mapButton {
             position: absolute;
@@ -323,6 +328,10 @@
             canvas.height = availableHeight - 2 * borderWidth;
             canvas.width = window.innerWidth * 0.9;
 
+            // Ensure canvas dimensions are integers to prevent subpixel rendering
+            canvas.width = Math.floor(canvas.width);
+            canvas.height = Math.floor(canvas.height);
+
             const canvasLeft = (window.innerWidth - canvas.width) / 2;
             const canvasTop = wallHitsBottom + snugGap;
             canvas.style.top = `${canvasTop}px`;
@@ -342,9 +351,8 @@
             playButton.style.top = `${buttonTop}px`;
             playButton.style.bottom = '';
 
-            // Position livesCount and hiScoreCount
-            livesCount.style.left = `${canvasLeft}px`; // Align left edge with canvas left
-            hiScoreCount.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`; // Align right edge with canvas right
+            livesCount.style.left = `${canvasLeft}px`;
+            hiScoreCount.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
 
             sighhhDisplay.style.top = `${wallHitsBottom + 10}px`;
 
@@ -620,6 +628,7 @@
         function drawScene(color) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // Draw the map border
             ctx.strokeStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
@@ -638,6 +647,7 @@
             const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             const trailBaseColor = lightenColor(circleColor);
 
+            // Draw the trail
             if (trail.length > 1) {
                 ctx.beginPath();
                 ctx.lineWidth = circle.radius * 2;
@@ -653,11 +663,19 @@
                 }
             }
 
+            // Draw the circle with a glow effect
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = circleColor;
             ctx.fill();
+            // Add glow effect to the circle
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 5;
+            ctx.strokeStyle = circleColor;
+            ctx.stroke();
             ctx.closePath();
+            // Reset shadow for other elements
+            ctx.shadowBlur = 0;
 
             const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
             if (shouldShowHoldingText) {
@@ -700,12 +718,14 @@
 
             const offset = circle.radius + 20;
 
-            ctx.font = 'bold 40px Impact, sans-serif'; // Match rectangle numbers (2.5em ≈ 40px assuming 16px base)
+            // Draw wall hit numbers around the circle
+            ctx.font = 'bold 40px Impact, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = counterColor;
-            ctx.shadowColor = '#fff'; // Match rectangle text-shadow
-            ctx.shadowBlur = 5; // Match rectangle text-shadow
+            ctx.shadowColor = '#fff';
+            // Adjust glow based on color
+            ctx.shadowBlur = counterColor === '#e0e0e0' ? 3 : 5; // Less bright for white, brighter for green/red
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             ctx.fillText(wallHits, circle.x, circle.y - offset);
@@ -713,11 +733,14 @@
             ctx.fillText(wallHits, circle.x - offset, circle.y);
             ctx.fillText(wallHits, circle.x + offset, circle.y);
 
+            // Draw level numbers around the circle
             ctx.fillStyle = greenColor;
-            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
-            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
-            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
-            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.shadowBlur = 5; // Always brighter for green
+            const diagonalOffset = offset * Math.sqrt(2) / 2;
+            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset);
+            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset);
+            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset);
+            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset);
 
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
@@ -776,13 +799,17 @@
                             contact.time = currentTime;
                             if (isTrackingHits) {
                                 wallHits++;
-                                // Update wallHitsDisplay immediately
                                 wallHitsDisplay.textContent = `${wallHits}`;
                                 const greenColor = 'rgb(11, 74, 28)';
                                 let counterColor = '#e0e0e0';
                                 if (wallHits === level) counterColor = greenColor;
                                 else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
                                 wallHitsDisplay.style.color = counterColor;
+                                // Update class for glow adjustment
+                                wallHitsDisplay.classList.remove('white', 'green', 'red');
+                                if (counterColor === '#e0e0e0') wallHitsDisplay.classList.add('white');
+                                else if (counterColor === greenColor) wallHitsDisplay.classList.add('green');
+                                else wallHitsDisplay.classList.add('red');
                                 if (wallHits > level && currentMode === 'survival') {
                                     const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
                                     showText(text);
@@ -833,8 +860,10 @@
                 isCountingDown = true;
                 countdown = 3;
                 wallHits = 0;
-                wallHitsDisplay.textContent = `${wallHits}`; // Update immediately
-                wallHitsDisplay.style.color = '#e0e0e0'; // Reset color
+                wallHitsDisplay.textContent = `${wallHits}`;
+                wallHitsDisplay.style.color = '#e0e0e0';
+                wallHitsDisplay.classList.remove('white', 'green', 'red');
+                wallHitsDisplay.classList.add('white');
                 isTrackingHits = true;
                 countdownOpacity = 1;
                 shownTexts.clear();
