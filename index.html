@@ -13,7 +13,7 @@
             align-items: center;
             height: 100vh;
             font-family: Arial, sans-serif;
-            transition: background-color 0.5s ease;
+            background: rgb(5, 5, 25); /* Static dark blue */
             position: relative;
         }
         body::before {
@@ -89,6 +89,8 @@
             transition: opacity 0.5s ease;
             z-index: 10;
             pointer-events: none;
+            color: rgb(5, 5, 25); /* Static dark blue */
+            text-shadow: 0 0 10px #fff; /* Static white glow */
         }
         #sighhh {
             left: 50%;
@@ -150,12 +152,12 @@
             font-weight: bold;
             font-family: Arial, sans-serif;
             cursor: pointer;
-            color: #e0e0e0;
-            text-shadow: 0 0 5px #fff;
-            border: none;
+            color: #e0e0e0; /* Match title text */
+            text-shadow: 0 0 5px #fff; /* Match title glow */
+            background: transparent; /* No background */
+            border: 2px solid #e0e0e0; /* Match rectangle outline */
             border-radius: 5px;
             filter: drop-shadow(0 0 5px #fff);
-            transition: background-color 0.5s ease, color 0.5s ease;
             z-index: 25;
             pointer-events: auto;
         }
@@ -306,15 +308,6 @@
         const bounciness = 0.9;
         const bounceTimeWindow = 100;
 
-        const colors = [
-            { r: 0, g: 0, b: 0 },
-            { r: 5, g: 5, b: 25 },
-            { r: 15, g: 5, b: 25 }
-        ];
-        let currentColorIndex = 0;
-        let colorProgress = 0;
-        const colorTransitionSpeed = 0.01;
-
         let isCountingDown = false;
         let countdown = 3;
         let countdownInterval = null;
@@ -350,7 +343,7 @@
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
             'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
             'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: shall be false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
         };
 
         function setCanvasSize() {
@@ -487,7 +480,6 @@
             const savedState = {
                 circleDx: circle.dx,
                 circleDy: circle.dy,
-                colorProgress: colorProgress,
                 countdownInterval: countdownInterval,
                 sighhhTimer: sighhhTimer,
                 sighhhTimerStart: sighhhTimer ? Date.now() : null
@@ -515,7 +507,6 @@
                             setTimeout(() => {
                                 circle.dx = savedState.circleDx;
                                 circle.dy = savedState.circleDy;
-                                colorProgress = savedState.colorProgress;
                                 if (savedState.countdownInterval) {
                                     countdownInterval = setInterval(() => {
                                         countdown--;
@@ -645,47 +636,7 @@
             }
 
             updateDisplay();
-            requestAnimationFrame(() => drawScene(updateColors()));
-        }
-
-        function invertColor(rgb) {
-            return { r: 255 - rgb.r, g: 255 - rgb.g, b: 255 - rgb.b };
-        }
-
-        function updateColors() {
-            const currentColor = colors[currentColorIndex];
-            const nextColorIndex = (currentColorIndex + 1) % colors.length;
-            const nextColor = colors[nextColorIndex];
-
-            const r = Math.round(currentColor.r + (nextColor.r - currentColor.r) * colorProgress);
-            const g = Math.round(currentColor.g + (nextColor.g - currentColor.g) * colorProgress);
-            const b = Math.round(currentColor.b + (nextColor.b - currentColor.b) * colorProgress);
-
-            document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-
-            const textColor = `rgb(${r}, ${g}, ${b})`;
-            modeButton.style.color = textColor;
-            mapButton.style.color = textColor;
-            playButton.style.color = textColor;
-
-            const invertedColor = invertColor({ r, g, b });
-            const invertedStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
-            modeButton.style.backgroundColor = invertedStyle;
-            mapButton.style.backgroundColor = invertedStyle;
-            playButton.style.backgroundColor = invertedStyle;
-
-            countdownDisplay.style.color = invertedStyle;
-            countdownDisplay.style.textShadow = `0 0 10px rgb(${r}, ${g}, ${b})`;
-
-            if (!isFleepSequence) {
-                colorProgress += colorTransitionSpeed;
-                if (colorProgress >= 1) {
-                    colorProgress = 0;
-                    currentColorIndex = (currentColorIndex + 1) % colors.length;
-                }
-            }
-
-            return { r, g, b, inverted: invertedColor };
+            requestAnimationFrame(() => drawScene());
         }
 
         function getCircleColor(counterColor) {
@@ -701,10 +652,10 @@
             return `rgba(${Math.min(r + 100, 255)}, ${Math.min(g + 100, 255)}, ${Math.min(b + 100, 255)},`;
         }
 
-        function drawScene(color) {
+        function drawScene() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+            ctx.strokeStyle = '#fff'; // Static white (replacing inverted color)
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
                 ctx.strokeRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
@@ -719,7 +670,7 @@
             if (wallHits === level) counterColor = greenColor;
             else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
 
-            const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+            const circleColor = getCircleColor(counterColor) || '#fff'; // Static white (replacing inverted color)
             const trailBaseColor = lightenColor(circleColor);
 
             if (trail.length > 1) {
@@ -761,7 +712,7 @@
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
+                ctx.fillStyle = '#fff'; // Static white (replacing inverted color)
                 ctx.shadowColor = '#fff'; // Always white glow
                 ctx.shadowBlur = 5 * pixelRatio; // Consistent with other white glows
                 ctx.shadowOffsetX = 0;
@@ -1179,331 +1130,155 @@
                         circle.dx = (pos.x - circle.lastX) / dt;
                         circle.dy = (pos.y - circle.lastY) / dt;
                     }
+                    circle.lastX = pos.x;
+                    circle.lastY = pos.y;
                     circle.lastTime = currentTime;
                 }
-                circle.lastX = pos.x;
-                circle.lastY = pos.y;
             }
 
             if (circle.isResizing) {
-                const resizePos = getMousePos(e, circle.resizeTouchId);
-                const dx = resizePos.x - circle.x;
-                const dy = resizePos.y - circle.y;
-                const currentDistance = Math.sqrt(dx * dx + dy * dy);
-                const initialDistance = Math.sqrt(
-                    (circle.resizeStartX - circle.x) ** 2 + 
-                    (circle.resizeStartY - circle.y) ** 2
-                );
-                const distanceDelta = currentDistance - initialDistance;
-
+                const pos = getMousePos(e, circle.resizeTouchId);
+                const dx = pos.x - circle.resizeStartX;
+                const dy = pos.y - circle.resizeStartY;
+                const distanceDelta = Math.sqrt(dx * dx + dy * dy) * (dx < 0 || dy < 0 ? -1 : 1);
                 const newRadius = Math.max(defaultRadius, circle.initialRadius + distanceDelta / 2);
-                let maxAllowedRadius;
-
-                if (currentMap === 'rectangle') {
-                    maxAllowedRadius = Math.min(
-                        circle.x, 
-                        (canvas.width / (window.devicePixelRatio || 1)) - circle.x,
-                        circle.y,
-                        (canvas.height / (window.devicePixelRatio || 1)) - circle.y
-                    );
-                } else {
-                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
-                    const distToCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
-                    maxAllowedRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth - distToCenter;
-                }
-
-                circle.radius = Math.min(newRadius, maxAllowedRadius);
+                circle.radius = newRadius;
+                constrainCircle();
             }
-
-            const screenPos = getScreenPos(e, circle.dragTouchId);
-            const target = document.elementFromPoint(screenPos.x, screenPos.y);
-
-            if (target === playButton) {
-                if (!holdTimers.play && !buttonActivated.play) {
-                    playButton.classList.remove('glow-green', 'glow-red', 'recede');
-                    playButton.classList.add(isPaused ? 'glow-green' : 'glow-red');
-                    holdTimers.play = setTimeout(() => {
-                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
-                            playButton.classList.remove('glow-green', 'glow-red');
-                            playButton.classList.add('recede');
-                            if (isPaused) {
-                                isPaused = false;
-                                circle.lastX = getMousePos(e, circle.dragTouchId).x;
-                                circle.lastY = getMousePos(e, circle.dragTouchId).y;
-                                circle.lastTime = Date.now();
-                                circle.dx = 0;
-                                circle.dy = 0;
-                                if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
-                            } else {
-                                circle.wasDraggingWhenPaused = circle.isDragging;
-                                isPaused = true;
-                                saveState();
-                            }
-                            updateDisplay();
-                            buttonActivated.play = true;
-                        }
-                        holdTimers.play = null;
-                    }, 1000);
-                }
-            } else {
-                if (holdTimers.play) {
-                    clearTimeout(holdTimers.play);
-                    holdTimers.play = null;
-                    playButton.classList.remove('glow-green', 'glow-red');
-                    playButton.classList.add('recede');
-                }
-                if (buttonActivated.play && target !== playButton) buttonActivated.play = false;
-            }
-
-            if (target === modeButton) {
-                if (!holdTimers.mode && !buttonActivated.mode) {
-                    modeButton.classList.remove('glow-white', 'recede');
-                    modeButton.classList.add('glow-white');
-                    holdTimers.mode = setTimeout(() => {
-                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === modeButton) {
-                            modeButton.classList.remove('glow-white');
-                            modeButton.classList.add('recede');
-                            if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
-                            isPaused = true;
-                            saveState();
-                            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-                            sighhhVisible = false;
-                            if (sighhhTimer) clearTimeout(sighhhTimer);
-                            shownTexts.clear();
-                            loadState(currentMode, currentMap);
-                            updateDisplay();
-                            buttonActivated.mode = true;
-                        }
-                        holdTimers.mode = null;
-                    }, 1000);
-                }
-            } else {
-                if (holdTimers.mode) {
-                    clearTimeout(holdTimers.mode);
-                    holdTimers.mode = null;
-                    modeButton.classList.remove('glow-white');
-                    modeButton.classList.add('recede');
-                }
-                if (buttonActivated.mode && target !== modeButton) buttonActivated.mode = false;
-            }
-
-            if (target === mapButton) {
-                if (!holdTimers.map && !buttonActivated.map) {
-                    mapButton.classList.remove('glow-white', 'recede');
-                    mapButton.classList.add('glow-white');
-                    holdTimers.map = setTimeout(() => {
-                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === mapButton) {
-                            mapButton.classList.remove('glow-white');
-                            mapButton.classList.add('recede');
-                            if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
-                            isPaused = true;
-                            saveState();
-                            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-                            sighhhVisible = false;
-                            if (sighhhTimer) clearTimeout(sighhhTimer);
-                            shownTexts.clear();
-                            loadState(currentMode, currentMap);
-                            updateDisplay();
-                            buttonActivated.map = true;
-                        }
-                        holdTimers.map = null;
-                    }, 1000);
-                }
-            } else {
-                if (holdTimers.map) {
-                    clearTimeout(holdTimers.map);
-                    holdTimers.map = null;
-                    mapButton.classList.remove('glow-white');
-                    mapButton.classList.add('recede');
-                }
-                if (buttonActivated.map && target !== mapButton) buttonActivated.map = false;
-            }
-
-            if (isPaused) saveState();
         }
 
         function stopDragging(e) {
-            if (!circle.isDragging || isFleepSequence) return;
-            let touchId = circle.dragTouchId;
-            if (e.touches && e.touches.length > 0) return;
-            if (e.changedTouches) {
-                let matched = false;
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === touchId) {
-                        matched = true;
-                        break;
-                    }
-                }
-                if (!matched) return;
-            }
+            if (isFleepSequence) return;
 
-            const screenPos = getScreenPos(e, touchId);
-            const target = document.elementFromPoint(screenPos.x, screenPos.y);
-            const canvasRect = canvas.getBoundingClientRect();
-            const isOverCanvas = (
-                screenPos.x >= canvasRect.left &&
-                screenPos.x <= canvasRect.right &&
-                screenPos.y >= canvasRect.top &&
-                screenPos.y <= canvasRect.bottom
-            );
-
-            console.log('Stop dragging, target:', target.id, 'isOverCanvas:', isOverCanvas, 'isPaused:', isPaused);
-
-            if (target === playButton && !buttonActivated.play) {
-                target.click();
-            } else if (target === modeButton && !buttonActivated.mode) {
-                modeButton.classList.remove('glow-white');
-                modeButton.classList.add('recede');
-                target.click();
-            } else if (target === mapButton && !buttonActivated.map) {
-                mapButton.classList.remove('glow-white');
-                mapButton.classList.add('recede');
-                target.click();
-            }
-
-            circle.isDragging = false;
-            circle.dragTouchId = null;
-            Object.keys(holdTimers).forEach(key => {
-                if (holdTimers[key]) {
-                    clearTimeout(holdTimers[key]);
-                    holdTimers[key] = null;
-                    if (key === 'play') {
-                        playButton.classList.remove('glow-green', 'glow-red');
-                        playButton.classList.add('recede');
-                    } else {
-                        document.getElementById(key).classList.remove('glow-white');
-                        document.getElementById(key).classList.add('recede');
-                    }
-                }
-            });
-            if (target !== playButton) buttonActivated.play = false;
-            if (target !== modeButton) buttonActivated.mode = false;
-            if (target !== mapButton) buttonActivated.map = false;
-
-            if (!circle.isDragging && isPaused) saveState();
-        }
-
-        function stopResizing(e) {
-            if (circle.resizeTouchId === null || isFleepSequence) return;
-            if (e.touches && e.touches.length > 1) return;
-            if (e.changedTouches) {
-                let matched = false;
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === circle.resizeTouchId) {
-                        matched = true;
-                        break;
-                    }
-                }
-                if (!matched) return;
-            }
-
-            const elapsed = Date.now() - circle.resizeStartTime;
-            if (!circle.isResizing && elapsed < resizeHoldThreshold && !isPaused) {
-                console.log('Quick tap detected, dropping circle');
+            let touchId = e.touches ? (e.changedTouches ? e.changedTouches[0].identifier : null) : null;
+            if (touchId === null && !e.touches) {
                 circle.isDragging = false;
                 circle.dragTouchId = null;
-                circle.dx = 0;
-                circle.dy = 0;
-            } else if (circle.isResizing) {
-                console.log('Resizing stopped, new radius:', circle.radius);
                 circle.isResizing = false;
+                circle.resizeTouchId = null;
+                if (circle.resizeTimer) {
+                    clearTimeout(circle.resizeTimer);
+                    circle.resizeTimer = null;
+                }
+                if (isPaused) {
+                    circle.wasDraggingWhenPaused = false;
+                }
+                console.log('Dragging stopped (mouse or touch end)');
+                return;
             }
 
-            if (circle.resizeTimer) {
-                clearTimeout(circle.resizeTimer);
-                circle.resizeTimer = null;
+            if (circle.isDragging && touchId === circle.dragTouchId) {
+                circle.isDragging = false;
+                circle.dragTouchId = null;
+                if (isPaused) {
+                    circle.wasDraggingWhenPaused = false;
+                }
+                console.log('Dragging stopped, touchId:', touchId);
             }
-            circle.resizeTouchId = null;
-            constrainCircle();
-            if (isPaused) saveState();
+
+            if (circle.isResizing && touchId === circle.resizeTouchId) {
+                circle.isResizing = false;
+                circle.resizeTouchId = null;
+                if (circle.resizeTimer) {
+                    clearTimeout(circle.resizeTimer);
+                    circle.resizeTimer = null;
+                }
+                console.log('Resizing stopped, touchId:', touchId);
+            }
         }
 
-        function handleMultiTouch(e) {
-            if (isFleepSequence || e.touches.length < 2) return;
-            const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
-            if (dragTouchIndex === -1) return;
-
-            const otherTouch = e.touches[dragTouchIndex === 0 ? 1 : 0];
-            const screenPos = { x: otherTouch.clientX, y: otherTouch.clientY };
-            const canvasRect = canvas.getBoundingClientRect();
-            const isOverCanvas = (
-                screenPos.x >= canvasRect.left &&
-                screenPos.x <= canvasRect.right &&
-                screenPos.y >= canvasRect.top &&
-                screenPos.y <= canvasRect.bottom
-            );
-
-            if (isOverCanvas && !circle.isResizing && !isPaused) {
-                handleCircleTap({ touches: [otherTouch] });
-            }
-        }
-
-        modeButton.addEventListener('click', () => {
+        function handleButtonHold(button, action, holdDuration = 2000) {
             if (isFleepSequence) return;
-            console.log('MODE button clicked');
-            if (!isPaused) {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
+
+            const buttonName = button.id.replace('Button', '').toLowerCase();
+            if (holdTimers[buttonName]) {
+                clearTimeout(holdTimers[buttonName]);
+                holdTimers[buttonName] = null;
             }
+
+            holdTimers[buttonName] = setTimeout(() => {
+                if (!buttonActivated[buttonName]) {
+                    buttonActivated[buttonName] = true;
+                    action();
+                    button.classList.remove('glow-green', 'glow-red', 'glow-white', 'recede');
+                    void button.offsetHeight; // Trigger reflow to restart animation
+                    button.classList.add('glow-white');
+                }
+            }, holdDuration);
+        }
+
+        function cancelButtonHold(button) {
+            const buttonName = button.id.replace('Button', '').toLowerCase();
+            if (holdTimers[buttonName]) {
+                clearTimeout(holdTimers[buttonName]);
+                holdTimers[buttonName] = null;
+            }
+            if (!buttonActivated[buttonName]) {
+                button.classList.remove('glow-green', 'glow-red', 'glow-white');
+                void button.offsetHeight; // Trigger reflow to restart animation
+                button.classList.add('recede');
+            }
+        }
+
+        modeButton.addEventListener('mousedown', () => handleButtonHold(modeButton, toggleMode));
+        modeButton.addEventListener('mouseup', () => cancelButtonHold(modeButton));
+        modeButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleButtonHold(modeButton, toggleMode);
+        });
+        modeButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            cancelButtonHold(modeButton);
+        });
+
+        mapButton.addEventListener('mousedown', () => handleButtonHold(mapButton, toggleMap));
+        mapButton.addEventListener('mouseup', () => cancelButtonHold(mapButton));
+        mapButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleButtonHold(mapButton, toggleMap);
+        });
+        mapButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            cancelButtonHold(mapButton);
+        });
+
+        playButton.addEventListener('mousedown', () => handleButtonHold(playButton, togglePause, 500));
+        playButton.addEventListener('mouseup', () => cancelButtonHold(playButton));
+        playButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleButtonHold(playButton, togglePause, 500);
+        });
+        playButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            cancelButtonHold(playButton);
+        });
+
+        function toggleMode() {
             saveState();
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-            sighhhVisible = false;
-            if (sighhhTimer) clearTimeout(sighhhTimer);
-            shownTexts.clear();
             loadState(currentMode, currentMap);
-            updateDisplay();
-        });
+        }
 
-        mapButton.addEventListener('click', () => {
-            if (isFleepSequence) return;
-            console.log('MAP button clicked');
-            if (!isPaused) {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-            }
+        function toggleMap() {
             saveState();
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-            sighhhVisible = false;
-            if (sighhhTimer) clearTimeout(sighhhTimer);
-            shownTexts.clear();
             loadState(currentMode, currentMap);
-            updateDisplay();
-        });
+        }
 
-        playButton.addEventListener('click', (e) => {
-            if (isFleepSequence) return;
-            console.log('PAUSE/RESUME button clicked');
+        function togglePause() {
+            if (isCountingDown) return;
+            isPaused = !isPaused;
             if (isPaused) {
-                isPaused = false;
-                if (circle.isDragging) {
-                    const pos = getMousePos(e);
-                    circle.lastX = pos.x;
-                    circle.lastY = pos.y;
-                    circle.lastTime = Date.now();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                } else if (circle.wasDraggingWhenPaused) {
-                    circle.isDragging = false;
-                    circle.dragTouchId = null;
-                    constrainCircle();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                } else {
-                    constrainCircle();
-                    circle.dx = circle.dx || 0;
-                    circle.dy = circle.dy || 0;
-                }
-                circle.wasDraggingWhenPaused = false;
-                if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
-                updateDisplay();
-            } else {
                 circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-                saveState();
-                updateDisplay();
+                if (circle.isDragging) {
+                    circle.isDragging = false;
+                }
             }
-        });
+            playButton.classList.remove('glow-green', 'glow-red', 'glow-white', 'recede');
+            void playButton.offsetHeight; // Trigger reflow to restart animation
+            playButton.classList.add(isPaused ? 'glow-red' : 'glow-green');
+            updateDisplay();
+        }
 
         canvas.addEventListener('mousedown', startDragging);
         canvas.addEventListener('mousemove', drag);
@@ -1512,54 +1287,19 @@
 
         canvas.addEventListener('touchstart', (e) => {
             startDragging(e);
-            handleCircleTap(e);
             startResizing(e);
-            handleMultiTouch(e);
+            handleCircleTap(e);
         });
         canvas.addEventListener('touchmove', drag);
-        canvas.addEventListener('touchend', (e) => {
-            stopDragging(e);
-            stopResizing(e);
-        });
-
-        document.addEventListener('mouseup', stopDragging);
-        document.addEventListener('touchend', (e) => {
-            stopDragging(e);
-            stopResizing(e);
-        });
-
-        modeButton.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
-                console.log('MODE button tapped during drag');
-                modeButton.click();
-            }
-        });
-
-        mapButton.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
-                console.log('MAP button tapped during drag');
-                mapButton.click();
-            }
-        });
-
-        playButton.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1 && !isFleepSequence) {
-                console.log('PAUSE/RESUME button tapped during drag');
-                playButton.click();
-            }
-        });
+        canvas.addEventListener('touchend', stopDragging);
 
         function animate() {
             updatePhysics();
-            const color = updateColors();
-            drawScene(color);
+            drawScene();
             requestAnimationFrame(animate);
         }
 
-        circle.x = window.innerWidth * 0.45;
-        circle.y = window.innerHeight * 0.5;
-
-        updateDisplay();
+        loadState(currentMode, currentMap);
         animate();
     </script>
 </body>
