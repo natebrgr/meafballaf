@@ -713,16 +713,11 @@
                 }
             }
 
-            // Draw the circle with glow
+            // Draw the circle with white glow
             ctx.beginPath();
             const pixelRatio = window.devicePixelRatio || 1;
-            if (counterColor === '#e0e0e0') {
-                ctx.shadowColor = '#fff';
-                ctx.shadowBlur = 5 * pixelRatio; // Scale glow for pixel ratio
-            } else {
-                ctx.shadowColor = counterColor;
-                ctx.shadowBlur = 10 * pixelRatio; // Brighter for green/red
-            }
+            ctx.shadowColor = '#fff'; // Always white glow
+            ctx.shadowBlur = (counterColor === '#e0e0e0' ? 5 : 10) * pixelRatio; // 5px for white, 10px for green/red
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
@@ -743,8 +738,8 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
-                ctx.shadowColor = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
-                ctx.shadowBlur = 5 * pixelRatio; // Scale glow for pixel ratio
+                ctx.shadowColor = '#fff'; // Always white glow
+                ctx.shadowBlur = 5 * pixelRatio; // Consistent with other white glows
                 ctx.shadowOffsetX = 0;
                 ctx.shadowOffsetY = 0;
 
@@ -778,13 +773,8 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = counterColor;
-            if (counterColor === '#e0e0e0') {
-                ctx.shadowColor = '#fff';
-                ctx.shadowBlur = 5 * pixelRatio; // Scale glow for pixel ratio
-            } else {
-                ctx.shadowColor = counterColor;
-                ctx.shadowBlur = 10 * pixelRatio; // Brighter for green/red
-            }
+            ctx.shadowColor = '#fff'; // Always white glow
+            ctx.shadowBlur = (counterColor === '#e0e0e0' ? 5 : 10) * pixelRatio; // 5px for white, 10px for green/red
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             ctx.fillText(wallHits, circle.x, circle.y - offset);
@@ -793,7 +783,7 @@
             ctx.fillText(wallHits, circle.x + offset, circle.y);
 
             ctx.fillStyle = greenColor;
-            ctx.shadowColor = greenColor;
+            ctx.shadowColor = '#fff'; // Always white glow
             ctx.shadowBlur = 10 * pixelRatio; // Brighter for green
             ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
             ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
