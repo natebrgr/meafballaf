@@ -13,7 +13,7 @@
             align-items: center;
             height: 100vh;
             font-family: Arial, sans-serif;
-            background: rgb(5, 5, 25); /* Static dark blue */
+            background-color: rgb(5, 5, 25); /* Static dark blue */
             position: relative;
         }
         body::before {
@@ -89,8 +89,8 @@
             transition: opacity 0.5s ease;
             z-index: 10;
             pointer-events: none;
-            color: #e0e0e0; /* Match other UI text */
-            text-shadow: 0 0 10px #fff; /* White glow */
+            color: #e0e0e0; /* Static white */
+            text-shadow: 0 0 10px rgb(5, 5, 25); /* Static dark blue shadow */
         }
         #sighhh {
             left: 50%;
@@ -152,10 +152,10 @@
             font-weight: bold;
             font-family: Arial, sans-serif;
             cursor: pointer;
-            color: #e0e0e0; /* Match title text */
-            text-shadow: 0 0 5px #fff; /* Match title glow */
-            background: transparent; /* No background */
-            border: 2px solid #e0e0e0; /* Match rectangle outline */
+            color: rgb(5, 5, 25); /* Static dark blue */
+            background-color: #e0e0e0; /* Static white */
+            text-shadow: 0 0 5px #fff;
+            border: none;
             border-radius: 5px;
             filter: drop-shadow(0 0 5px #fff);
             z-index: 25;
@@ -393,9 +393,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            setCanvasSize(); // Call synchronously to ensure canvas dimensions are set
-            loadState(currentMode, currentMap); // Now load the state with correct canvas dimensions
-            requestAnimationFrame(() => setCanvasSize()); // Additional call for safety after DOM is fully loaded
+            setCanvasSize();
+            requestAnimationFrame(() => setCanvasSize());
         });
         window.addEventListener('resize', setCanvasSize);
 
@@ -637,25 +636,30 @@
             }
 
             updateDisplay();
-            requestAnimationFrame(() => drawScene());
+            requestAnimationFrame(() => drawScene(updateColors()));
+        }
+
+        function updateColors() {
+            // Return static colors
+            return { r: 5, g: 5, b: 25, inverted: { r: 224, g: 224, b: 224 } }; // rgb(5, 5, 25) and #e0e0e0
         }
 
         function getCircleColor(counterColor) {
             if (counterColor === 'rgb(11, 74, 28)') return 'rgb(11, 74, 28)';
             if (counterColor === 'rgb(130, 33, 33)') return 'rgb(130, 33, 33)';
-            return null;
+            return '#e0e0e0'; // Static white
         }
 
         function lightenColor(color) {
-            if (color === 'rgb(11, 74, 28)') return 'rgb(50, 200, 100)';
-            if (color === 'rgb(130, 33, 33)') return 'rgb(255, 80, 80)';
-            return '#fff'; // Default to white for the trail
+            if (color === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28,';
+            if (color === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33,';
+            return 'rgba(224, 224, 224,'; // Based on #e0e0e0
         }
 
-        function drawScene() {
+        function drawScene(color) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = '#fff'; // Static white
+            ctx.strokeStyle = '#e0e0e0'; // Static white for map border
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
                 ctx.strokeRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
@@ -670,7 +674,7 @@
             if (wallHits === level) counterColor = greenColor;
             else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
 
-            const circleColor = getCircleColor(counterColor) || '#fff'; // Static white
+            const circleColor = getCircleColor(counterColor);
             const trailBaseColor = lightenColor(circleColor);
 
             if (trail.length > 1) {
@@ -681,7 +685,7 @@
                     const start = trail[i];
                     const end = trail[i + 1];
                     const opacity = start.opacity * (1 - (i / trail.length));
-                    ctx.strokeStyle = `${trailBaseColor}${opacity})`;
+                    ctx.strokeStyle = `${trailBaseColor} ${opacity})`;
                     ctx.moveTo(start.x, start.y);
                     ctx.lineTo(end.x, end.y);
                     ctx.stroke();
@@ -712,7 +716,7 @@
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = '#fff'; // Static white
+                ctx.fillStyle = '#e0e0e0'; // Static white for "HOLDING" text
                 ctx.shadowColor = '#fff'; // Always white glow
                 ctx.shadowBlur = 5 * pixelRatio; // Consistent with other white glows
                 ctx.shadowOffsetX = 0;
@@ -945,20 +949,20 @@
 
         function getMousePos(e, touchId = null) {
             const rect = canvas.getBoundingClientRect();
-            const pixelRatio = window.devicePixelRatio || 1;
-            let x, y;
             if (touchId !== null && e.touches) {
                 for (let i = 0; i < e.touches.length; i++) {
                     if (e.touches[i].identifier === touchId) {
-                        x = (e.touches[i].clientX - rect.left) / pixelRatio;
-                        y = (e.touches[i].clientY - rect.top) / pixelRatio;
-                        return { x, y };
+                        return {
+                            x: e.touches[i].clientX - rect.left,
+                            y: e.touches[i].clientY - rect.top
+                        };
                     }
                 }
             }
-            x = ((e.clientX || (e.touches && e.touches[0].clientX)) - rect.left) / pixelRatio;
-            y = ((e.clientY || (e.touches && e.touches[0].clientY)) - rect.top) / pixelRatio;
-            return { x, y };
+            return {
+                x: (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left,
+                y: (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top
+            };
         }
 
         function getScreenPos(e, touchId = null) {
@@ -981,11 +985,9 @@
 
         function handleCircleTap(e) {
             if (isPaused || isFleepSequence) return;
-            const pos = getMousePos(e, e.type === 'touchstart' ? e.touches[0].identifier : null);
+            const pos = getMousePos(e);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
-            const isTouchEvent = e.type === 'touchstart';
-            const isDifferentTouch = isTouchEvent && circle.isDragging && e.touches[0].identifier !== circle.dragTouchId;
-            if (dist < circle.radius && (!circle.isDragging || !isTouchEvent || isDifferentTouch)) {
+            if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
                 console.log('Circle tapped');
                 e.preventDefault();
                 if (isTrackingHits) {
@@ -1162,19 +1164,13 @@
                     clearTimeout(circle.resizeTimer);
                     circle.resizeTimer = null;
                 }
-                if (isPaused) {
-                    circle.wasDraggingWhenPaused = false;
-                }
-                console.log('Dragging stopped (mouse or touch end)');
+                console.log('Dragging stopped (mouse)');
                 return;
             }
 
             if (circle.isDragging && touchId === circle.dragTouchId) {
                 circle.isDragging = false;
                 circle.dragTouchId = null;
-                if (isPaused) {
-                    circle.wasDraggingWhenPaused = false;
-                }
                 console.log('Dragging stopped, touchId:', touchId);
             }
 
@@ -1189,119 +1185,87 @@
             }
         }
 
-        function handleButtonHold(button, action, holdDuration = 2000) {
-            if (isFleepSequence) return;
-
-            const buttonName = button.id.replace('Button', '').toLowerCase();
-            if (holdTimers[buttonName]) {
-                clearTimeout(holdTimers[buttonName]);
-                holdTimers[buttonName] = null;
-            }
-
-            holdTimers[buttonName] = setTimeout(() => {
-                if (!buttonActivated[buttonName]) {
-                    buttonActivated[buttonName] = true;
-                    action();
-                    button.classList.remove('glow-green', 'glow-red', 'glow-white', 'recede');
-                    void button.offsetHeight; // Trigger reflow to restart animation
-                    button.classList.add('glow-white');
-                }
-            }, holdDuration);
-        }
-
-        function cancelButtonHold(button) {
-            const buttonName = button.id.replace('Button', '').toLowerCase();
-            if (holdTimers[buttonName]) {
-                clearTimeout(holdTimers[buttonName]);
-                holdTimers[buttonName] = null;
-            }
-            if (!buttonActivated[buttonName]) {
-                button.classList.remove('glow-green', 'glow-red', 'glow-white');
-                void button.offsetHeight; // Trigger reflow to restart animation
-                button.classList.add('recede');
-            }
-        }
-
-        modeButton.addEventListener('mousedown', () => handleButtonHold(modeButton, toggleMode));
-        modeButton.addEventListener('mouseup', () => cancelButtonHold(modeButton));
-        modeButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleButtonHold(modeButton, toggleMode);
-        });
-        modeButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            cancelButtonHold(modeButton);
-        });
-
-        mapButton.addEventListener('mousedown', () => handleButtonHold(mapButton, toggleMap));
-        mapButton.addEventListener('mouseup', () => cancelButtonHold(mapButton));
-        mapButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleButtonHold(mapButton, toggleMap);
-        });
-        mapButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            cancelButtonHold(mapButton);
-        });
-
-        playButton.addEventListener('mousedown', () => handleButtonHold(playButton, togglePause, 500));
-        playButton.addEventListener('mouseup', () => cancelButtonHold(playButton));
-        playButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleButtonHold(playButton, togglePause, 500);
-        });
-        playButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            cancelButtonHold(playButton);
-        });
-
-        function toggleMode() {
-            saveState();
-            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-            loadState(currentMode, currentMap);
-        }
-
-        function toggleMap() {
-            saveState();
-            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-            loadState(currentMode, currentMap);
-        }
-
-        function togglePause() {
-            if (isCountingDown) return;
-            isPaused = !isPaused;
-            if (isPaused) {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                if (circle.isDragging) {
-                    circle.isDragging = false;
-                }
-            }
-            playButton.classList.remove('glow-green', 'glow-red', 'glow-white', 'recede');
-            void playButton.offsetHeight; // Trigger reflow to restart animation
-            playButton.classList.add(isPaused ? 'glow-red' : 'glow-green');
-            updateDisplay();
-        }
-
         canvas.addEventListener('mousedown', startDragging);
-        canvas.addEventListener('mousemove', drag);
-        canvas.addEventListener('mouseup', stopDragging);
-        canvas.addEventListener('click', handleCircleTap);
-
         canvas.addEventListener('touchstart', (e) => {
             startDragging(e);
             startResizing(e);
-            handleCircleTap(e);
         });
+        canvas.addEventListener('mousemove', drag);
         canvas.addEventListener('touchmove', drag);
+        canvas.addEventListener('mouseup', stopDragging);
         canvas.addEventListener('touchend', stopDragging);
+        canvas.addEventListener('click', handleCircleTap);
+        canvas.addEventListener('touchend', handleCircleTap);
+
+        function togglePause() {
+            if (isFleepSequence) return;
+            if (isPaused) {
+                isPaused = false;
+                circle.wasDraggingWhenPaused = false;
+                playButton.classList.remove('glow-green', 'glow-red');
+                void playButton.offsetHeight; // Trigger reflow to restart animation
+                playButton.classList.add('glow-red');
+                if (isCountingDown) {
+                    startCountdown(true);
+                }
+            } else {
+                isPaused = true;
+                circle.wasDraggingWhenPaused = circle.isDragging;
+                playButton.classList.remove('glow-green', 'glow-red');
+                void playButton.offsetHeight; // Trigger reflow to restart animation
+                playButton.classList.add('glow-green');
+                if (isCountingDown) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
+            }
+            updateDisplay();
+        }
+
+        playButton.addEventListener('click', togglePause);
+        playButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            togglePause();
+        });
+
+        function toggleMode() {
+            if (isFleepSequence) return;
+            saveState();
+            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+            loadState(currentMode, currentMap);
+            modeButton.classList.remove('glow-white');
+            void modeButton.offsetHeight; // Trigger reflow to restart animation
+            modeButton.classList.add('glow-white');
+        }
+
+        modeButton.addEventListener('click', toggleMode);
+        modeButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            toggleMode();
+        });
+
+        function toggleMap() {
+            if (isFleepSequence) return;
+            saveState();
+            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+            loadState(currentMode, currentMap);
+            mapButton.classList.remove('glow-white');
+            void mapButton.offsetHeight; // Trigger reflow to restart animation
+            mapButton.classList.add('glow-white');
+        }
+
+        mapButton.addEventListener('click', toggleMap);
+        mapButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            toggleMap();
+        });
 
         function animate() {
             updatePhysics();
-            drawScene();
+            drawScene(updateColors());
             requestAnimationFrame(animate);
         }
 
-        loadState(currentMode, currentMap);
         animate();
     </script>
 </body>
