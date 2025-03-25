@@ -89,8 +89,8 @@
             transition: opacity 0.5s ease;
             z-index: 10;
             pointer-events: none;
-            color: rgb(5, 5, 25); /* Static dark blue */
-            text-shadow: 0 0 10px #fff; /* Static white glow */
+            color: #e0e0e0; /* Match other UI text */
+            text-shadow: 0 0 10px #fff; /* White glow */
         }
         #sighhh {
             left: 50%;
@@ -343,7 +343,7 @@
             'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
             'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
             'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: shall be false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
         };
 
         function setCanvasSize() {
@@ -646,16 +646,15 @@
         }
 
         function lightenColor(color) {
-            if (color === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28,';
-            if (color === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33,';
-            const [r, g, b] = color.match(/\d+/g).map(Number);
-            return `rgba(${Math.min(r + 100, 255)}, ${Math.min(g + 100, 255)}, ${Math.min(b + 100, 255)},`;
+            if (color === 'rgb(11, 74, 28)') return 'rgb(50, 200, 100)';
+            if (color === 'rgb(130, 33, 33)') return 'rgb(255, 80, 80)';
+            return '#fff'; // Default to white for the trail
         }
 
         function drawScene() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = '#fff'; // Static white (replacing inverted color)
+            ctx.strokeStyle = '#fff'; // Static white
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
                 ctx.strokeRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
@@ -670,7 +669,7 @@
             if (wallHits === level) counterColor = greenColor;
             else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
 
-            const circleColor = getCircleColor(counterColor) || '#fff'; // Static white (replacing inverted color)
+            const circleColor = getCircleColor(counterColor) || '#fff'; // Static white
             const trailBaseColor = lightenColor(circleColor);
 
             if (trail.length > 1) {
@@ -681,7 +680,7 @@
                     const start = trail[i];
                     const end = trail[i + 1];
                     const opacity = start.opacity * (1 - (i / trail.length));
-                    ctx.strokeStyle = `${trailBaseColor} ${opacity})`;
+                    ctx.strokeStyle = `${trailBaseColor}${opacity})`;
                     ctx.moveTo(start.x, start.y);
                     ctx.lineTo(end.x, end.y);
                     ctx.stroke();
@@ -712,7 +711,7 @@
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = '#fff'; // Static white (replacing inverted color)
+                ctx.fillStyle = '#fff'; // Static white
                 ctx.shadowColor = '#fff'; // Always white glow
                 ctx.shadowBlur = 5 * pixelRatio; // Consistent with other white glows
                 ctx.shadowOffsetX = 0;
