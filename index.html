@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Throwable Bouncy Circle Game</title>
     <style>
+        /* Your existing CSS remains unchanged */
         body {
             margin: 0;
             overflow: hidden;
@@ -619,7 +620,7 @@
                 circle.y = state.circle.y;
                 circle.radius = state.circle.radius || initialRadius; // Use initialRadius (60) if no saved radius
                 circle.dx = state.circle.dx;
-                circle.dy = state.dy;
+                circle.dy = state.circle.dy;
                 circle.isDragging = state.isDragging;
                 circle.dragTouchId = state.dragTouchId;
                 circle.lastX = state.lastX;
@@ -913,8 +914,17 @@
                                     wallHitsDisplay.style.textShadow = `0 0 10px #fff, 0 0 2px ${outlineColor}`; // White glow + outline
                                 }
                                 if (wallHits > level && currentMode === 'survival') {
-                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
-                                    showText(text);
+                                    lives--; // Decrease lives immediately when wallHits exceeds level
+                                    let text = '';
+                                    if (lives === 2) text = 'sighhh';
+                                    else if (lives === 1) text = 'SighhhAFF';
+                                    else if (lives <= 0) {
+                                        level = 1;
+                                        lives = 3;
+                                        text = 'SIGHHH me to FLEEP';
+                                    }
+                                    if (text) showText(text);
+                                    updateDisplay(); // Update the display to reflect the new lives count
                                 }
                             }
                         }
@@ -1047,7 +1057,7 @@
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                lives = 3;
+                                lives = 3; // Reset lives to 3 on win
                                 showText('yee haw BII');
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
@@ -1059,30 +1069,17 @@
                     } else {
                         isTrackingHits = false;
                         const previousWallHits = wallHits;
-                        const previousLives = lives;
                         if (wallHits === level) {
                             const completedLevel = level;
                             level++;
                             if (currentMode === 'survival') {
-                                lives = 3;
+                                lives = 3; // Reset lives to 3 on win
                                 showText('yee haw BII');
                             }
                             if (completedLevel > hiScore) hiScore = completedLevel;
                             wallHits = 0;
-                        } else if (currentMode === 'survival') {
-                            lives--;
-                            let text = '';
-                            if (previousLives === 3 && lives === 2) {
-                                text = 'sighhh';
-                            } else if (previousLives === 2 && lives === 1) {
-                                text = 'SighhhAFF';
-                            } else if (lives <= 0) {
-                                level = 1;
-                                lives = 3;
-                                text = 'SIGHHH me to FLEEP';
-                            }
-                            if (text) showText(text);
                         }
+                        // Lives are now handled in updatePhysics when wallHits > level, so no need to decrease here
                         saveState();
                         updateDisplay();
                         startCountdown();
