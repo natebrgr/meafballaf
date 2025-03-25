@@ -393,8 +393,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            setCanvasSize();
-            requestAnimationFrame(() => setCanvasSize());
+            setCanvasSize(); // Call synchronously to ensure canvas dimensions are set
+            loadState(currentMode, currentMap); // Now load the state with correct canvas dimensions
+            requestAnimationFrame(() => setCanvasSize()); // Additional call for safety after DOM is fully loaded
         });
         window.addEventListener('resize', setCanvasSize);
 
@@ -944,20 +945,20 @@
 
         function getMousePos(e, touchId = null) {
             const rect = canvas.getBoundingClientRect();
+            const pixelRatio = window.devicePixelRatio || 1;
+            let x, y;
             if (touchId !== null && e.touches) {
                 for (let i = 0; i < e.touches.length; i++) {
                     if (e.touches[i].identifier === touchId) {
-                        return {
-                            x: e.touches[i].clientX - rect.left,
-                            y: e.touches[i].clientY - rect.top
-                        };
+                        x = (e.touches[i].clientX - rect.left) / pixelRatio;
+                        y = (e.touches[i].clientY - rect.top) / pixelRatio;
+                        return { x, y };
                     }
                 }
             }
-            return {
-                x: (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left,
-                y: (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top
-            };
+            x = ((e.clientX || (e.touches && e.touches[0].clientX)) - rect.left) / pixelRatio;
+            y = ((e.clientY || (e.touches && e.touches[0].clientY)) - rect.top) / pixelRatio;
+            return { x, y };
         }
 
         function getScreenPos(e, touchId = null) {
@@ -980,9 +981,11 @@
 
         function handleCircleTap(e) {
             if (isPaused || isFleepSequence) return;
-            const pos = getMousePos(e);
+            const pos = getMousePos(e, e.type === 'touchstart' ? e.touches[0].identifier : null);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
-            if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
+            const isTouchEvent = e.type === 'touchstart';
+            const isDifferentTouch = isTouchEvent && circle.isDragging && e.touches[0].identifier !== circle.dragTouchId;
+            if (dist < circle.radius && (!circle.isDragging || !isTouchEvent || isDifferentTouch)) {
                 console.log('Circle tapped');
                 e.preventDefault();
                 if (isTrackingHits) {
