@@ -294,15 +294,6 @@
     const bounciness = 0.9;
     const bounceTimeWindow = 100;
 
-    const colors = [
-        { r: 0, g: 0, b: 0 },
-        { r: 5, g: 5, b: 25 },
-        { r: 15, g: 5, b: 25 }
-    ];
-    let currentColorIndex = 0;
-    let colorProgress = 0;
-    const colorTransitionSpeed = 0.01;
-
     let isCountingDown = false;
     let countdown = 3;
     let countdownInterval = null;
@@ -641,15 +632,9 @@
     }
 
     function updateColors() {
-        const currentColor = colors[currentColorIndex];
-        const nextColorIndex = (currentColorIndex + 1) % colors.length;
-        const nextColor = colors[nextColorIndex];
-
-        const r = Math.round(currentColor.r + (nextColor.r - currentColor.r) * colorProgress);
-        const g = Math.round(currentColor.g + (nextColor.g - currentColor.g) * colorProgress);
-        const b = Math.round(currentColor.b + (nextColor.b - currentColor.b) * colorProgress);
-
-        document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            // Return static black background and white inverted color
+            const r = 0, g = 0, b = 0; // Black
+            const invertedColor = { r: 255, g: 255, b: 255 }; // White
 
         const textColor = `rgb(${r}, ${g}, ${b})`;
         modeButton.style.color = textColor;
