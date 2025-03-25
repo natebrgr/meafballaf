@@ -13,7 +13,7 @@
             align-items: center;
             height: 100vh;
             font-family: Arial, sans-serif;
-            background-color: rgb(5, 5, 25); /* Static dark blue */
+            background-color: rgb(5, 5, 25); /* Fallback static dark blue */
             position: relative;
         }
         body::before {
@@ -89,8 +89,6 @@
             transition: opacity 0.5s ease;
             z-index: 10;
             pointer-events: none;
-            color: #e0e0e0; /* Static white */
-            text-shadow: 0 0 10px rgb(5, 5, 25); /* Static dark blue shadow */
         }
         #sighhh {
             left: 50%;
@@ -152,8 +150,6 @@
             font-weight: bold;
             font-family: Arial, sans-serif;
             cursor: pointer;
-            color: rgb(5, 5, 25); /* Static dark blue */
-            background-color: #e0e0e0; /* Static white */
             text-shadow: 0 0 5px #fff;
             border: none;
             border-radius: 5px;
@@ -640,14 +636,34 @@
         }
 
         function updateColors() {
-            // Return static colors
-            return { r: 5, g: 5, b: 25, inverted: { r: 224, g: 224, b: 224 } }; // rgb(5, 5, 25) and #e0e0e0
+            // Static colors: rgb(5, 5, 25) for dark, #e0e0e0 for inverted
+            const r = 5;
+            const g = 5;
+            const b = 25;
+
+            document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+
+            const textColor = `rgb(${r}, ${g}, ${b})`;
+            modeButton.style.color = textColor;
+            mapButton.style.color = textColor;
+            playButton.style.color = textColor;
+
+            const invertedColor = { r: 224, g: 224, b: 224 }; // #e0e0e0
+            const invertedStyle = `rgb(${invertedColor.r}, ${invertedColor.g}, ${invertedColor.b})`;
+            modeButton.style.backgroundColor = invertedStyle;
+            mapButton.style.backgroundColor = invertedStyle;
+            playButton.style.backgroundColor = invertedStyle;
+
+            countdownDisplay.style.color = invertedStyle;
+            countdownDisplay.style.textShadow = `0 0 10px rgb(${r}, ${g}, ${b})`;
+
+            return { r, g, b, inverted: invertedColor };
         }
 
         function getCircleColor(counterColor) {
             if (counterColor === 'rgb(11, 74, 28)') return 'rgb(11, 74, 28)';
             if (counterColor === 'rgb(130, 33, 33)') return 'rgb(130, 33, 33)';
-            return '#e0e0e0'; // Static white
+            return `rgb(224, 224, 224)`; // #e0e0e0
         }
 
         function lightenColor(color) {
@@ -659,7 +675,7 @@
         function drawScene(color) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = '#e0e0e0'; // Static white for map border
+            ctx.strokeStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
                 ctx.strokeRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
@@ -716,7 +732,7 @@
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = '#e0e0e0'; // Static white for "HOLDING" text
+                ctx.fillStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
                 ctx.shadowColor = '#fff'; // Always white glow
                 ctx.shadowBlur = 5 * pixelRatio; // Consistent with other white glows
                 ctx.shadowOffsetX = 0;
