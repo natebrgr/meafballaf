@@ -31,7 +31,8 @@
             position: absolute;
             z-index: 5;
             background: transparent;
-            /* Removed filter: drop-shadow to prevent fuzziness */
+            /* Removed filter: drop-shadow to reduce fuzziness */
+            pointer-events: auto;
         }
         #levelContainer, #countdown, #title, #sighhh {
             position: absolute;
@@ -64,19 +65,16 @@
             align-items: center;
             font-family: 'Impact', sans-serif;
             font-size: 2.5em;
+            text-shadow: 0 0 5px #fff; /* Default for white numbers */
+        }
+        #wallHits.bright-glow {
+            text-shadow: 0 0 10px; /* Brighter glow for green/red */
         }
         #wallHits {
             border-right: 2px solid #e0e0e0;
         }
-        #wallHits.white {
-            text-shadow: 0 0 3px #fff; /* Less bright glow when white */
-        }
-        #wallHits.green, #wallHits.red {
-            text-shadow: 0 0 5px #fff; /* Brighter glow when green or red */
-        }
         #levelNumber {
             color: rgb(11, 74, 28); /* Always green */
-            text-shadow: 0 0 5px #fff;
         }
         #countdown {
             top: 50%;
@@ -325,19 +323,19 @@
             const snugGap = 5;
 
             const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
-            canvas.height = availableHeight - 2 * borderWidth;
-            canvas.width = window.innerWidth * 0.9;
+            const pixelRatio = window.devicePixelRatio || 1;
+            canvas.style.width = `${window.innerWidth * 0.9}px`;
+            canvas.style.height = `${availableHeight - 2 * borderWidth}px`;
+            canvas.width = window.innerWidth * 0.9 * pixelRatio;
+            canvas.height = (availableHeight - 2 * borderWidth) * pixelRatio;
+            ctx.scale(pixelRatio, pixelRatio);
 
-            // Ensure canvas dimensions are integers to prevent subpixel rendering
-            canvas.width = Math.floor(canvas.width);
-            canvas.height = Math.floor(canvas.height);
-
-            const canvasLeft = (window.innerWidth - canvas.width) / 2;
+            const canvasLeft = (window.innerWidth - (window.innerWidth * 0.9)) / 2;
             const canvasTop = wallHitsBottom + snugGap;
             canvas.style.top = `${canvasTop}px`;
             canvas.style.left = `${canvasLeft}px`;
 
-            const canvasBottom = canvasTop + canvas.height + (2 * borderWidth);
+            const canvasBottom = canvasTop + (availableHeight - 2 * borderWidth);
 
             const buttonTop = canvasBottom + snugGap;
             modeButton.style.top = `${buttonTop}px`;
@@ -346,13 +344,13 @@
 
             mapButton.style.top = `${buttonTop}px`;
             mapButton.style.bottom = '';
-            mapButton.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
+            mapButton.style.right = `${window.innerWidth - (canvasLeft + (window.innerWidth * 0.9))}px`;
 
             playButton.style.top = `${buttonTop}px`;
             playButton.style.bottom = '';
 
             livesCount.style.left = `${canvasLeft}px`;
-            hiScoreCount.style.right = `${window.innerWidth - (canvasLeft + canvas.width)}px`;
+            hiScoreCount.style.right = `${window.innerWidth - (canvasLeft + (window.innerWidth * 0.9))}px`;
 
             sighhhDisplay.style.top = `${wallHitsBottom + 10}px`;
 
@@ -475,12 +473,12 @@
 
         function constrainCircle() {
             if (currentMap === 'rectangle') {
-                circle.x = Math.max(circle.radius, Math.min(canvas.width - circle.radius, circle.x));
-                circle.y = Math.max(circle.radius, Math.min(canvas.height - circle.radius, circle.y));
+                circle.x = Math.max(circle.radius, Math.min(canvas.width / (window.devicePixelRatio || 1) - circle.radius, circle.x));
+                circle.y = Math.max(circle.radius, Math.min(canvas.height / (window.devicePixelRatio || 1) - circle.radius, circle.y));
             } else {
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                const maxRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
+                const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
+                const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
+                const maxRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth;
                 const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                 if (distFromCenter + circle.radius > maxRadius) {
                     const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
@@ -550,8 +548,8 @@
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime || Date.now();
             } else {
-                circle.x = canvas.width / 2;
-                circle.y = canvas.height / 2;
+                circle.x = (canvas.width / (window.devicePixelRatio || 1)) / 2;
+                circle.y = (canvas.height / (window.devicePixelRatio || 1)) / 2;
                 circle.radius = defaultRadius;
                 circle.dx = 0;
                 circle.dy = 0;
@@ -628,14 +626,13 @@
         function drawScene(color) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw the map border
             ctx.strokeStyle = `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
-                ctx.strokeRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
             } else {
                 ctx.beginPath();
-                ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - borderWidth, 0, Math.PI * 2);
+                ctx.arc((canvas.width / (window.devicePixelRatio || 1)) / 2, (canvas.height / (window.devicePixelRatio || 1)) / 2, Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth, 0, Math.PI * 2);
                 ctx.stroke();
             }
 
@@ -647,7 +644,6 @@
             const circleColor = getCircleColor(counterColor) || `rgb(${color.inverted.r}, ${color.inverted.g}, ${color.inverted.b})`;
             const trailBaseColor = lightenColor(circleColor);
 
-            // Draw the trail
             if (trail.length > 1) {
                 ctx.beginPath();
                 ctx.lineWidth = circle.radius * 2;
@@ -663,19 +659,11 @@
                 }
             }
 
-            // Draw the circle with a glow effect
             ctx.beginPath();
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = circleColor;
             ctx.fill();
-            // Add glow effect to the circle
-            ctx.shadowColor = '#fff';
-            ctx.shadowBlur = 5;
-            ctx.strokeStyle = circleColor;
-            ctx.stroke();
             ctx.closePath();
-            // Reset shadow for other elements
-            ctx.shadowBlur = 0;
 
             const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
             if (shouldShowHoldingText) {
@@ -718,14 +706,18 @@
 
             const offset = circle.radius + 20;
 
-            // Draw wall hit numbers around the circle
             ctx.font = 'bold 40px Impact, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = counterColor;
-            ctx.shadowColor = '#fff';
             // Adjust glow based on color
-            ctx.shadowBlur = counterColor === '#e0e0e0' ? 3 : 5; // Less bright for white, brighter for green/red
+            if (counterColor === '#e0e0e0') {
+                ctx.shadowColor = '#fff';
+                ctx.shadowBlur = 5; // Less bright for white
+            } else {
+                ctx.shadowColor = counterColor;
+                ctx.shadowBlur = 10; // Brighter for green/red
+            }
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             ctx.fillText(wallHits, circle.x, circle.y - offset);
@@ -733,14 +725,13 @@
             ctx.fillText(wallHits, circle.x - offset, circle.y);
             ctx.fillText(wallHits, circle.x + offset, circle.y);
 
-            // Draw level numbers around the circle
             ctx.fillStyle = greenColor;
-            ctx.shadowBlur = 5; // Always brighter for green
-            const diagonalOffset = offset * Math.sqrt(2) / 2;
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y - diagonalOffset);
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y - diagonalOffset);
-            ctx.fillText(level, circle.x - diagonalOffset, circle.y + diagonalOffset);
-            ctx.fillText(level, circle.x + diagonalOffset, circle.y + diagonalOffset);
+            ctx.shadowColor = greenColor;
+            ctx.shadowBlur = 10; // Brighter for green
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
 
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
@@ -777,15 +768,15 @@
                 let walls;
                 if (currentMap === 'rectangle') {
                     walls = [
-                        { name: 'right', edge: canvas.width, pos: circle.x + circle.radius, velocity: circle.dx, isContact: circle.x + circle.radius >= canvas.width },
+                        { name: 'right', edge: canvas.width / (window.devicePixelRatio || 1), pos: circle.x + circle.radius, velocity: circle.dx, isContact: circle.x + circle.radius >= canvas.width / (window.devicePixelRatio || 1) },
                         { name: 'left', edge: 0, pos: circle.x - circle.radius, velocity: circle.dx, isContact: circle.x - circle.radius <= 0 },
-                        { name: 'bottom', edge: canvas.height, pos: circle.y + circle.radius, velocity: circle.dy, isContact: circle.y + circle.radius >= canvas.height },
+                        { name: 'bottom', edge: canvas.height / (window.devicePixelRatio || 1), pos: circle.y + circle.radius, velocity: circle.dy, isContact: circle.y + circle.radius >= canvas.height / (window.devicePixelRatio || 1) },
                         { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, isContact: circle.y - circle.radius <= 0 }
                     ];
                 } else {
-                    const centerX = canvas.width / 2;
-                    const centerY = canvas.height / 2;
-                    const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
+                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
+                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
+                    const radius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth;
                     const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                     const isContact = distFromCenter + circle.radius >= radius;
                     walls = [{ name: 'boundary', edge: radius, pos: distFromCenter + circle.radius, velocity: 0, isContact }];
@@ -805,11 +796,14 @@
                                 if (wallHits === level) counterColor = greenColor;
                                 else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
                                 wallHitsDisplay.style.color = counterColor;
-                                // Update class for glow adjustment
-                                wallHitsDisplay.classList.remove('white', 'green', 'red');
-                                if (counterColor === '#e0e0e0') wallHitsDisplay.classList.add('white');
-                                else if (counterColor === greenColor) wallHitsDisplay.classList.add('green');
-                                else wallHitsDisplay.classList.add('red');
+                                // Adjust glow based on color
+                                if (counterColor === '#e0e0e0') {
+                                    wallHitsDisplay.classList.remove('bright-glow');
+                                    wallHitsDisplay.style.textShadow = '0 0 5px #fff'; // Less bright for white
+                                } else {
+                                    wallHitsDisplay.classList.add('bright-glow');
+                                    wallHitsDisplay.style.textShadow = `0 0 10px ${counterColor}`; // Brighter for green/red
+                                }
                                 if (wallHits > level && currentMode === 'survival') {
                                     const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
                                     showText(text);
@@ -824,24 +818,24 @@
                 });
 
                 if (currentMap === 'rectangle') {
-                    if (circle.x + circle.radius > canvas.width) {
-                        circle.x = canvas.width - circle.radius;
+                    if (circle.x + circle.radius > canvas.width / (window.devicePixelRatio || 1)) {
+                        circle.x = (canvas.width / (window.devicePixelRatio || 1)) - circle.radius;
                         circle.dx = -circle.dx * bounciness;
                     } else if (circle.x - circle.radius < 0) {
                         circle.x = circle.radius;
                         circle.dx = -circle.dx * bounciness;
                     }
-                    if (circle.y + circle.radius > canvas.height) {
-                        circle.y = canvas.height - circle.radius;
+                    if (circle.y + circle.radius > canvas.height / (window.devicePixelRatio || 1)) {
+                        circle.y = (canvas.height / (window.devicePixelRatio || 1)) - circle.radius;
                         circle.dy = -circle.dy * bounciness;
                     } else if (circle.y - circle.radius < 0) {
                         circle.y = circle.radius;
                         circle.dy = -circle.dy * bounciness;
                     }
                 } else {
-                    const centerX = canvas.width / 2;
-                    const centerY = canvas.height / 2;
-                    const radius = Math.min(canvas.width, canvas.height) / 2 - borderWidth;
+                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
+                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
+                    const radius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth;
                     const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                     if (distFromCenter + circle.radius >= radius) {
                         const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
@@ -862,8 +856,8 @@
                 wallHits = 0;
                 wallHitsDisplay.textContent = `${wallHits}`;
                 wallHitsDisplay.style.color = '#e0e0e0';
-                wallHitsDisplay.classList.remove('white', 'green', 'red');
-                wallHitsDisplay.classList.add('white');
+                wallHitsDisplay.classList.remove('bright-glow');
+                wallHitsDisplay.style.textShadow = '0 0 5px #fff'; // Reset to less bright glow
                 isTrackingHits = true;
                 countdownOpacity = 1;
                 shownTexts.clear();
@@ -896,15 +890,15 @@
                 for (let i = 0; i < e.touches.length; i++) {
                     if (e.touches[i].identifier === touchId) {
                         return {
-                            x: e.touches[i].clientX - rect.left,
-                            y: e.touches[i].clientY - rect.top
+                            x: (e.touches[i].clientX - rect.left) * (window.devicePixelRatio || 1),
+                            y: (e.touches[i].clientY - rect.top) * (window.devicePixelRatio || 1)
                         };
                     }
                 }
             }
             return {
-                x: (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left,
-                y: (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top
+                x: ((e.clientX || (e.touches && e.touches[0].clientX)) - rect.left) * (window.devicePixelRatio || 1),
+                y: ((e.clientY || (e.touches && e.touches[0].clientY)) - rect.top) * (window.devicePixelRatio || 1)
             };
         }
 
@@ -1051,12 +1045,12 @@
                 const pos = getMousePos(e, circle.dragTouchId);
 
                 if (currentMap === 'rectangle') {
-                    pos.x = Math.max(circle.radius, Math.min(canvas.width - circle.radius, pos.x));
-                    pos.y = Math.max(circle.radius, Math.min(canvas.height - circle.radius, pos.y));
+                    pos.x = Math.max(circle.radius, Math.min((canvas.width / (window.devicePixelRatio || 1)) - circle.radius, pos.x));
+                    pos.y = Math.max(circle.radius, Math.min((canvas.height / (window.devicePixelRatio || 1)) - circle.radius, pos.y));
                 } else {
-                    const centerX = canvas.width / 2;
-                    const centerY = canvas.height / 2;
-                    const maxRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth - circle.radius;
+                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
+                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
+                    const maxRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth - circle.radius;
                     const dx = pos.x - centerX;
                     const dy = pos.y - centerY;
                     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -1100,15 +1094,15 @@
                 if (currentMap === 'rectangle') {
                     maxAllowedRadius = Math.min(
                         circle.x, 
-                        canvas.width - circle.x,
+                        (canvas.width / (window.devicePixelRatio || 1)) - circle.x,
                         circle.y,
-                        canvas.height - circle.y
+                        (canvas.height / (window.devicePixelRatio || 1)) - circle.y
                     );
                 } else {
-                    const centerX = canvas.width / 2;
-                    const centerY = canvas.height / 2;
+                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
+                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
                     const distToCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
-                    maxAllowedRadius = Math.min(canvas.width, canvas.height) / 2 - borderWidth - distToCenter;
+                    maxAllowedRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth - distToCenter;
                 }
 
                 circle.radius = Math.min(newRadius, maxAllowedRadius);
