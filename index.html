@@ -31,7 +31,6 @@
             position: absolute;
             z-index: 5;
             background: transparent;
-            /* Removed filter: drop-shadow to reduce fuzziness */
             pointer-events: auto;
         }
         #levelContainer, #countdown, #title, #sighhh {
@@ -65,16 +64,17 @@
             align-items: center;
             font-family: 'Impact', sans-serif;
             font-size: 2.5em;
-            text-shadow: 0 0 5px #fff; /* Default for white numbers */
+        }
+        #wallHits {
+            text-shadow: 0 0 5px #fff; /* Default for white */
+            border-right: 2px solid #e0e0e0;
         }
         #wallHits.bright-glow {
             text-shadow: 0 0 10px; /* Brighter glow for green/red */
         }
-        #wallHits {
-            border-right: 2px solid #e0e0e0;
-        }
         #levelNumber {
             color: rgb(11, 74, 28); /* Always green */
+            text-shadow: 0 0 10px rgb(11, 74, 28); /* Brighter glow for green */
         }
         #countdown {
             top: 50%;
@@ -713,7 +713,7 @@
             // Adjust glow based on color
             if (counterColor === '#e0e0e0') {
                 ctx.shadowColor = '#fff';
-                ctx.shadowBlur = 5; // Less bright for white
+                ctx.shadowBlur = 5; // Less bright for white, matching #wallHits
             } else {
                 ctx.shadowColor = counterColor;
                 ctx.shadowBlur = 10; // Brighter for green/red
@@ -796,7 +796,6 @@
                                 if (wallHits === level) counterColor = greenColor;
                                 else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
                                 wallHitsDisplay.style.color = counterColor;
-                                // Adjust glow based on color
                                 if (counterColor === '#e0e0e0') {
                                     wallHitsDisplay.classList.remove('bright-glow');
                                     wallHitsDisplay.style.textShadow = '0 0 5px #fff'; // Less bright for white
@@ -890,15 +889,15 @@
                 for (let i = 0; i < e.touches.length; i++) {
                     if (e.touches[i].identifier === touchId) {
                         return {
-                            x: (e.touches[i].clientX - rect.left) * (window.devicePixelRatio || 1),
-                            y: (e.touches[i].clientY - rect.top) * (window.devicePixelRatio || 1)
+                            x: e.touches[i].clientX - rect.left,
+                            y: e.touches[i].clientY - rect.top
                         };
                     }
                 }
             }
             return {
-                x: ((e.clientX || (e.touches && e.touches[0].clientX)) - rect.left) * (window.devicePixelRatio || 1),
-                y: ((e.clientY || (e.touches && e.touches[0].clientY)) - rect.top) * (window.devicePixelRatio || 1)
+                x: (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left,
+                y: (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top
             };
         }
 
