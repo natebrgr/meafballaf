@@ -141,13 +141,13 @@
             font-weight: bold;
             font-family: Arial, sans-serif;
             cursor: pointer;
-            color: #ffffff; /* White text */
-            text-shadow: 0 0 5px #fff; /* White glow */
-            background: transparent; /* No background fill */
-            border: 2px solid #ffffff; /* White border like canvas */
-            border-radius: 0; /* Remove rounded corners for a more border-like look */
-            filter: drop-shadow(0 0 5px #fff); /* Keep glow effect */
-            transition: none; /* Remove background-color transition */
+            color: #ffffff;
+            text-shadow: 0 0 5px #fff;
+            background: transparent;
+            border: 2px solid #ffffff;
+            border-radius: 0;
+            filter: drop-shadow(0 0 5px #fff);
+            transition: none;
             z-index: 25;
             pointer-events: auto;
         }
@@ -336,6 +336,22 @@
             'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
         };
 
+        let greenSection = null;
+        let redSection = null;
+
+        function assignSections() {
+            if (currentMode === 'survival' && currentMap === 'rectangle') {
+                const sections = [0, 1, 2]; // 0 = top, 1 = middle, 2 = bottom
+                const greenIndex = Math.floor(Math.random() * sections.length);
+                greenSection = sections.splice(greenIndex, 1)[0];
+                const redIndex = Math.floor(Math.random() * sections.length);
+                redSection = sections.splice(redIndex, 1)[0];
+            } else {
+                greenSection = null;
+                redSection = null;
+            }
+        }
+
         function setCanvasSize() {
             const wallHitsTop = parseInt(window.getComputedStyle(levelContainer).top) || 40;
             const wallHitsHeight = levelContainer.offsetHeight || 60;
@@ -359,7 +375,7 @@
 
             const canvasBottom = canvasTop + (availableHeight - 2 * borderWidth);
             const canvasHeight = availableHeight - 2 * borderWidth;
-            const countdownTop = canvasTop + (canvasHeight * 1 / 6);
+            const countdownTop = canvasTop + (canvasHeight / 6); // Center of top third
             countdownDisplay.style.top = `${countdownTop}px`;
 
             const buttonTop = canvasBottom + snugGap;
@@ -384,6 +400,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             setCanvasSize();
+            assignSections();
             requestAnimationFrame(() => setCanvasSize());
         });
         window.addEventListener('resize', setCanvasSize);
@@ -403,6 +420,7 @@
             }
 
             if (level !== previousLevel) {
+                assignSections();
                 if (level < previousLevel) {
                     levelNumber.classList.remove('flash-red', 'flash-white');
                     void levelNumber.offsetHeight;
@@ -628,9 +646,7 @@
             requestAnimationFrame(() => drawScene());
         }
 
-        function updateColors() {
-            // Empty function since we no longer need color updates
-        }
+        function updateColors() {}
 
         function getCircleColor(counterColor) {
             if (counterColor === 'rgb(11, 74, 28)') return 'rgb(11, 74, 28)';
@@ -646,6 +662,22 @@
 
         function drawScene() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (currentMode === 'survival' && currentMap === 'rectangle') {
+                const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+                const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                const sectionHeight = canvasHeight / 3;
+
+                if (greenSection !== null) {
+                    ctx.fillStyle = 'rgb(11, 74, 28)';
+                    ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
+                }
+
+                if (redSection !== null) {
+                    ctx.fillStyle = 'rgb(130, 33, 33)';
+                    ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
+                }
+            }
 
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = borderWidth * 2;
