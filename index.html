@@ -289,7 +289,7 @@
         let previousLives = lives;
         let previousLevel = level;
         let previousHiScore = hiScore;
-        let startingLives = lives;
+        let startingLives = lives; // Lives at the start of the current level
 
         let currentMode = 'survival';
         let currentMap = 'rectangle';
@@ -302,10 +302,10 @@
         let buttonActivated = { play: false, mode: false, map: false };
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false }
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
+            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity },
+            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity }
         };
 
         let greenSection = null;
@@ -346,7 +346,7 @@
             canvas.style.left = `${canvasLeft}px`;
 
             const canvasBottom = canvasTop + (availableHeight - 2 * borderWidth);
-            countdownDisplay.style.top = `${canvasTop + 10}px`; // Back to original position
+            countdownDisplay.style.top = `${canvasTop + 10}px`;
 
             const buttonTop = canvasBottom + snugGap;
             modeButton.style.top = `${buttonTop}px`;
@@ -472,7 +472,8 @@
                 isCountingDown,
                 countdown,
                 countdownOpacity,
-                wasDraggingWhenPaused: circle.wasDraggingWhenPaused
+                wasDraggingWhenPaused: circle.wasDraggingWhenPaused,
+                startingLives
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -493,6 +494,7 @@
             countdown = state.countdown;
             countdownOpacity = state.countdownOpacity;
             circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
+            startingLives = state.startingLives !== undefined ? state.startingLives : (mode === 'survival' ? 3 : Infinity);
 
             if (state.circle.x !== undefined) {
                 circle.x = state.circle.x;
@@ -524,15 +526,20 @@
                 trail.push(...state.trail);
             }
 
-            startingLives = lives;
             updateDisplay();
             requestAnimationFrame(() => drawScene());
         }
 
         function getCircleColor(counterColor) {
-            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28, 0.3)';
-            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33, 0.3)';
-            return 'rgba(255, 255, 255, 0.3)';
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28, 0.7)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33, 0.7)';
+            return 'rgba(255, 255, 255, 0.7)';
+        }
+
+        function getBorderColor(counterColor) {
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgb(11, 74, 28)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgb(130, 33, 33)';
+            return '#ffffff';
         }
 
         function lightenColor(color) {
@@ -608,6 +615,7 @@
             else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
 
             const circleColor = getCircleColor(counterColor);
+            const borderColor = getBorderColor(counterColor);
             const trailBaseColor = lightenColor(counterColor);
 
             if (trail.length > 1) {
@@ -631,16 +639,19 @@
             ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
             ctx.fillStyle = circleColor;
             ctx.fill();
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 2 * pixelRatio;
+            ctx.stroke();
             ctx.closePath();
             ctx.shadowBlur = 0;
 
-            // Draw black crosshair with white glow
+            // Draw thinner, longer black crosshair with white glow
             ctx.beginPath();
             ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2 * pixelRatio;
+            ctx.lineWidth = 1 * pixelRatio; // Thinner
             ctx.shadowColor = '#fff';
             ctx.shadowBlur = 10 * pixelRatio;
-            const crossSize = 10;
+            const crossSize = 15; // Longer
             ctx.moveTo(circle.x - crossSize, circle.y);
             ctx.lineTo(circle.x + crossSize, circle.y);
             ctx.moveTo(circle.x, circle.y - crossSize);
@@ -848,7 +859,6 @@
                 wallHitsDisplay.style.textShadow = '0 0 5px #fff';
                 isTrackingHits = true;
                 countdownOpacity = 1;
-                startingLives = lives;
             } else {
                 isCountingDown = true;
             }
@@ -915,55 +925,55 @@
                 console.log('Circle tapped');
                 e.preventDefault();
 
-                if (!isCountingDown) {
-                    if (wallHits === level) {
-                        isTrackingHits = false;
-                        const completedLevel = level;
-                        level++;
-                        let flashColor = null;
+                if (wallHits === level) {
+                    isTrackingHits = false;
+                    const completedLevel = level;
+                    level++;
+                    let flashColor = null;
 
-                        if (currentMode === 'survival' && currentMap === 'rectangle') {
-                            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                            const sectionHeight = canvasHeight / 3;
-                            const circleSection = Math.floor(circle.y / sectionHeight);
+                    if (currentMode === 'survival' && currentMap === 'rectangle') {
+                        const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                        const sectionHeight = canvasHeight / 3;
+                        const circleSection = Math.floor(circle.y / sectionHeight);
 
-                            if (circleSection === greenSection) {
-                                lives = startingLives + 1;
-                                flashColor = 'flash-green';
-                            } else if (circleSection === redSection) {
-                                lives = Math.max(startingLives - 1, 1);
-                                flashColor = 'flash-red';
-                            } else {
-                                lives = startingLives;
-                            }
-                        } else if (currentMode === 'survival') {
-                            lives = 3;
+                        if (circleSection === greenSection) {
+                            lives = startingLives + 1;
+                            flashColor = 'flash-green';
+                        } else if (circleSection === redSection) {
+                            lives = Math.max(startingLives - 1, 1);
+                            flashColor = 'flash-red';
+                        } else {
+                            lives = startingLives;
                         }
-
-                        if (completedLevel > hiScore) hiScore = completedLevel;
-                        wallHits = 0;
-                        if (flashColor) {
-                            canvas.classList.remove('flash-green', 'flash-red');
-                            void canvas.offsetHeight;
-                            canvas.classList.add(flashColor);
-                        }
-                        saveState();
-                        updateDisplay();
-                        startCountdown();
-                    } else if (wallHits > level && currentMode === 'survival') {
-                        lives--;
-                        if (lives <= 0) {
-                            level = 1;
-                            lives = 3;
-                        }
-                        wallHits = 0;
-                        saveState();
-                        updateDisplay();
-                        startCountdown();
-                    } else {
-                        wallHits = 0;
-                        startCountdown();
+                    } else if (currentMode === 'survival') {
+                        lives = 3;
                     }
+
+                    if (completedLevel > hiScore) hiScore = completedLevel;
+                    wallHits = 0;
+                    if (flashColor) {
+                        canvas.classList.remove('flash-green', 'flash-red');
+                        void canvas.offsetHeight;
+                        canvas.classList.add(flashColor);
+                    }
+                    startingLives = lives; // Update startingLives for the new level
+                    saveState();
+                    updateDisplay();
+                    startCountdown();
+                } else if (wallHits > level && currentMode === 'survival') {
+                    lives--;
+                    if (lives <= 0) {
+                        level = 1;
+                        lives = 3;
+                        startingLives = 3;
+                    }
+                    wallHits = 0;
+                    saveState();
+                    updateDisplay();
+                    startCountdown();
+                } else if (!isCountingDown) {
+                    wallHits = 0;
+                    startCountdown();
                 }
             }
         }
