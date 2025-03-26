@@ -123,7 +123,7 @@
         #livesCount.flash-green {
             animation: flashGreen 0.5s ease;
         }
-        #-livesCount.flash-red {
+        #livesCount.flash-red {
             animation: flashRed 0.5s ease;
         }
         #hiScoreCount.flash-green {
@@ -398,7 +398,7 @@
             canvas.style.left = `${canvasLeft}px`;
 
             const canvasBottom = canvasTop + (availableHeight - 2 * borderWidth);
-            countdownDisplay.style.top = `${canvasTop + 10}px`; // 10px below canvas top edge
+            countdownDisplay.style.top = `${wallHitsTop + wallHitsHeight / 2}px`; // Align with levelContainer's vertical midpoint
 
             const buttonTop = canvasBottom + snugGap;
             modeButton.style.top = `${buttonTop}px`;
@@ -496,6 +496,11 @@
 
         function showText(text) {
             if (!shownTexts.has(text)) {
+                // Only show specific texts if lives match the condition
+                if (text === 'sighhh' && lives !== 3) return;
+                if (text === 'SighhhAFF' && lives !== 2) return;
+                if (text === 'SIGHHH me to FLEEP' && lives !== 1) return;
+
                 shownTexts.add(text);
                 currentSighhhText = text;
                 sighhhVisible = true;
@@ -949,10 +954,6 @@
                                     wallHitsDisplay.style.setProperty('--outline-color', outlineColor);
                                     wallHitsDisplay.style.textShadow = `0 0 10px #fff, 0 0 2px ${outlineColor}`;
                                 }
-                                if (wallHits > level && currentMode === 'survival') {
-                                    const text = lives === 3 ? 'sighhh' : lives === 2 ? 'SighhhAFF' : 'SIGHHH me to FLEEP';
-                                    showText(text);
-                                }
                             }
                         }
                     } else {
@@ -1073,105 +1074,66 @@
             if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
                 console.log('Circle tapped');
                 e.preventDefault();
-                if (isTrackingHits) {
-                    if (isCountingDown) {
-                        if (wallHits === level) {
-                            isTrackingHits = false;
-                            isCountingDown = false;
-                            clearInterval(countdownInterval);
-                            countdownInterval = null;
-                            countdownOpacity = 0;
-                            countdownDisplay.style.opacity = countdownOpacity;
-                            const completedLevel = level;
-                            level++;
 
-                            let flashColor = null;
-                            if (currentMode === 'survival' && currentMap === 'rectangle') {
-                                const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                                const sectionHeight = canvasHeight / 3;
-                                const circleSection = Math.floor(circle.y / sectionHeight);
-
-                                if (circleSection === greenSection) {
-                                    lives = startingLives + 1;
-                                    flashColor = 'flash-green';
-                                } else if (circleSection === redSection) {
-                                    lives = Math.max(startingLives - 1, 1);
-                                    flashColor = 'flash-red';
-                                } else {
-                                    lives = startingLives;
-                                }
-                            } else if (currentMode === 'survival') {
-                                lives = 3;
-                            }
-
-                            if (completedLevel > hiScore) hiScore = completedLevel;
-                            wallHits = 0;
-                            showText('yee haw BII');
-                            if (flashColor) {
-                                canvas.classList.remove('flash-green', 'flash-red');
-                                void canvas.offsetHeight;
-                                canvas.classList.add(flashColor);
-                            }
-                            saveState();
-                            updateDisplay();
-                            startCountdown();
-                        }
-                    } else {
+                if (!isCountingDown) {
+                    if (wallHits === level) {
+                        // Winning a level
                         isTrackingHits = false;
-                        const previousWallHits = wallHits;
-                        const previousLives = lives;
-                        if (wallHits === level) {
-                            const completedLevel = level;
-                            level++;
+                        const completedLevel = level;
+                        level++;
+                        let flashColor = null;
 
-                            let flashColor = null;
-                            if (currentMode === 'survival' && currentMap === 'rectangle') {
-                                const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                                const sectionHeight = canvasHeight / 3;
-                                const circleSection = Math.floor(circle.y / sectionHeight);
+                        if (currentMode === 'survival' && currentMap === 'rectangle') {
+                            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                            const sectionHeight = canvasHeight / 3;
+                            const circleSection = Math.floor(circle.y / sectionHeight);
 
-                                if (circleSection === greenSection) {
-                                    lives = startingLives + 1;
-                                    flashColor = 'flash-green';
-                                } else if (circleSection === redSection) {
-                                    lives = Math.max(startingLives - 1, 1);
-                                    flashColor = 'flash-red';
-                                } else {
-                                    lives = startingLives;
-                                }
-                            } else if (currentMode === 'survival') {
-                                lives = 3;
-                            }
-
-                            if (completedLevel > hiScore) hiScore = completedLevel;
-                            wallHits = 0;
-                            showText('yee haw BII');
-                            if (flashColor) {
-                                canvas.classList.remove('flash-green', 'flash-red');
-                                void canvas.offsetHeight;
-                                canvas.classList.add(flashColor);
+                            if (circleSection === greenSection) {
+                                lives = startingLives + 1;
+                                flashColor = 'flash-green';
+                            } else if (circleSection === redSection) {
+                                lives = Math.max(startingLives - 1, 1);
+                                flashColor = 'flash-red';
+                            } else {
+                                lives = startingLives;
                             }
                         } else if (currentMode === 'survival') {
-                            lives--;
-                            let text = '';
-                            if (previousLives === 3 && lives === 2) {
-                                text = 'sighhh';
-                            } else if (previousLives === 2 && lives === 1) {
-                                text = 'SighhhAFF';
-                            } else if (lives <= 0) {
-                                level = 1;
-                                lives = 3;
-                                text = 'SIGHHH me to FLEEP';
-                            }
-                            if (text) showText(text);
+                            lives = 3; // Reset to 3 for non-rectangle survival mode
+                        }
+
+                        if (completedLevel > hiScore) hiScore = completedLevel;
+                        wallHits = 0;
+                        showText('yee haw BII');
+                        if (flashColor) {
+                            canvas.classList.remove('flash-green', 'flash-red');
+                            void canvas.offsetHeight;
+                            canvas.classList.add(flashColor);
                         }
                         saveState();
                         updateDisplay();
                         startCountdown();
+                    } else if (wallHits > level && currentMode === 'survival') {
+                        // Failing a level
+                        lives--;
+                        let text = '';
+                        if (lives === 3) text = 'sighhh';
+                        else if (lives === 2) text = 'SighhhAFF';
+                        else if (lives === 1) text = 'SIGHHH me to FLEEP';
+                        else if (lives <= 0) {
+                            level = 1;
+                            lives = 3;
+                            text = 'SIGHHH me to FLEEP';
+                        }
+                        if (text) showText(text);
+                        wallHits = 0;
+                        saveState();
+                        updateDisplay();
+                        startCountdown();
+                    } else {
+                        // First tap to start
+                        wallHits = 0;
+                        startCountdown();
                     }
-                } else if (!isCountingDown) {
-                    wallHits = 0;
-                    startCountdown();
                 }
             }
         }
