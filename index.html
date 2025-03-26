@@ -289,7 +289,7 @@
         let previousLives = lives;
         let previousLevel = level;
         let previousHiScore = hiScore;
-        let startingLives = lives; // Lives at the start of the current level
+        let startingLives = lives;
 
         let currentMode = 'survival';
         let currentMap = 'rectangle';
@@ -542,6 +542,12 @@
             return '#ffffff';
         }
 
+        function getCrosshairColor(counterColor) {
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(0, 0, 0, 0.7)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(0, 0, 0, 0.7)';
+            return 'rgba(0, 0, 0, 0.7)';
+        }
+
         function lightenColor(color) {
             if (color === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28,';
             if (color === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33,';
@@ -573,10 +579,10 @@
                 ctx.shadowColor = '#fff';
                 ctx.shadowBlur = 10 * pixelRatio;
 
-                const greenLives = startingLives + 1;
-                const redLives = Math.max(startingLives - 1, 1);
+                const greenLives = startingLives <= 3 ? startingLives + 1 : (lives > 2 ? lives + 1 : 4);
+                const redLives = startingLives <= 3 ? Math.max(startingLives - 1, 1) : (lives > 2 ? Math.max(lives - 1, 1) : 2);
                 const blackSection = [0, 1, 2].find(s => s !== greenSection && s !== redSection);
-                const blackLives = startingLives;
+                const blackLives = startingLives <= 3 ? startingLives : (lives > 2 ? lives : 3);
 
                 if (greenSection !== null) {
                     ctx.fillStyle = 'rgb(11, 74, 28)';
@@ -616,6 +622,7 @@
 
             const circleColor = getCircleColor(counterColor);
             const borderColor = getBorderColor(counterColor);
+            const crosshairColor = getCrosshairColor(counterColor);
             const trailBaseColor = lightenColor(counterColor);
 
             if (trail.length > 1) {
@@ -645,13 +652,12 @@
             ctx.closePath();
             ctx.shadowBlur = 0;
 
-            // Draw thinner, longer black crosshair with white glow
             ctx.beginPath();
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1 * pixelRatio; // Thinner
+            ctx.strokeStyle = crosshairColor;
+            ctx.lineWidth = 1 * pixelRatio;
             ctx.shadowColor = '#fff';
             ctx.shadowBlur = 10 * pixelRatio;
-            const crossSize = 15; // Longer
+            const crossSize = 15;
             ctx.moveTo(circle.x - crossSize, circle.y);
             ctx.lineTo(circle.x + crossSize, circle.y);
             ctx.moveTo(circle.x, circle.y - crossSize);
@@ -936,14 +942,23 @@
                         const sectionHeight = canvasHeight / 3;
                         const circleSection = Math.floor(circle.y / sectionHeight);
 
+                        let baseLives;
+                        if (startingLives > 3 && lives < 3) {
+                            baseLives = 3; // Scenario 1: Apply to 3
+                        } else if (startingLives > 3 && lives > 2) {
+                            baseLives = lives; // Scenario 2: Apply to current lives
+                        } else {
+                            baseLives = startingLives; // Default: Apply to startingLives
+                        }
+
                         if (circleSection === greenSection) {
-                            lives = startingLives + 1;
+                            lives = baseLives + 1;
                             flashColor = 'flash-green';
                         } else if (circleSection === redSection) {
-                            lives = Math.max(startingLives - 1, 1);
+                            lives = Math.max(baseLives - 1, 1);
                             flashColor = 'flash-red';
                         } else {
-                            lives = startingLives;
+                            lives = baseLives;
                         }
                     } else if (currentMode === 'survival') {
                         lives = 3;
@@ -956,11 +971,22 @@
                         void canvas.offsetHeight;
                         canvas.classList.add(flashColor);
                     }
-                    startingLives = lives; // Update startingLives for the new level
+                    startingLives = lives;
                     saveState();
                     updateDisplay();
                     startCountdown();
                 } else if (wallHits > level && currentMode === 'survival') {
+                    lives--;
+                    if (lives <= 0) {
+                        level = 1;
+                        lives = 3;
+                        startingLives = 3;
+                    }
+                    wallHits = 0;
+                    saveState();
+                    updateDisplay();
+                    startCountdown();
+                } else if (wallHits < level && currentMode === 'survival' && !isCountingDown) {
                     lives--;
                     if (lives <= 0) {
                         level = 1;
