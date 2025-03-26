@@ -204,10 +204,10 @@
             100% { color: rgb(11, 74, 28); text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
         }
         canvas.flash-green {
-            animation: flashGreenBorder 0.5s ease;
+            animation: flashGreen 0.5s ease;
         }
         canvas.flash-red {
-            animation: flashRedBorder 0.5s ease;
+            animation: flashRed 0.5s ease;
         }
     </style>
 </head>
@@ -223,7 +223,7 @@
     <button id="modeButton">MODE</button>
     <button id="mapButton">MAP</button>
     <canvas id="canvas"></canvas>
-    <button id="playButton">||</button>
+    <button id="playButton">PAUSE</button>
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -240,7 +240,7 @@
 
         const borderWidth = 2;
         const defaultRadius = 30;
-        const initialRadius = 75;
+        const initialRadius = 70;
         const resizeHoldThreshold = 200;
 
         const circle = {
@@ -397,9 +397,6 @@
                     levelContainer.classList.remove('flash-green', 'flash-red');
                     void levelContainer.offsetHeight;
                     levelContainer.classList.add('flash-red');
-                    canvas.classList.remove('flash-green', 'flash-red');
-                    void canvas.offsetHeight;
-                    canvas.classList.add('flash-red');
                 } else if (level > previousLevel) {
                     levelNumber.classList.remove('flash-red', 'flash-white');
                     void levelNumber.offsetHeight;
@@ -407,9 +404,6 @@
                     levelContainer.classList.remove('flash-green', 'flash-red');
                     void levelContainer.offsetHeight;
                     levelContainer.classList.add('flash-green');
-                    canvas.classList.remove('flash-green', 'flash-red');
-                    void canvas.offsetHeight;
-                    canvas.classList.add('flash-green');
                 }
                 previousLevel = level;
             }
@@ -429,7 +423,7 @@
             titleDisplay.textContent = currentMode === 'survival' ? 'SURVIVAL MODE' : 'ENDURANCE MODE';
             setCanvasSize();
 
-            playButton.textContent = isPaused ? '▶' : '||';
+            playButton.textContent = isPaused ? 'RESUME' : 'PAUSE';
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
 
@@ -1266,7 +1260,7 @@
             if (target === mapButton) {
                 if (!holdTimers.map && !buttonActivated.map) {
                     mapButton.classList.remove('glow-white', 'recede');
-                    mapButton.classList.add('glow-white');
+                    map preseButton.classList.add('glow-white');
                     holdTimers.map = setTimeout(() => {
                         if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === mapButton) {
                             mapButton.classList.remove('glow-white');
