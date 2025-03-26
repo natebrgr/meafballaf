@@ -269,7 +269,7 @@
             initialRadius: initialRadius,
             resizeStartTime: 0,
             resizeTimer: null,
-            hasBeenTouched: false // Track if player has interacted yet
+            hasBeenTouched: false
         };
 
         const gravity = 0.5;
@@ -928,7 +928,7 @@
         }
 
         function handleCircleTap(e) {
-            if (isPaused || isCountingDown) return;
+            if (isPaused) return;
             const pos = getMousePos(e);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
             if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
@@ -937,6 +937,64 @@
                 if (!circle.hasBeenTouched) {
                     circle.hasBeenTouched = true;
                     startCountdown();
+                    return;
+                }
+
+                if (isCountingDown) {
+                    if (wallHits === level) {
+                        // Instant win during countdown
+                        isTrackingHits = false;
+                        if (countdownInterval) {
+                            clearInterval(countdownInterval);
+                            countdownInterval = null;
+                            countdownOpacity = 0;
+                            countdownDisplay.style.opacity = countdownOpacity;
+                            isCountingDown = false;
+                        }
+                        const completedLevel = level;
+                        level++;
+                        let flashColor = null;
+
+                        if (currentMode === 'survival' && currentMap === 'rectangle') {
+                            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                            const sectionHeight = canvasHeight / 3;
+                            const circleSection = Math.floor(circle.y / sectionHeight);
+
+                            let baseLives;
+                            if (startingLives > 3 && lives < 3) {
+                                baseLives = 3;
+                            } else if (startingLives > 3 && lives > 2) {
+                                baseLives = lives;
+                            } else {
+                                baseLives = startingLives;
+                            }
+
+                            if (circleSection === greenSection) {
+                                lives = baseLives + 1;
+                                flashColor = 'flash-green';
+                            } else if (circleSection === redSection) {
+                                lives = Math.max(baseLives - 1, 1);
+                                flashColor = 'flash-red';
+                            } else {
+                                lives = baseLives;
+                            }
+                        } else if (currentMode === 'survival') {
+                            lives = 3;
+                        }
+
+                        if (completedLevel > hiScore) hiScore = completedLevel;
+                        wallHits = 0;
+                        if (flashColor) {
+                            canvas.classList.remove('flash-green', 'flash-red');
+                            void canvas.offsetHeight;
+                            canvas.classList.add(flashColor);
+                        }
+                        startingLives = lives;
+                        saveState();
+                        updateDisplay();
+                        startCountdown();
+                    }
+                    // Do nothing if wallHits !== level during countdown
                     return;
                 }
 
