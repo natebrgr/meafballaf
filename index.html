@@ -268,7 +268,8 @@
             resizeStartY: 0,
             initialRadius: initialRadius,
             resizeStartTime: 0,
-            resizeTimer: null
+            resizeTimer: null,
+            isInitialDrag: false // New flag to track initial drag
         };
 
         const gravity = 0.5;
@@ -463,7 +464,8 @@
                     lastX: circle.lastX,
                     lastY: circle.lastY,
                     lastTime: circle.lastTime,
-                    wasDraggingWhenPaused: circle.wasDraggingWhenPaused
+                    wasDraggingWhenPaused: circle.wasDraggingWhenPaused,
+                    isInitialDrag: circle.isInitialDrag
                 },
                 trail: [...trail],
                 wallHits,
@@ -507,6 +509,7 @@
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime || Date.now();
+                circle.isInitialDrag = state.circle.isInitialDrag || false;
             } else {
                 circle.x = (canvas.width / (window.devicePixelRatio || 1)) / 2;
                 circle.y = (canvas.height / (window.devicePixelRatio || 1)) / 2;
@@ -518,6 +521,7 @@
                 circle.lastX = circle.x;
                 circle.lastY = circle.y;
                 circle.lastTime = Date.now();
+                circle.isInitialDrag = false;
             }
 
             constrainCircle();
@@ -924,12 +928,17 @@
         }
 
         function handleCircleTap(e) {
-            if (isPaused) return;
+            if (isPaused || isCountingDown) return; // Block all actions during countdown or pause
             const pos = getMousePos(e);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
             if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
-                console.log('Circle tapped');
                 e.preventDefault();
+
+                if (circle.isInitialDrag) {
+                    // If this is the initial drag, don't process win/loss yet
+                    circle.isInitialDrag = false;
+                    return;
+                }
 
                 if (wallHits === level) {
                     isTrackingHits = false;
@@ -944,11 +953,11 @@
 
                         let baseLives;
                         if (startingLives > 3 && lives < 3) {
-                            baseLives = 3; // Scenario 1: Apply to 3
+                            baseLives = 3;
                         } else if (startingLives > 3 && lives > 2) {
-                            baseLives = lives; // Scenario 2: Apply to current lives
+                            baseLives = lives;
                         } else {
-                            baseLives = startingLives; // Default: Apply to startingLives
+                            baseLives = startingLives;
                         }
 
                         if (circleSection === greenSection) {
@@ -986,7 +995,7 @@
                     saveState();
                     updateDisplay();
                     startCountdown();
-                } else if (wallHits < level && currentMode === 'survival' && !isCountingDown) {
+                } else if (wallHits < level && currentMode === 'survival') {
                     lives--;
                     if (lives <= 0) {
                         level = 1;
@@ -997,7 +1006,7 @@
                     saveState();
                     updateDisplay();
                     startCountdown();
-                } else if (!isCountingDown) {
+                } else {
                     wallHits = 0;
                     startCountdown();
                 }
@@ -1011,6 +1020,7 @@
             if (dist < circle.radius) {
                 e.preventDefault();
                 circle.isDragging = true;
+                circle.isInitialDrag = true; // Mark this as the initial drag
                 circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
                 circle.lastX = pos.x;
                 circle.lastY = pos.y;
@@ -1019,7 +1029,6 @@
                 circle.dy = 0;
                 if (!isPaused) trail.length = 0;
                 buttonActivated = { play: false, mode: false, map: false };
-                console.log('Dragging started, touchId:', circle.dragTouchId);
             }
         }
 
@@ -1049,10 +1058,8 @@
                 circle.resizeTimer = setTimeout(() => {
                     if (circle.resizeTouchId !== null) {
                         circle.isResizing = true;
-                        console.log('Resizing started, resizeTouchId:', circle.resizeTouchId);
                     }
                 }, resizeHoldThreshold);
-                console.log('Resize touch initiated, waiting for hold threshold');
             }
         }
 
@@ -1091,6 +1098,9 @@
                 }
                 circle.lastX = pos.x;
                 circle.lastY = pos.y;
+
+                // Once dragging has started, clear the initial drag flag
+                circle.isInitialDrag = false;
             }
 
             if (circle.isResizing) {
@@ -1250,8 +1260,6 @@
                 screenPos.y <= canvasRect.bottom
             );
 
-            console.log('Stop dragging, target:', target.id, 'isOverCanvas:', isOverCanvas, 'isPaused:', isPaused);
-
             if (target === playButton && !buttonActivated.play) {
                 target.click();
             } else if (target === modeButton && !buttonActivated.mode) {
@@ -1266,6 +1274,7 @@
 
             circle.isDragging = false;
             circle.dragTouchId = null;
+            circle.isInitialDrag = false; // Reset initial drag flag
             Object.keys(holdTimers).forEach(key => {
                 if (holdTimers[key]) {
                     clearTimeout(holdTimers[key]);
@@ -1302,13 +1311,11 @@
 
             const elapsed = Date.now() - circle.resizeStartTime;
             if (!circle.isResizing && elapsed < resizeHoldThreshold && !isPaused) {
-                console.log('Quick tap detected, dropping circle');
                 circle.isDragging = false;
                 circle.dragTouchId = null;
                 circle.dx = 0;
                 circle.dy = 0;
             } else if (circle.isResizing) {
-                console.log('Resizing stopped, new radius:', circle.radius);
                 circle.isResizing = false;
             }
 
@@ -1342,7 +1349,6 @@
         }
 
         modeButton.addEventListener('click', () => {
-            console.log('MODE button clicked');
             if (!isPaused) {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
@@ -1354,7 +1360,6 @@
         });
 
         mapButton.addEventListener('click', () => {
-            console.log('MAP button clicked');
             if (!isPaused) {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
@@ -1366,7 +1371,6 @@
         });
 
         playButton.addEventListener('click', (e) => {
-            console.log('PAUSE/RESUME button clicked');
             if (isPaused) {
                 isPaused = false;
                 if (circle.isDragging) {
@@ -1423,21 +1427,18 @@
 
         modeButton.addEventListener('touchstart', (e) => {
             if (circle.isDragging && e.touches.length > 1) {
-                console.log('MODE button tapped during drag');
                 modeButton.click();
             }
         });
 
         mapButton.addEventListener('touchstart', (e) => {
             if (circle.isDragging && e.touches.length > 1) {
-                console.log('MAP button tapped during drag');
                 mapButton.click();
             }
         });
 
         playButton.addEventListener('touchstart', (e) => {
             if (circle.isDragging && e.touches.length > 1) {
-                console.log('PAUSE/RESUME button tapped during drag');
                 playButton.click();
             }
         });
