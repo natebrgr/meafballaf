@@ -123,7 +123,7 @@
         #livesCount.flash-green {
             animation: flashGreen 0.5s ease;
         }
-        #livesCount.flash-red {
+        #-livesCount.flash-red {
             animation: flashRed 0.5s ease;
         }
         #hiScoreCount.flash-green {
@@ -407,7 +407,7 @@
 
             mapButton.style.top = `${buttonTop}px`;
             mapButton.style.bottom = '';
-            mapButton.style.right = `${window.innerWidth - (canvasLeft + (window.innerWidth * 0.9))}px ENSURE`;
+            mapButton.style.right = `${window.innerWidth - (canvasLeft + (window.innerWidth * 0.9))}px`;
 
             playButton.style.top = `${buttonTop}px`;
             playButton.style.bottom = '';
@@ -708,55 +708,40 @@
                     ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
                 }
 
-                // Calculate lives differences
-                const greenLives = startingLives + 1;
-                const redLives = Math.max(startingLives - 1, 1);
-                const blackLives = startingLives;
-
-                // Draw lives indicators
+                // Lives indicators
                 ctx.font = 'bold 40px Impact, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-
-                // Green section
-                if (greenSection !== null) {
-                    const greenText = `+${greenLives - lives}`;
-                    const greenY = greenSection * sectionHeight + sectionHeight / 2;
-                    ctx.fillStyle = 'rgb(11, 74, 28)';
-                    ctx.shadowColor = 'rgb(50, 200, 100)';
-                    ctx.shadowBlur = 2 * pixelRatio;
-                    ctx.fillText(greenText, 40, greenY); // Left edge
-                    ctx.fillText(greenText, canvasWidth - 40, greenY); // Right edge
-                    ctx.shadowColor = '#fff';
-                    ctx.shadowBlur = 10 * pixelRatio;
-                    ctx.fillText(greenText, 40, greenY);
-                    ctx.fillText(greenText, canvasWidth - 40, greenY);
-                }
-
-                // Red section
-                if (redSection !== null) {
-                    const redText = redLives - lives >= 0 ? `+${redLives - lives}` : `${redLives - lives}`;
-                    const redY = redSection * sectionHeight + sectionHeight / 2;
-                    ctx.fillStyle = 'rgb(130, 33, 33)';
-                    ctx.shadowColor = 'rgb(255, 80, 80)';
-                    ctx.shadowBlur = 2 * pixelRatio;
-                    ctx.fillText(redText, 40, redY); // Left edge
-                    ctx.fillText(redText, canvasWidth - 40, redY); // Right edge
-                    ctx.shadowColor = '#fff';
-                    ctx.shadowBlur = 10 * pixelRatio;
-                    ctx.fillText(redText, 40, redY);
-                    ctx.fillText(redText, canvasWidth - 40, redY);
-                }
-
-                // Black section
-                const blackSection = [0, 1, 2].find(s => s !== greenSection && s !== redSection);
-                const blackText = blackLives - lives >= 0 ? `+${blackLives - lives}` : `${blackLives - lives}`;
-                const blackY = blackSection * sectionHeight + sectionHeight / 2;
-                ctx.fillStyle = '#e0e0e0';
                 ctx.shadowColor = '#fff';
-                ctx.shadowBlur = 5 * pixelRatio;
-                ctx.fillText(blackText, 40, blackY); // Left edge
-                ctx.fillText(blackText, canvasWidth - 40, blackY); // Right edge
+                ctx.shadowBlur = 10 * pixelRatio;
+
+                const greenLives = startingLives + 1;
+                const redLives = Math.max(startingLives - 1, 1);
+                const blackSection = [0, 1, 2].find(s => s !== greenSection && s !== redSection);
+                const blackLives = startingLives;
+
+                // Green
+                if (greenSection !== null) {
+                    ctx.fillStyle = 'rgb(11, 74, 28)';
+                    ctx.fillText(`+${greenLives - lives}`, 40, greenSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`+${greenLives - lives}`, canvasWidth - 40, greenSection * sectionHeight + sectionHeight / 2);
+                }
+
+                // Red
+                if (redSection !== null) {
+                    ctx.fillStyle = 'rgb(130, 33, 33)';
+                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, 40, redSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, canvasWidth - 40, redSection * sectionHeight + sectionHeight / 2);
+                }
+
+                // Black
+                if (blackSection !== null) {
+                    ctx.fillStyle = '#000';
+                    ctx.fillText(`${blackLives - lives >= 0 ? '+' : ''}${blackLives - lives}`, 40, blackSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`${blackLives - lives >= 0 ? '+' : ''}${blackLives - lives}`, canvasWidth - 40, blackSection * sectionHeight + sectionHeight / 2);
+                }
+
+                ctx.shadowBlur = 0;
             }
 
             ctx.strokeStyle = '#ffffff';
@@ -1171,13 +1156,8 @@
                             let text = '';
                             if (previousLives === 3 && lives === 2) {
                                 text = 'sighhh';
-                            }intreo('click', function() {
-                                if (!isPaused) {
-                                    circle.wasDraggingWhenPaused = circle.isDragging;
-                                    isPaused = true;
-                                }
-                                saveState();
-                                updateDisplay();
+                            } else if (previousLives === 2 && lives === 1) {
+                                text = 'SighhhAFF';
                             } else if (lives <= 0) {
                                 level = 1;
                                 lives = 3;
