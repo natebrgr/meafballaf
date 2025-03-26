@@ -269,7 +269,7 @@
             initialRadius: initialRadius,
             resizeStartTime: 0,
             resizeTimer: null,
-            isInitialDrag: false // New flag to track initial drag
+            isInitialDrag: false
         };
 
         const gravity = 0.5;
@@ -370,6 +370,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             setCanvasSize();
             assignSections();
+            startCountdown(); // Start the game with a countdown
             requestAnimationFrame(() => setCanvasSize());
         });
         window.addEventListener('resize', setCanvasSize);
@@ -802,6 +803,7 @@
                             contact.time = currentTime;
                             if (isTrackingHits) {
                                 wallHits++;
+                                console.log(`Wall hit detected: ${wall.name}, wallHits = ${wallHits}`); // Debug log
                                 wallHitsDisplay.textContent = `${wallHits}`;
                                 const greenColor = 'rgb(11, 74, 28)';
                                 let counterColor = '#e0e0e0';
@@ -867,7 +869,7 @@
                 wallHitsDisplay.style.color = '#e0e0e0';
                 wallHitsDisplay.classList.remove('bright-glow');
                 wallHitsDisplay.style.textShadow = '0 0 5px #fff';
-                isTrackingHits = true;
+                isTrackingHits = true; // Ensure hits are tracked after countdown
                 countdownOpacity = 1;
             } else {
                 isCountingDown = true;
@@ -928,14 +930,13 @@
         }
 
         function handleCircleTap(e) {
-            if (isPaused || isCountingDown) return; // Block all actions during countdown or pause
+            if (isPaused || isCountingDown) return;
             const pos = getMousePos(e);
             const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
             if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
                 e.preventDefault();
 
                 if (circle.isInitialDrag) {
-                    // If this is the initial drag, don't process win/loss yet
                     circle.isInitialDrag = false;
                     return;
                 }
@@ -1020,7 +1021,7 @@
             if (dist < circle.radius) {
                 e.preventDefault();
                 circle.isDragging = true;
-                circle.isInitialDrag = true; // Mark this as the initial drag
+                circle.isInitialDrag = true;
                 circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
                 circle.lastX = pos.x;
                 circle.lastY = pos.y;
@@ -1099,7 +1100,6 @@
                 circle.lastX = pos.x;
                 circle.lastY = pos.y;
 
-                // Once dragging has started, clear the initial drag flag
                 circle.isInitialDrag = false;
             }
 
@@ -1274,7 +1274,7 @@
 
             circle.isDragging = false;
             circle.dragTouchId = null;
-            circle.isInitialDrag = false; // Reset initial drag flag
+            circle.isInitialDrag = false;
             Object.keys(holdTimers).forEach(key => {
                 if (holdTimers[key]) {
                     clearTimeout(holdTimers[key]);
