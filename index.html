@@ -204,10 +204,10 @@
             100% { color: rgb(11, 74, 28); text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
         }
         canvas.flash-green {
-            animation: flashGreen 0.5s ease;
+            animation: flashGreenBorder 0.5s ease;
         }
         canvas.flash-red {
-            animation: flashRed 0.5s ease;
+            animation: flashRedBorder 0.5s ease;
         }
     </style>
 </head>
@@ -223,7 +223,7 @@
     <button id="modeButton">MODE</button>
     <button id="mapButton">MAP</button>
     <canvas id="canvas"></canvas>
-    <button id="playButton">PAUSE</button>
+    <button id="playButton">||</button>
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -240,7 +240,7 @@
 
         const borderWidth = 2;
         const defaultRadius = 30;
-        const initialRadius = 60;
+        const initialRadius = 75;
         const resizeHoldThreshold = 200;
 
         const circle = {
@@ -397,6 +397,9 @@
                     levelContainer.classList.remove('flash-green', 'flash-red');
                     void levelContainer.offsetHeight;
                     levelContainer.classList.add('flash-red');
+                    canvas.classList.remove('flash-green', 'flash-red');
+                    void canvas.offsetHeight;
+                    canvas.classList.add('flash-red');
                 } else if (level > previousLevel) {
                     levelNumber.classList.remove('flash-red', 'flash-white');
                     void levelNumber.offsetHeight;
@@ -404,6 +407,9 @@
                     levelContainer.classList.remove('flash-green', 'flash-red');
                     void levelContainer.offsetHeight;
                     levelContainer.classList.add('flash-green');
+                    canvas.classList.remove('flash-green', 'flash-red');
+                    void canvas.offsetHeight;
+                    canvas.classList.add('flash-green');
                 }
                 previousLevel = level;
             }
@@ -423,7 +429,7 @@
             titleDisplay.textContent = currentMode === 'survival' ? 'SURVIVAL MODE' : 'ENDURANCE MODE';
             setCanvasSize();
 
-            playButton.textContent = isPaused ? 'RESUME' : 'PAUSE';
+            playButton.textContent = isPaused ? '▶' : '||';
             countdownDisplay.style.opacity = countdownOpacity;
             countdownDisplay.textContent = countdown;
 
@@ -535,9 +541,9 @@
         }
 
         function getCircleColor(counterColor) {
-            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28, 0.7)';
-            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33, 0.7)';
-            return 'rgba(255, 255, 255, 0.7)';
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28, 0.6)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33, 0.6)';
+            return 'rgba(255, 255, 255, 0.6)';
         }
 
         function getBorderColor(counterColor) {
@@ -547,9 +553,9 @@
         }
 
         function getCrosshairColor(counterColor) {
-            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(0, 0, 0, 0.7)';
-            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(0, 0, 0, 0.7)';
-            return 'rgba(0, 0, 0, 0.7)';
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(0, 0, 0, 0.6)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(0, 0, 0, 0.6)';
+            return 'rgba(0, 0, 0, 0.6)';
         }
 
         function lightenColor(color) {
