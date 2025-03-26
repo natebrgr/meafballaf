@@ -240,7 +240,7 @@
 
         const borderWidth = 2;
         const defaultRadius = 30;
-        const initialRadius = 70;
+        const initialRadius = 60;
         const resizeHoldThreshold = 200;
 
         const circle = {
@@ -535,9 +535,9 @@
         }
 
         function getCircleColor(counterColor) {
-            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28, 0.6)';
-            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33, 0.6)';
-            return 'rgba(255, 255, 255, 0.6)';
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28, 0.7)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33, 0.7)';
+            return 'rgba(255, 255, 255, 0.7)';
         }
 
         function getBorderColor(counterColor) {
@@ -547,9 +547,9 @@
         }
 
         function getCrosshairColor(counterColor) {
-            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(0, 0, 0, 0.6)';
-            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(0, 0, 0, 0.6)';
-            return 'rgba(0, 0, 0, 0.6)';
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(0, 0, 0, 0.7)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(0, 0, 0, 0.7)';
+            return 'rgba(0, 0, 0, 0.7)';
         }
 
         function lightenColor(color) {
@@ -1260,7 +1260,7 @@
             if (target === mapButton) {
                 if (!holdTimers.map && !buttonActivated.map) {
                     mapButton.classList.remove('glow-white', 'recede');
-                    map preseButton.classList.add('glow-white');
+                    mapButton.classList.add('glow-white');
                     holdTimers.map = setTimeout(() => {
                         if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === mapButton) {
                             mapButton.classList.remove('glow-white');
