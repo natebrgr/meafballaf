@@ -269,7 +269,7 @@
             initialRadius: initialRadius,
             resizeStartTime: 0,
             resizeTimer: null,
-            isInitialDrag: false
+            hasBeenTouched: false // Track if player has interacted yet
         };
 
         const gravity = 0.5;
@@ -370,7 +370,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             setCanvasSize();
             assignSections();
-            startCountdown(); // Start the game with a countdown
             requestAnimationFrame(() => setCanvasSize());
         });
         window.addEventListener('resize', setCanvasSize);
@@ -466,7 +465,7 @@
                     lastY: circle.lastY,
                     lastTime: circle.lastTime,
                     wasDraggingWhenPaused: circle.wasDraggingWhenPaused,
-                    isInitialDrag: circle.isInitialDrag
+                    hasBeenTouched: circle.hasBeenTouched
                 },
                 trail: [...trail],
                 wallHits,
@@ -510,7 +509,7 @@
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime || Date.now();
-                circle.isInitialDrag = state.circle.isInitialDrag || false;
+                circle.hasBeenTouched = state.circle.hasBeenTouched || false;
             } else {
                 circle.x = (canvas.width / (window.devicePixelRatio || 1)) / 2;
                 circle.y = (canvas.height / (window.devicePixelRatio || 1)) / 2;
@@ -522,7 +521,7 @@
                 circle.lastX = circle.x;
                 circle.lastY = circle.y;
                 circle.lastTime = Date.now();
-                circle.isInitialDrag = false;
+                circle.hasBeenTouched = false;
             }
 
             constrainCircle();
@@ -803,7 +802,6 @@
                             contact.time = currentTime;
                             if (isTrackingHits) {
                                 wallHits++;
-                                console.log(`Wall hit detected: ${wall.name}, wallHits = ${wallHits}`); // Debug log
                                 wallHitsDisplay.textContent = `${wallHits}`;
                                 const greenColor = 'rgb(11, 74, 28)';
                                 let counterColor = '#e0e0e0';
@@ -869,7 +867,7 @@
                 wallHitsDisplay.style.color = '#e0e0e0';
                 wallHitsDisplay.classList.remove('bright-glow');
                 wallHitsDisplay.style.textShadow = '0 0 5px #fff';
-                isTrackingHits = true; // Ensure hits are tracked after countdown
+                isTrackingHits = true;
                 countdownOpacity = 1;
             } else {
                 isCountingDown = true;
@@ -936,8 +934,9 @@
             if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
                 e.preventDefault();
 
-                if (circle.isInitialDrag) {
-                    circle.isInitialDrag = false;
+                if (!circle.hasBeenTouched) {
+                    circle.hasBeenTouched = true;
+                    startCountdown();
                     return;
                 }
 
@@ -1021,7 +1020,6 @@
             if (dist < circle.radius) {
                 e.preventDefault();
                 circle.isDragging = true;
-                circle.isInitialDrag = true;
                 circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
                 circle.lastX = pos.x;
                 circle.lastY = pos.y;
@@ -1099,8 +1097,6 @@
                 }
                 circle.lastX = pos.x;
                 circle.lastY = pos.y;
-
-                circle.isInitialDrag = false;
             }
 
             if (circle.isResizing) {
@@ -1274,7 +1270,10 @@
 
             circle.isDragging = false;
             circle.dragTouchId = null;
-            circle.isInitialDrag = false;
+            if (!circle.hasBeenTouched) {
+                circle.hasBeenTouched = true;
+                startCountdown();
+            }
             Object.keys(holdTimers).forEach(key => {
                 if (holdTimers[key]) {
                     clearTimeout(holdTimers[key]);
