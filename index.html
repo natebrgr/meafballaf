@@ -34,7 +34,7 @@
             left: 50%;
             transform: translateX(-50%);
             font-size: 1.5em;
-            white-space: nowrap; /* Prevent text wrapping */
+            white-space: nowrap;
         }
         #levelContainer {
             top: 40px;
@@ -398,10 +398,7 @@
             canvas.style.left = `${canvasLeft}px`;
 
             const canvasBottom = canvasTop + (availableHeight - 2 * borderWidth);
-            const canvasHeight = availableHeight - 2 * borderWidth;
-            const topSectionHeight = canvasHeight / 3;
-            const countdownTop = canvasTop + topSectionHeight / 2; // Center of top 1/3 of canvas
-            countdownDisplay.style.top = `${countdownTop}px`;
+            countdownDisplay.style.top = `${canvasTop + 10}px`; // 10px below canvas top edge
 
             const buttonTop = canvasBottom + snugGap;
             modeButton.style.top = `${buttonTop}px`;
@@ -410,7 +407,7 @@
 
             mapButton.style.top = `${buttonTop}px`;
             mapButton.style.bottom = '';
-            mapButton.style.right = `${window.innerWidth - (canvasLeft + (window.innerWidth * 0.9))}px`;
+            mapButton.style.right = `${window.innerWidth - (canvasLeft + (window.innerWidth * 0.9))}px ENSURE`;
 
             playButton.style.top = `${buttonTop}px`;
             playButton.style.bottom = '';
@@ -695,11 +692,12 @@
         function drawScene() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (currentMode === 'survival' && currentMap === 'rectangle') {
-                const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
-                const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                const sectionHeight = canvasHeight / 3;
+            const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+            const sectionHeight = canvasHeight / 3;
+            const pixelRatio = window.devicePixelRatio || 1;
 
+            if (currentMode === 'survival' && currentMap === 'rectangle') {
                 if (greenSection !== null) {
                     ctx.fillStyle = 'rgb(11, 74, 28)';
                     ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
@@ -709,15 +707,65 @@
                     ctx.fillStyle = 'rgb(130, 33, 33)';
                     ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
                 }
+
+                // Calculate lives differences
+                const greenLives = startingLives + 1;
+                const redLives = Math.max(startingLives - 1, 1);
+                const blackLives = startingLives;
+
+                // Draw lives indicators
+                ctx.font = 'bold 40px Impact, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Green section
+                if (greenSection !== null) {
+                    const greenText = `+${greenLives - lives}`;
+                    const greenY = greenSection * sectionHeight + sectionHeight / 2;
+                    ctx.fillStyle = 'rgb(11, 74, 28)';
+                    ctx.shadowColor = 'rgb(50, 200, 100)';
+                    ctx.shadowBlur = 2 * pixelRatio;
+                    ctx.fillText(greenText, 40, greenY); // Left edge
+                    ctx.fillText(greenText, canvasWidth - 40, greenY); // Right edge
+                    ctx.shadowColor = '#fff';
+                    ctx.shadowBlur = 10 * pixelRatio;
+                    ctx.fillText(greenText, 40, greenY);
+                    ctx.fillText(greenText, canvasWidth - 40, greenY);
+                }
+
+                // Red section
+                if (redSection !== null) {
+                    const redText = redLives - lives >= 0 ? `+${redLives - lives}` : `${redLives - lives}`;
+                    const redY = redSection * sectionHeight + sectionHeight / 2;
+                    ctx.fillStyle = 'rgb(130, 33, 33)';
+                    ctx.shadowColor = 'rgb(255, 80, 80)';
+                    ctx.shadowBlur = 2 * pixelRatio;
+                    ctx.fillText(redText, 40, redY); // Left edge
+                    ctx.fillText(redText, canvasWidth - 40, redY); // Right edge
+                    ctx.shadowColor = '#fff';
+                    ctx.shadowBlur = 10 * pixelRatio;
+                    ctx.fillText(redText, 40, redY);
+                    ctx.fillText(redText, canvasWidth - 40, redY);
+                }
+
+                // Black section
+                const blackSection = [0, 1, 2].find(s => s !== greenSection && s !== redSection);
+                const blackText = blackLives - lives >= 0 ? `+${blackLives - lives}` : `${blackLives - lives}`;
+                const blackY = blackSection * sectionHeight + sectionHeight / 2;
+                ctx.fillStyle = '#e0e0e0';
+                ctx.shadowColor = '#fff';
+                ctx.shadowBlur = 5 * pixelRatio;
+                ctx.fillText(blackText, 40, blackY); // Left edge
+                ctx.fillText(blackText, canvasWidth - 40, blackY); // Right edge
             }
 
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
-                ctx.strokeRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
+                ctx.strokeRect(0, 0, canvasWidth, canvasHeight);
             } else {
                 ctx.beginPath();
-                ctx.arc((canvas.width / (window.devicePixelRatio || 1)) / 2, (canvas.height / (window.devicePixelRatio || 1)) / 2, Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth, 0, Math.PI * 2);
+                ctx.arc(canvasWidth / 2, canvasHeight / 2, Math.min(canvasWidth, canvasHeight) / 2 - borderWidth, 0, Math.PI * 2);
                 ctx.stroke();
             }
 
@@ -745,7 +793,6 @@
             }
 
             ctx.beginPath();
-            const pixelRatio = window.devicePixelRatio || 1;
             ctx.shadowColor = '#fff';
             ctx.shadowBlur = (counterColor === '#e0e0e0' ? 5 : 10) * pixelRatio;
             ctx.shadowOffsetX = 0;
@@ -975,7 +1022,7 @@
                 countdownOpacity = 1;
                 shownTexts.clear();
                 sighhhVisible = false;
-                startingLives = lives;
+                startingLives = lives; // Set starting lives for the level
             } else {
                 isCountingDown = true;
             }
@@ -1059,17 +1106,14 @@
                                 const sectionHeight = canvasHeight / 3;
                                 const circleSection = Math.floor(circle.y / sectionHeight);
 
-                                let resetLives = startingLives < 3 ? startingLives : 3;
-                                if (lives < resetLives) {
-                                    lives = resetLives;
-                                }
-
                                 if (circleSection === greenSection) {
-                                    lives = lives + 1;
+                                    lives = startingLives + 1;
                                     flashColor = 'flash-green';
                                 } else if (circleSection === redSection) {
-                                    lives = Math.max(lives - 1, 1);
+                                    lives = Math.max(startingLives - 1, 1);
                                     flashColor = 'flash-red';
+                                } else {
+                                    lives = startingLives;
                                 }
                             } else if (currentMode === 'survival') {
                                 lives = 3;
@@ -1101,17 +1145,14 @@
                                 const sectionHeight = canvasHeight / 3;
                                 const circleSection = Math.floor(circle.y / sectionHeight);
 
-                                let resetLives = startingLives < 3 ? startingLives : 3;
-                                if (lives < resetLives) {
-                                    lives = resetLives;
-                                }
-
                                 if (circleSection === greenSection) {
-                                    lives = lives + 1;
+                                    lives = startingLives + 1;
                                     flashColor = 'flash-green';
                                 } else if (circleSection === redSection) {
-                                    lives = Math.max(lives - 1, 1);
+                                    lives = Math.max(startingLives - 1, 1);
                                     flashColor = 'flash-red';
+                                } else {
+                                    lives = startingLives;
                                 }
                             } else if (currentMode === 'survival') {
                                 lives = 3;
@@ -1130,8 +1171,13 @@
                             let text = '';
                             if (previousLives === 3 && lives === 2) {
                                 text = 'sighhh';
-                            } else if (previousLives === 2 && lives === 1) {
-                                text = 'SighhhAFF';
+                            }intreo('click', function() {
+                                if (!isPaused) {
+                                    circle.wasDraggingWhenPaused = circle.isDragging;
+                                    isPaused = true;
+                                }
+                                saveState();
+                                updateDisplay();
                             } else if (lives <= 0) {
                                 level = 1;
                                 lives = 3;
