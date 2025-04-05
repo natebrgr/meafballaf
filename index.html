@@ -249,7 +249,8 @@
             radius: initialRadius,
             dx: 0,
             dy: 0,
-            isDragging: false,
+-           isDragging: false,
++           isDragging: false,
             dragTouchId: null,
             wasDraggingWhenPaused: false,
             lastX: 0,
@@ -746,7 +747,7 @@
             ctx.fillText(wallHits, circle.x + offset, circle.y);
 
             ctx.fillStyle = greenColor;
-            ctx.shadowColor = 'rgb(50, 200, 100)';
+            ctx:shadowColor = 'rgb(50, 200, 100)';
             ctx.shadowBlur = 2 * pixelRatio;
             ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
             ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
@@ -898,6 +899,10 @@
                     clearInterval(countdownInterval);
                     countdownInterval = null;
                     isCountingDown = false;
+                    if (circle.isDragging) {
+                        circle.isDragging = false;
+                        circle.dragTouchId = null;
+                    }
                     updateDisplay();
                 }
             }, 1000);
@@ -939,9 +944,14 @@
             };
         }
 
-        function processGameEnd(pos) {
-            circle.x = pos.x;
-            circle.y = pos.y;
+        function processGameEnd(tapPos) {
+            // Use the circle's position BEFORE teleporting for win condition
+            const preTapX = circle.x;
+            const preTapY = circle.y;
+
+            // Teleport circle to tap position
+            circle.x = tapPos.x;
+            circle.y = tapPos.y;
             constrainCircle();
 
             if (wallHits === level) {
@@ -953,7 +963,7 @@
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                     const sectionHeight = canvasHeight / 3;
-                    const circleSection = Math.floor(circle.y / sectionHeight);
+                    const circleSection = Math.floor(preTapY / sectionHeight); // Use pre-tap Y position
 
                     let baseLives;
                     if (startingLives > 3 && lives < 3) {
@@ -1036,7 +1046,6 @@
                 }
 
                 if (isCountingDown) {
-                    // During countdown, only allow instant win if wallHits === level
                     if (wallHits === level) {
                         isTrackingHits = false;
                         if (countdownInterval) {
@@ -1051,7 +1060,6 @@
                     return;
                 }
 
-                // After countdown, any tap ends the game
                 processGameEnd(pos);
             }
         }
