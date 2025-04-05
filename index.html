@@ -942,12 +942,21 @@
         function handleCircleTap(e) {
             if (isPaused) return;
             const pos = getMousePos(e);
-            const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
-            if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
+            // Check if the tap is within the play area
+            if (pos.x >= 0 && pos.x <= canvas.width / (window.devicePixelRatio || 1) &&
+                pos.y >= 0 && pos.y <= canvas.height / (window.devicePixelRatio || 1)) {
                 e.preventDefault();
+
+                if (circle.isDragging && e.touches && e.touches.length === 1) {
+                    // If already dragging, a single tap doesn't release (handled by stopDragging)
+                    return;
+                }
 
                 if (!circle.hasBeenTouched) {
                     circle.hasBeenTouched = true;
+                    circle.x = pos.x;
+                    circle.y = pos.y;
+                    constrainCircle();
                     startCountdown();
                     return;
                 }
@@ -1006,7 +1015,6 @@
                         updateDisplay();
                         startCountdown();
                     }
-                    // Do nothing if wallHits !== level during countdown
                     return;
                 }
 
@@ -1086,11 +1094,15 @@
         function startDragging(e) {
             if (isPaused && !circle.wasDraggingWhenPaused) return;
             const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
-            const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
-            if (dist < circle.radius) {
+            // Check if the touch is within the play area
+            if (pos.x >= 0 && pos.x <= canvas.width / (window.devicePixelRatio || 1) &&
+                pos.y >= 0 && pos.y <= canvas.height / (window.devicePixelRatio || 1)) {
                 e.preventDefault();
                 circle.isDragging = true;
                 circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
+                circle.x = pos.x;
+                circle.y = pos.y;
+                constrainCircle();
                 circle.lastX = pos.x;
                 circle.lastY = pos.y;
                 circle.lastTime = Date.now();
@@ -1403,6 +1415,7 @@
             if (dragTouchIndex === -1) return;
 
             const otherTouch = e.touches[dragTouchIndex === 0 ? 1 : 0];
+            const pos = getMousePos(e, otherTouch.identifier);
             const screenPos = { x: otherTouch.clientX, y: otherTouch.clientY };
             const canvasRect = canvas.getBoundingClientRect();
             const isOverCanvas = (
