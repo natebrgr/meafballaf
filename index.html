@@ -570,11 +570,23 @@
                 if (greenSection !== null) {
                     ctx.fillStyle = 'rgb(11, 74, 28)';
                     ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.strokeStyle = 'rgb(50, 200, 100)';
+                    ctx.lineWidth = 2 * pixelRatio;
+                    ctx.shadowColor = 'rgb(50, 200, 100)';
+                    ctx.shadowBlur = 10 * pixelRatio;
+                    ctx.strokeRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.shadowBlur = 0;
                 }
 
                 if (redSection !== null) {
                     ctx.fillStyle = 'rgb(130, 33, 33)';
                     ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.strokeStyle = 'rgb(255, 80, 80)';
+                    ctx.lineWidth = 2 * pixelRatio;
+                    ctx.shadowColor = 'rgb(255, 80, 80)';
+                    ctx.shadowBlur = 10 * pixelRatio;
+                    ctx.strokeRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.shadowBlur = 0;
                 }
 
                 ctx.font = 'bold 40px Impact, sans-serif';
