@@ -939,6 +939,85 @@
             };
         }
 
+        function processGameEnd(pos) {
+            circle.x = pos.x;
+            circle.y = pos.y;
+            constrainCircle();
+
+            if (wallHits === level) {
+                isTrackingHits = false;
+                const completedLevel = level;
+                level++;
+                let flashColor = null;
+
+                if (currentMode === 'survival' && currentMap === 'rectangle') {
+                    const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                    const sectionHeight = canvasHeight / 3;
+                    const circleSection = Math.floor(circle.y / sectionHeight);
+
+                    let baseLives;
+                    if (startingLives > 3 && lives < 3) {
+                        baseLives = 3;
+                    } else if (startingLives > 3 && lives > 2) {
+                        baseLives = lives;
+                    } else {
+                        baseLives = startingLives;
+                    }
+
+                    if (circleSection === greenSection) {
+                        lives = baseLives + 1;
+                        flashColor = 'flash-green';
+                    } else if (circleSection === redSection) {
+                        lives = Math.max(baseLives - 1, 1);
+                        flashColor = 'flash-red';
+                    } else {
+                        lives = baseLives;
+                    }
+                } else if (currentMode === 'survival') {
+                    lives = 3;
+                }
+
+                if (completedLevel > hiScore) hiScore = completedLevel;
+                wallHits = 0;
+                if (flashColor) {
+                    canvas.classList.remove('flash-green', 'flash-red');
+                    void canvas.offsetHeight;
+                    canvas.classList.add(flashColor);
+                }
+                startingLives = lives;
+                saveState();
+                updateDisplay();
+                startCountdown();
+            } else if (wallHits > level && currentMode === 'survival') {
+                lives--;
+                if (lives <= 0) {
+                    level = 1;
+                    lives = 3;
+                    startingLives = 3;
+                }
+                wallHits = 0;
+                saveState();
+                updateDisplay();
+                startCountdown();
+            } else if (wallHits < level && currentMode === 'survival') {
+                lives--;
+                if (lives <= 0) {
+                    level = 1;
+                    lives = 3;
+                    startingLives = 3;
+                }
+                wallHits = 0;
+                saveState();
+                updateDisplay();
+                startCountdown();
+            } else {
+                wallHits = 0;
+                saveState();
+                updateDisplay();
+                startCountdown();
+            }
+        }
+
         function handleCircleTap(e) {
             if (isPaused) return;
             const pos = getMousePos(e);
@@ -946,11 +1025,6 @@
             if (pos.x >= 0 && pos.x <= canvas.width / (window.devicePixelRatio || 1) &&
                 pos.y >= 0 && pos.y <= canvas.height / (window.devicePixelRatio || 1)) {
                 e.preventDefault();
-
-                if (circle.isDragging && e.touches && e.touches.length === 1) {
-                    // If already dragging, a single tap doesn't release (handled by stopDragging)
-                    return;
-                }
 
                 if (!circle.hasBeenTouched) {
                     circle.hasBeenTouched = true;
@@ -962,8 +1036,8 @@
                 }
 
                 if (isCountingDown) {
+                    // During countdown, only allow instant win if wallHits === level
                     if (wallHits === level) {
-                        // Instant win during countdown
                         isTrackingHits = false;
                         if (countdownInterval) {
                             clearInterval(countdownInterval);
@@ -972,122 +1046,13 @@
                             countdownDisplay.style.opacity = countdownOpacity;
                             isCountingDown = false;
                         }
-                        const completedLevel = level;
-                        level++;
-                        let flashColor = null;
-
-                        if (currentMode === 'survival' && currentMap === 'rectangle') {
-                            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                            const sectionHeight = canvasHeight / 3;
-                            const circleSection = Math.floor(circle.y / sectionHeight);
-
-                            let baseLives;
-                            if (startingLives > 3 && lives < 3) {
-                                baseLives = 3;
-                            } else if (startingLives > 3 && lives > 2) {
-                                baseLives = lives;
-                            } else {
-                                baseLives = startingLives;
-                            }
-
-                            if (circleSection === greenSection) {
-                                lives = baseLives + 1;
-                                flashColor = 'flash-green';
-                            } else if (circleSection === redSection) {
-                                lives = Math.max(baseLives - 1, 1);
-                                flashColor = 'flash-red';
-                            } else {
-                                lives = baseLives;
-                            }
-                        } else if (currentMode === 'survival') {
-                            lives = 3;
-                        }
-
-                        if (completedLevel > hiScore) hiScore = completedLevel;
-                        wallHits = 0;
-                        if (flashColor) {
-                            canvas.classList.remove('flash-green', 'flash-red');
-                            void canvas.offsetHeight;
-                            canvas.classList.add(flashColor);
-                        }
-                        startingLives = lives;
-                        saveState();
-                        updateDisplay();
-                        startCountdown();
+                        processGameEnd(pos);
                     }
                     return;
                 }
 
-                if (wallHits === level) {
-                    isTrackingHits = false;
-                    const completedLevel = level;
-                    level++;
-                    let flashColor = null;
-
-                    if (currentMode === 'survival' && currentMap === 'rectangle') {
-                        const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                        const sectionHeight = canvasHeight / 3;
-                        const circleSection = Math.floor(circle.y / sectionHeight);
-
-                        let baseLives;
-                        if (startingLives > 3 && lives < 3) {
-                            baseLives = 3;
-                        } else if (startingLives > 3 && lives > 2) {
-                            baseLives = lives;
-                        } else {
-                            baseLives = startingLives;
-                        }
-
-                        if (circleSection === greenSection) {
-                            lives = baseLives + 1;
-                            flashColor = 'flash-green';
-                        } else if (circleSection === redSection) {
-                            lives = Math.max(baseLives - 1, 1);
-                            flashColor = 'flash-red';
-                        } else {
-                            lives = baseLives;
-                        }
-                    } else if (currentMode === 'survival') {
-                        lives = 3;
-                    }
-
-                    if (completedLevel > hiScore) hiScore = completedLevel;
-                    wallHits = 0;
-                    if (flashColor) {
-                        canvas.classList.remove('flash-green', 'flash-red');
-                        void canvas.offsetHeight;
-                        canvas.classList.add(flashColor);
-                    }
-                    startingLives = lives;
-                    saveState();
-                    updateDisplay();
-                    startCountdown();
-                } else if (wallHits > level && currentMode === 'survival') {
-                    lives--;
-                    if (lives <= 0) {
-                        level = 1;
-                        lives = 3;
-                        startingLives = 3;
-                    }
-                    wallHits = 0;
-                    saveState();
-                    updateDisplay();
-                    startCountdown();
-                } else if (wallHits < level && currentMode === 'survival') {
-                    lives--;
-                    if (lives <= 0) {
-                        level = 1;
-                        lives = 3;
-                        startingLives = 3;
-                    }
-                    wallHits = 0;
-                    saveState();
-                    updateDisplay();
-                    startCountdown();
-                } else {
-                    wallHits = 0;
-                    startCountdown();
-                }
+                // After countdown, any tap ends the game
+                processGameEnd(pos);
             }
         }
 
@@ -1348,6 +1313,9 @@
                 mapButton.classList.remove('glow-white');
                 mapButton.classList.add('recede');
                 target.click();
+            } else if (isOverCanvas && !isPaused && !isCountingDown) {
+                const pos = getMousePos(e, touchId);
+                processGameEnd(pos);
             }
 
             circle.isDragging = false;
@@ -1396,6 +1364,10 @@
                 circle.dragTouchId = null;
                 circle.dx = 0;
                 circle.dy = 0;
+                if (!isCountingDown) {
+                    const pos = getMousePos(e, circle.resizeTouchId);
+                    processGameEnd(pos);
+                }
             } else if (circle.isResizing) {
                 circle.isResizing = false;
             }
@@ -1425,8 +1397,8 @@
                 screenPos.y <= canvasRect.bottom
             );
 
-            if (isOverCanvas && !circle.isResizing && !isPaused) {
-                handleCircleTap({ touches: [otherTouch] });
+            if (isOverCanvas && !circle.isResizing && !isPaused && !isCountingDown) {
+                processGameEnd(pos);
             }
         }
 
