@@ -898,6 +898,11 @@
                     clearInterval(countdownInterval);
                     countdownInterval = null;
                     isCountingDown = false;
+                    // Ensure circle is released if not actively held
+                    if (circle.isDragging && !document.elementFromPoint(circle.lastX + canvas.getBoundingClientRect().left, circle.lastY + canvas.getBoundingClientRect().top)) {
+                        circle.isDragging = false;
+                        circle.dragTouchId = null;
+                    }
                     updateDisplay();
                 }
             }, 1000);
