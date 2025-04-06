@@ -898,11 +898,9 @@
                     clearInterval(countdownInterval);
                     countdownInterval = null;
                     isCountingDown = false;
-                    // Ensure circle is released if not actively held
-                    if (circle.isDragging && !document.elementFromPoint(circle.lastX + canvas.getBoundingClientRect().left, circle.lastY + canvas.getBoundingClientRect().top)) {
-                        circle.isDragging = false;
-                        circle.dragTouchId = null;
-                    }
+                    // Unconditionally release the circle to let physics take over
+                    circle.isDragging = false;
+                    circle.dragTouchId = null;
                     updateDisplay();
                 }
             }, 1000);
@@ -948,15 +946,16 @@
             const preTapX = circle.x;
             const preTapY = circle.y;
 
-            circle.x = tapPos.x;
-            circle.y = tapPos.y;
-            constrainCircle();
+            // Evaluate win condition using pre-tap position
+            let newLives = lives;
+            let newLevel = level;
+            let flashColor = null;
+            let completedLevel = null;
 
             if (wallHits === level) {
                 isTrackingHits = false;
-                const completedLevel = level;
-                level++;
-                let flashColor = null;
+                completedLevel = level;
+                newLevel = level + 1;
 
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
@@ -973,57 +972,54 @@
                     }
 
                     if (circleSection === greenSection) {
-                        lives = baseLives + 1;
+                        newLives = baseLives + 1;
                         flashColor = 'flash-green';
                     } else if (circleSection === redSection) {
-                        lives = Math.max(baseLives - 1, 1);
+                        newLives = Math.max(baseLives - 1, 1);
                         flashColor = 'flash-red';
                     } else {
-                        lives = baseLives;
+                        newLives = baseLives;
                     }
                 } else if (currentMode === 'survival') {
-                    lives = 3;
+                    newLives = 3;
                 }
 
                 if (completedLevel > hiScore) hiScore = completedLevel;
-                wallHits = 0;
-                if (flashColor) {
-                    canvas.classList.remove('flash-green', 'flash-red');
-                    void canvas.offsetHeight;
-                    canvas.classList.add(flashColor);
-                }
-                startingLives = lives;
-                saveState();
-                updateDisplay();
-                startCountdown();
             } else if (wallHits > level && currentMode === 'survival') {
-                lives--;
-                if (lives <= 0) {
-                    level = 1;
-                    lives = 3;
+                newLives = lives - 1;
+                if (newLives <= 0) {
+                    newLevel = 1;
+                    newLives = 3;
                     startingLives = 3;
                 }
-                wallHits = 0;
-                saveState();
-                updateDisplay();
-                startCountdown();
             } else if (wallHits < level && currentMode === 'survival') {
-                lives--;
-                if (lives <= 0) {
-                    level = 1;
-                    lives = 3;
+                newLives = lives - 1;
+                if (newLives <= 0) {
+                    newLevel = 1;
+                    newLives = 3;
                     startingLives = 3;
                 }
-                wallHits = 0;
-                saveState();
-                updateDisplay();
-                startCountdown();
-            } else {
-                wallHits = 0;
-                saveState();
-                updateDisplay();
-                startCountdown();
             }
+
+            // Now teleport the circle after evaluating the outcome
+            circle.x = tapPos.x;
+            circle.y = tapPos.y;
+            constrainCircle();
+
+            // Apply the new state
+            lives = newLives;
+            level = newLevel;
+            wallHits = 0;
+            if (flashColor) {
+                canvas.classList.remove('flash-green', 'flash-red');
+                void canvas.offsetHeight;
+                canvas.classList.add(flashColor);
+            }
+            startingLives = lives;
+
+            saveState();
+            updateDisplay();
+            startCountdown();
         }
 
         function handleCircleTap(e) {
