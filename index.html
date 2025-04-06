@@ -898,9 +898,7 @@
                     clearInterval(countdownInterval);
                     countdownInterval = null;
                     isCountingDown = false;
-                    // Unconditionally release the circle to let physics take over
-                    circle.isDragging = false;
-                    circle.dragTouchId = null;
+                    // No change to circle.isDragging or circle.dragTouchId here
                     updateDisplay();
                 }
             }, 1000);
@@ -946,7 +944,6 @@
             const preTapX = circle.x;
             const preTapY = circle.y;
 
-            // Evaluate win condition using pre-tap position
             let newLives = lives;
             let newLevel = level;
             let flashColor = null;
@@ -960,7 +957,7 @@
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                     const sectionHeight = canvasHeight / 3;
-                    const circleSection = Math.floor(preTapY / sectionHeight);
+                    const circleSection = Math.floor(preTapY / sectionHeight); // Use pre-tap position
 
                     let baseLives;
                     if (startingLives > 3 && lives < 3) {
@@ -1001,12 +998,11 @@
                 }
             }
 
-            // Now teleport the circle after evaluating the outcome
+            // Teleport after evaluation
             circle.x = tapPos.x;
             circle.y = tapPos.y;
             constrainCircle();
 
-            // Apply the new state
             lives = newLives;
             level = newLevel;
             wallHits = 0;
