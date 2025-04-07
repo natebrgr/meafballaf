@@ -772,11 +772,20 @@
             }
 
             const currentTime = Date.now();
+            const dt = (currentTime - circle.lastTime) / 1000 || 0.016; // Default to ~60fps if no previous time
+            circle.lastTime = currentTime;
 
-            if (!circle.isDragging) {
+            if (circle.isDragging) {
+                // Update velocity based on drag movement, even during countdown
+                circle.dx = (circle.x - circle.lastX) / dt;
+                circle.dy = (circle.y - circle.lastY) / dt;
+                circle.lastX = circle.x;
+                circle.lastY = circle.y;
+            } else {
+                // Apply physics when not dragging
                 circle.dy += gravity;
-                circle.x += circle.dx;
-                circle.y += circle.dy;
+                circle.x += circle.dx * dt;
+                circle.y += circle.dy * dt;
                 circle.dx *= friction;
                 circle.dy *= friction;
 
@@ -898,7 +907,6 @@
                     clearInterval(countdownInterval);
                     countdownInterval = null;
                     isCountingDown = false;
-                    // No change to circle.isDragging or circle.dragTouchId here
                     updateDisplay();
                 }
             }, 1000);
@@ -957,7 +965,7 @@
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                     const sectionHeight = canvasHeight / 3;
-                    const circleSection = Math.floor(preTapY / sectionHeight); // Use pre-tap position
+                    const circleSection = Math.floor(preTapY / sectionHeight);
 
                     let baseLives;
                     if (startingLives > 3 && lives < 3) {
@@ -998,10 +1006,14 @@
                 }
             }
 
-            // Teleport after evaluation
             circle.x = tapPos.x;
             circle.y = tapPos.y;
             constrainCircle();
+            circle.dx = 0;
+            circle.dy = 0;
+            circle.lastX = circle.x;
+            circle.lastY = circle.y;
+            circle.lastTime = Date.now();
 
             lives = newLives;
             level = newLevel;
@@ -1129,17 +1141,15 @@
                 circle.x = pos.x;
                 circle.y = pos.y;
 
+                const currentTime = Date.now();
+                const dt = (currentTime - circle.lastTime) / 1000 || 0.016;
                 if (!isPaused) {
-                    const currentTime = Date.now();
-                    const dt = (currentTime - circle.lastTime) / 1000;
-                    if (dt > 0) {
-                        circle.dx = (pos.x - circle.lastX) / dt;
-                        circle.dy = (pos.y - circle.lastY) / dt;
-                    }
-                    circle.lastTime = currentTime;
+                    circle.dx = (pos.x - circle.lastX) / dt;
+                    circle.dy = (pos.y - circle.lastY) / dt;
                 }
                 circle.lastX = pos.x;
                 circle.lastY = pos.y;
+                circle.lastTime = currentTime;
             }
 
             if (circle.isResizing) {
@@ -1189,8 +1199,6 @@
                                 circle.lastX = getMousePos(e, circle.dragTouchId).x;
                                 circle.lastY = getMousePos(e, circle.dragTouchId).y;
                                 circle.lastTime = Date.now();
-                                circle.dx = 0;
-                                circle.dy = 0;
                                 if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
                             } else {
                                 circle.wasDraggingWhenPaused = circle.isDragging;
@@ -1358,8 +1366,6 @@
             if (!circle.isResizing && elapsed < resizeHoldThreshold && !isPaused) {
                 circle.isDragging = false;
                 circle.dragTouchId = null;
-                circle.dx = 0;
-                circle.dy = 0;
                 if (!isCountingDown) {
                     const pos = getMousePos(e, circle.resizeTouchId);
                     processGameEnd(pos);
@@ -1428,18 +1434,6 @@
                     circle.lastX = pos.x;
                     circle.lastY = pos.y;
                     circle.lastTime = Date.now();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                } else if (circle.wasDraggingWhenPaused) {
-                    circle.isDragging = false;
-                    circle.dragTouchId = null;
-                    constrainCircle();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                } else {
-                    constrainCircle();
-                    circle.dx = circle.dx || 0;
-                    circle.dy = circle.dy || 0;
                 }
                 circle.wasDraggingWhenPaused = false;
                 if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
@@ -1501,6 +1495,9 @@
 
         circle.x = window.innerWidth * 0.45;
         circle.y = window.innerHeight * 0.5;
+        circle.lastX = circle.x;
+        circle.lastY = circle.y;
+        circle.lastTime = Date.now();
 
         updateDisplay();
         animate();
