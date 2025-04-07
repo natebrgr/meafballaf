@@ -926,79 +926,36 @@
         };
     }
 
-    function handleCircleTap(e) {
+    function handleCanvasTap(e) {
         if (isPaused) return;
         const pos = getMousePos(e);
-        const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
-        if (dist < circle.radius && (!circle.isDragging || e.touches.length === 1)) {
-            e.preventDefault();
+        e.preventDefault();
 
-            if (!circle.hasBeenTouched) {
-                circle.hasBeenTouched = true;
-                startCountdown();
-                return;
-            }
+        // Store the circle's position before teleporting
+        const originalX = circle.x;
+        const originalY = circle.y;
 
-            if (isCountingDown) {
-                if (wallHits === level) {
-                    // Instant win during countdown
-                    isTrackingHits = false;
-                    if (countdownInterval) {
-                        clearInterval(countdownInterval);
-                        countdownInterval = null;
-                        countdownOpacity = 0;
-                        countdownDisplay.style.opacity = countdownOpacity;
-                        isCountingDown = false;
-                    }
-                    const completedLevel = level;
-                    level++;
-                    let flashColor = null;
+        if (!circle.hasBeenTouched) {
+            circle.hasBeenTouched = true;
+            startCountdown();
+            // Teleport circle to tap position after initial touch
+            circle.x = pos.x;
+            circle.y = pos.y;
+            constrainCircle();
+            return;
+        }
 
-                    if (currentMode === 'survival' && currentMap === 'rectangle') {
-                        const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                        const sectionHeight = canvasHeight / 3;
-                        const circleSection = Math.floor(circle.y / sectionHeight);
-
-                        let baseLives;
-                        if (startingLives > 3 && lives < 3) {
-                            baseLives = 3;
-                        } else if (startingLives > 3 && lives > 2) {
-                            baseLives = lives;
-                        } else {
-                            baseLives = startingLives;
-                        }
-
-                        if (circleSection === greenSection) {
-                            lives = baseLives + 1;
-                            flashColor = 'flash-green';
-                        } else if (circleSection === redSection) {
-                            lives = Math.max(baseLives - 1, 1);
-                            flashColor = 'flash-red';
-                        } else {
-                            lives = baseLives;
-                        }
-                    } else if (currentMode === 'survival') {
-                        lives = 3;
-                    }
-
-                    if (completedLevel > hiScore) hiScore = completedLevel;
-                    wallHits = 0;
-                    if (flashColor) {
-                        canvas.classList.remove('flash-green', 'flash-red');
-                        void canvas.offsetHeight;
-                        canvas.classList.add(flashColor);
-                    }
-                    startingLives = lives;
-                    saveState();
-                    updateDisplay();
-                    startCountdown();
-                }
-                // Do nothing if wallHits !== level during countdown
-                return;
-            }
-
+        if (isCountingDown) {
             if (wallHits === level) {
+                // Instant win during countdown based on original position
                 isTrackingHits = false;
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                    countdownOpacity = 0;
+                    countdownDisplay.style.opacity = countdownOpacity;
+                    isCountingDown = false;
+                }
                 const completedLevel = level;
                 level++;
                 let flashColor = null;
@@ -1006,7 +963,7 @@
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                     const sectionHeight = canvasHeight / 3;
-                    const circleSection = Math.floor(circle.y / sectionHeight);
+                    const circleSection = Math.floor(originalY / sectionHeight);
 
                     let baseLives;
                     if (startingLives > 3 && lives < 3) {
@@ -1041,51 +998,108 @@
                 saveState();
                 updateDisplay();
                 startCountdown();
-            } else if (wallHits > level && currentMode === 'survival') {
-                lives--;
-                if (lives <= 0) {
-                    level = 1;
-                    lives = 3;
-                    startingLives = 3;
-                }
-                wallHits = 0;
-                saveState();
-                updateDisplay();
-                startCountdown();
-            } else if (wallHits < level && currentMode === 'survival') {
-                lives--;
-                if (lives <= 0) {
-                    level = 1;
-                    lives = 3;
-                    startingLives = 3;
-                }
-                wallHits = 0;
-                saveState();
-                updateDisplay();
-                startCountdown();
-            } else {
-                wallHits = 0;
-                startCountdown();
             }
+            // Teleport circle to tap position after evaluation
+            circle.x = pos.x;
+            circle.y = pos.y;
+            constrainCircle();
+            return;
         }
+
+        // Evaluate win/loss based on original position
+        if (wallHits === level) {
+            isTrackingHits = false;
+            const completedLevel = level;
+            level++;
+            let flashColor = null;
+
+            if (currentMode === 'survival' && currentMap === 'rectangle') {
+                const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                const sectionHeight = canvasHeight / 3;
+                const circleSection = Math.floor(originalY / sectionHeight);
+
+                let baseLives;
+                if (startingLives > 3 && lives < 3) {
+                    baseLives = 3;
+                } else if (startingLives > 3 && lives > 2) {
+                    baseLives = lives;
+                } else {
+                    baseLives = startingLives;
+                }
+
+                if (circleSection === greenSection) {
+                    lives = baseLives + 1;
+                    flashColor = 'flash-green';
+                } else if (circleSection === redSection) {
+                    lives = Math.max(baseLives - 1, 1);
+                    flashColor = 'flash-red';
+                } else {
+                    lives = baseLives;
+                }
+            } else if (currentMode === 'survival') {
+                lives = 3;
+            }
+
+            if (completedLevel > hiScore) hiScore = completedLevel;
+            wallHits = 0;
+            if (flashColor) {
+                canvas.classList.remove('flash-green', 'flash-red');
+                void canvas.offsetHeight;
+                canvas.classList.add(flashColor);
+            }
+            startingLives = lives;
+            saveState();
+            updateDisplay();
+            startCountdown();
+        } else if (wallHits > level && currentMode === 'survival') {
+            lives--;
+            if (lives <= 0) {
+                level = 1;
+                lives = 3;
+                startingLives = 3;
+            }
+            wallHits = 0;
+            saveState();
+            updateDisplay();
+            startCountdown();
+        } else if (wallHits < level && currentMode === 'survival') {
+            lives--;
+            if (lives <= 0) {
+                level = 1;
+                lives = 3;
+                startingLives = 3;
+            }
+            wallHits = 0;
+            saveState();
+            updateDisplay();
+            startCountdown();
+        } else {
+            wallHits = 0;
+            startCountdown();
+        }
+
+        // Teleport circle to tap position after evaluation
+        circle.x = pos.x;
+        circle.y = pos.y;
+        constrainCircle();
     }
 
     function startDragging(e) {
         if (isPaused && !circle.wasDraggingWhenPaused) return;
         const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
-        const dist = Math.sqrt((pos.x - circle.x) ** 2 + (pos.y - circle.y) ** 2);
-        if (dist < circle.radius) {
-            e.preventDefault();
-            circle.isDragging = true;
-            circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
-            circle.lastX = pos.x;
-            circle.lastY = pos.y;
-            circle.lastTime = Date.now();
-            circle.dx = 0;
-            circle.dy = 0;
-            if (!isPaused) trail.length = 0;
-            buttonActivated = { play: false, mode: false, map: false };
-        }
+        e.preventDefault();
+        circle.isDragging = true;
+        circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
+        circle.lastX = pos.x;
+        circle.lastY = pos.y;
+        circle.lastTime = Date.now();
+        circle.dx = 0;
+        circle.dy = 0;
+        circle.x = pos.x;
+        circle.y = pos.y;
+        constrainCircle();
+        if (!isPaused) trail.length = 0;
+        buttonActivated = { play: false, mode: false, map: false };
     }
 
     function startResizing(e) {
@@ -1400,7 +1414,7 @@
         );
 
         if (isOverCanvas && !circle.isResizing && !isPaused) {
-            handleCircleTap({ touches: [otherTouch] });
+            handleCanvasTap({ touches: [otherTouch] });
         }
     }
 
@@ -1458,14 +1472,16 @@
         }
     });
 
-    canvas.addEventListener('mousedown', startDragging);
+    canvas.addEventListener('mousedown', (e) => {
+        handleCanvasTap(e);
+        startDragging(e);
+    });
     canvas.addEventListener('mousemove', drag);
     canvas.addEventListener('mouseup', stopDragging);
-    canvas.addEventListener('click', handleCircleTap);
 
     canvas.addEventListener('touchstart', (e) => {
+        handleCanvasTap(e);
         startDragging(e);
-        handleCircleTap(e);
         startResizing(e);
         handleMultiTouch(e);
     });
@@ -1514,4 +1530,3 @@
 
 </body>
 </html>
-
