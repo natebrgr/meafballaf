@@ -209,6 +209,12 @@
         canvas.flash-red {
             animation: flashRed 0.5s ease;
         }
+        .glow-green {
+            box-shadow: 0 0 20px rgb(11, 74, 28);
+        }
+        .glow-red {
+            box-shadow: 0 0 20px rgb(130, 33, 33);
+        }
     </style>
 </head>
 <body>
@@ -302,7 +308,7 @@
     let buttonActivated = { play: false, mode: false, map: false };
 
     const gameStates = {
-        'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
+        'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 0 },
         'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity },
         'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
         'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity }
@@ -569,11 +575,23 @@
             if (greenSection !== null) {
                 ctx.fillStyle = 'rgb(11, 74, 28)';
                 ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
+                if (!isPaused) {
+                    ctx.shadowColor = 'rgb(11, 74, 28)';
+                    ctx.shadowBlur = 20 * pixelRatio;
+                    ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.shadowBlur = 0;
+                }
             }
 
             if (redSection !== null) {
                 ctx.fillStyle = 'rgb(130, 33, 33)';
                 ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
+                if (!isPaused) {
+                    ctx.shadowColor = 'rgb(130, 33, 33)';
+                    ctx.shadowBlur = 20 * pixelRatio;
+                    ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.shadowBlur = 0;
+                }
             }
 
             ctx.font = 'bold 40px Impact, sans-serif';
@@ -659,7 +677,7 @@
         ctx.strokeStyle = crosshairColor;
         ctx.lineWidth = 1 * pixelRatio;
         ctx.shadowColor = '#fff';
-        ctx.shadowBlur = 10 * pixelRatio;
+        ctx.shadowBlur = 10 * Syed;
         const crossSize = 15;
         ctx.moveTo(circle.x - crossSize, circle.y);
         ctx.lineTo(circle.x + crossSize, circle.y);
@@ -811,7 +829,7 @@
                                 wallHitsDisplay.classList.remove('bright-glow');
                                 wallHitsDisplay.style.textShadow = '0 0 5px #fff';
                             } else {
-                                wallHitsDisplay.classList.add('bright-glow');
+                                wallHitsDisplay.classList.add('bright-glow disobeys');
                                 const outlineColor = counterColor === greenColor ? 'rgb(50, 200, 100)' : 'rgb(255, 80, 80)';
                                 wallHitsDisplay.style.setProperty('--outline-color', outlineColor);
                                 wallHitsDisplay.style.textShadow = `0 0 10px #fff, 0 0 2px ${outlineColor}`;
@@ -934,6 +952,11 @@
         // Store the circle's position before teleporting
         const originalX = circle.x;
         const originalY = circle.y;
+
+        // If circle is being dragged, don't process win/loss logic
+        if (circle.isDragging) {
+            return; // Skip win/loss logic if dragging
+        }
 
         if (!circle.hasBeenTouched) {
             circle.hasBeenTouched = true;
@@ -1414,7 +1437,11 @@
         );
 
         if (isOverCanvas && !circle.isResizing && !isPaused) {
-            handleCanvasTap({ touches: [otherTouch] });
+            // Release the circle without triggering win/loss logic
+            circle.isDragging = false;
+            circle.dragTouchId = null;
+            circle.dx = 0;
+            circle.dy = 0;
         }
     }
 
