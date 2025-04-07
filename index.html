@@ -356,18 +356,15 @@
 
             const buttonTop = canvasBottom + snugGap;
             modeButton.style.top = `${buttonTop}px`;
-            modeButton.style.bottom = '';
             modeButton.style.left = `${canvasLeft}px`;
 
             mapButton.style.top = `${buttonTop}px`;
-            mapButton.style.bottom = '';
-            mapButton.style.right = `${window.innerWidth - (canvasLeft + (window.innerWidth * 0.9))}px`;
+            mapButton.style.right = `${canvasLeft}px`;
 
             playButton.style.top = `${buttonTop}px`;
-            playButton.style.bottom = '';
 
             livesCount.style.left = `${canvasLeft}px`;
-            hiScoreCount.style.right = `${window.innerWidth - (canvasLeft + (window.innerWidth * 0.9))}px`;
+            hiScoreCount.style.right = `${canvasLeft}px`;
 
             constrainCircle();
         }
@@ -577,7 +574,7 @@
                     ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
                     if (!isPaused) {
                         ctx.shadowColor = 'rgb(11, 74, 28)';
-                        ctx.shadowBlur = 50 * pixelRatio; // Increased for more prominent glow
+                        ctx.shadowBlur = 50 * pixelRatio;
                         ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
                         ctx.shadowBlur = 0;
                     }
@@ -588,7 +585,7 @@
                     ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
                     if (!isPaused) {
                         ctx.shadowColor = 'rgb(130, 33, 33)';
-                        ctx.shadowBlur = 50 * pixelRatio; // Increased for more prominent glow
+                        ctx.shadowBlur = 50 * pixelRatio;
                         ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
                         ctx.shadowBlur = 0;
                     }
@@ -838,7 +835,6 @@
                         }
                     } else {
                         if (contact.inContact) {
-And here is the continuation to complete the code:
                             contact.inContact = false;
                         }
                     }
@@ -953,7 +949,7 @@ And here is the continuation to complete the code:
             const originalX = circle.x;
             const originalY = circle.y;
 
-            if (circle.isDragging) return; // Skip win/loss if dragging
+            if (circle.isDragging) return;
 
             if (!circle.hasBeenTouched) {
                 circle.hasBeenTouched = true;
@@ -1362,8 +1358,8 @@ And here is the continuation to complete the code:
                         playButton.classList.remove('glow-green', 'glow-red');
                         playButton.classList.add('recede');
                     } else {
-                        document.getElementById(key).classList.remove('glow-white');
-                        document.getElementById(key).classList.add('recede');
+                        document.getElementById(key + 'Button').classList.remove('glow-white');
+                        document.getElementById(key + 'Button').classList.add('recede');
                     }
                 }
             });
@@ -1426,7 +1422,6 @@ And here is the continuation to complete the code:
             );
 
             if (isOverCanvas && !circle.isResizing && !isPaused && !circle.resizeTouchId) {
-                // Quick tap to release
                 circle.isDragging = false;
                 circle.dragTouchId = null;
                 circle.dx = 0;
