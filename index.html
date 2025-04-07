@@ -536,7 +536,7 @@
             }
 
             updateDisplay();
-            drawScene(); // Ensure immediate redraw after state load
+            drawScene();
         }
 
         function getCircleColor(counterColor) {
@@ -571,14 +571,13 @@
             const sectionHeight = canvasHeight / 3;
             const pixelRatio = window.devicePixelRatio || 1;
 
-            // Draw map and sections
             if (currentMode === 'survival' && currentMap === 'rectangle') {
                 if (greenSection !== null) {
                     ctx.fillStyle = 'rgb(11, 74, 28)';
                     ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
                     if (!isPaused) {
                         ctx.shadowColor = 'rgb(11, 74, 28)';
-                        ctx.shadowBlur = 20 * pixelRatio;
+                        ctx.shadowBlur = 50 * pixelRatio; // Increased for more prominent glow
                         ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
                         ctx.shadowBlur = 0;
                     }
@@ -589,7 +588,7 @@
                     ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
                     if (!isPaused) {
                         ctx.shadowColor = 'rgb(130, 33, 33)';
-                        ctx.shadowBlur = 20 * pixelRatio;
+                        ctx.shadowBlur = 50 * pixelRatio; // Increased for more prominent glow
                         ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
                         ctx.shadowBlur = 0;
                     }
@@ -627,7 +626,6 @@
                 ctx.shadowBlur = 0;
             }
 
-            // Draw map border
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
@@ -648,7 +646,6 @@
             const crosshairColor = getCrosshairColor(counterColor);
             const trailBaseColor = lightenColor(counterColor);
 
-            // Draw trail
             if (trail.length > 1) {
                 ctx.beginPath();
                 ctx.lineWidth = circle.radius * 2;
@@ -664,7 +661,6 @@
                 }
             }
 
-            // Draw circle
             ctx.beginPath();
             ctx.shadowColor = '#fff';
             ctx.shadowBlur = (counterColor === '#e0e0e0' ? 5 : 10) * pixelRatio;
@@ -677,7 +673,6 @@
             ctx.closePath();
             ctx.shadowBlur = 0;
 
-            // Draw crosshair
             ctx.beginPath();
             ctx.strokeStyle = crosshairColor;
             ctx.lineWidth = 1 * pixelRatio;
@@ -691,7 +686,6 @@
             ctx.stroke();
             ctx.shadowBlur = 0;
 
-            // Draw "HOLDING" text if applicable
             const shouldShowHoldingText = (!isPaused && circle.isDragging) || (isPaused && circle.wasDraggingWhenPaused);
             if (shouldShowHoldingText) {
                 const text = "HOLDING";
@@ -724,7 +718,6 @@
                 ctx.shadowBlur = 0;
             }
 
-            // Draw wallHits and level numbers around circle
             const offset = circle.radius + 30;
 
             ctx.font = 'bold 40px Impact, sans-serif';
@@ -845,6 +838,7 @@
                         }
                     } else {
                         if (contact.inContact) {
+And here is the continuation to complete the code:
                             contact.inContact = false;
                         }
                     }
@@ -1113,7 +1107,7 @@
             constrainCircle();
             if (!isPaused) trail.length = 0;
             buttonActivated = { play: false, mode: false, map: false };
-            drawScene(); // Ensure redraw when dragging starts
+            drawScene();
         }
 
         function startResizing(e) {
@@ -1314,7 +1308,7 @@
             }
 
             if (isPaused) saveState();
-            drawScene(); // Ensure redraw during dragging
+            drawScene();
         }
 
         function stopDragging(e) {
@@ -1378,7 +1372,7 @@
             if (target !== mapButton) buttonActivated.map = false;
 
             if (!circle.isDragging && isPaused) saveState();
-            drawScene(); // Ensure redraw when dragging stops
+            drawScene();
         }
 
         function stopResizing(e) {
@@ -1401,7 +1395,8 @@
                 circle.dragTouchId = null;
                 circle.dx = 0;
                 circle.dy = 0;
-            } else if (circle.isResizing) {
+            }
+            if (circle.isResizing) {
                 circle.isResizing = false;
             }
 
@@ -1412,7 +1407,7 @@
             circle.resizeTouchId = null;
             constrainCircle();
             if (isPaused) saveState();
-            drawScene(); // Ensure redraw when resizing stops
+            drawScene();
         }
 
         function handleMultiTouch(e) {
@@ -1430,12 +1425,13 @@
                 screenPos.y <= canvasRect.bottom
             );
 
-            if (isOverCanvas && !circle.isResizing && !isPaused) {
+            if (isOverCanvas && !circle.isResizing && !isPaused && !circle.resizeTouchId) {
+                // Quick tap to release
                 circle.isDragging = false;
                 circle.dragTouchId = null;
                 circle.dx = 0;
                 circle.dy = 0;
-                drawScene(); // Ensure redraw after multi-touch release
+                drawScene();
             }
         }
 
@@ -1448,7 +1444,7 @@
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             loadState(currentMode, currentMap);
             updateDisplay();
-            drawScene(); // Ensure redraw after mode switch
+            drawScene();
         });
 
         mapButton.addEventListener('click', () => {
@@ -1460,7 +1456,7 @@
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             loadState(currentMode, currentMap);
             updateDisplay();
-            drawScene(); // Ensure redraw after map switch
+            drawScene();
         });
 
         playButton.addEventListener('click', (e) => {
@@ -1493,7 +1489,7 @@
                 saveState();
                 updateDisplay();
             }
-            drawScene(); // Ensure redraw after pause/resume
+            drawScene();
         });
 
         canvas.addEventListener('mousedown', (e) => {
@@ -1549,7 +1545,7 @@
         circle.y = window.innerHeight * 0.5;
 
         updateDisplay();
-        drawScene(); // Initial draw
+        drawScene();
         animate();
     </script>
 </body>
