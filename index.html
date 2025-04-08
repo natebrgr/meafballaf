@@ -532,7 +532,9 @@
                 trail.push(...state.trail);
             }
 
-            // Reset button states after loading
+            // Ensure clean state transition
+            currentMode = mode;
+            currentMap = map;
             buttonActivated = { play: false, mode: false, map: false };
             holdTimers = { play: null, mode: null, map: null };
             [playButton, modeButton, mapButton].forEach(btn => {
@@ -1383,7 +1385,7 @@
                     }
                 }
             });
-            buttonActivated = { play: false, mode: false, map: false }; // Fully reset button states
+            buttonActivated = { play: false, mode: false, map: false };
             if (!circle.isDragging && isPaused) saveState();
             drawScene();
         }
@@ -1452,27 +1454,31 @@
         }
 
         modeButton.addEventListener('click', () => {
+            const newMode = currentMode === 'survival' ? 'endurance' : 'survival';
             if (!isPaused) {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
             }
             saveState();
-            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+            currentMode = newMode; // Force the mode change
             circle.hasBeenTouched = false;
             loadState(currentMode, currentMap);
+            assignSections(); // Ensure sections update for new mode
             updateDisplay();
             drawScene();
         });
 
         mapButton.addEventListener('click', () => {
+            const newMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             if (!isPaused) {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
             }
             saveState();
-            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+            currentMap = newMap; // Force the map change
             circle.hasBeenTouched = false;
             loadState(currentMode, currentMap);
+            assignSections(); // Ensure sections update for new map
             updateDisplay();
             drawScene();
         });
