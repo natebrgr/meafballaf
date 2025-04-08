@@ -532,6 +532,13 @@
                 trail.push(...state.trail);
             }
 
+            // Reset button states after loading
+            buttonActivated = { play: false, mode: false, map: false };
+            holdTimers = { play: null, mode: null, map: null };
+            [playButton, modeButton, mapButton].forEach(btn => {
+                btn.classList.remove('glow-green', 'glow-red', 'glow-white', 'recede');
+            });
+
             updateDisplay();
             drawScene();
         }
@@ -1257,7 +1264,7 @@
                             isPaused = true;
                             saveState();
                             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-                            circle.hasBeenTouched = false; // Reset touch state
+                            circle.hasBeenTouched = false;
                             loadState(currentMode, currentMap);
                             updateDisplay();
                             buttonActivated.mode = true;
@@ -1287,7 +1294,7 @@
                             isPaused = true;
                             saveState();
                             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-                            circle.hasBeenTouched = false; // Reset touch state
+                            circle.hasBeenTouched = false;
                             loadState(currentMode, currentMap);
                             updateDisplay();
                             buttonActivated.map = true;
@@ -1335,7 +1342,7 @@
             );
 
             if (target === playButton && !buttonActivated.play) {
-                target.click();
+                playButton.click();
             } else if (target === modeButton && !buttonActivated.mode) {
                 modeButton.classList.remove('glow-white');
                 modeButton.classList.add('recede');
@@ -1343,7 +1350,7 @@
                 isPaused = true;
                 saveState();
                 currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-                circle.hasBeenTouched = false; // Reset touch state
+                circle.hasBeenTouched = false;
                 loadState(currentMode, currentMap);
                 updateDisplay();
             } else if (target === mapButton && !buttonActivated.map) {
@@ -1353,7 +1360,7 @@
                 isPaused = true;
                 saveState();
                 currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-                circle.hasBeenTouched = false; // Reset touch state
+                circle.hasBeenTouched = false;
                 loadState(currentMode, currentMap);
                 updateDisplay();
             } else if (isOverCanvas && !circle.hasBeenTouched) {
@@ -1376,10 +1383,7 @@
                     }
                 }
             });
-            if (target !== playButton) buttonActivated.play = false;
-            if (target !== modeButton) buttonActivated.mode = false;
-            if (target !== mapButton) buttonActivated.map = false;
-
+            buttonActivated = { play: false, mode: false, map: false }; // Fully reset button states
             if (!circle.isDragging && isPaused) saveState();
             drawScene();
         }
@@ -1454,7 +1458,7 @@
             }
             saveState();
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-            circle.hasBeenTouched = false; // Reset touch state
+            circle.hasBeenTouched = false;
             loadState(currentMode, currentMap);
             updateDisplay();
             drawScene();
@@ -1467,7 +1471,7 @@
             }
             saveState();
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-            circle.hasBeenTouched = false; // Reset touch state
+            circle.hasBeenTouched = false;
             loadState(currentMode, currentMap);
             updateDisplay();
             drawScene();
