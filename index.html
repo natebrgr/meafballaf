@@ -209,12 +209,6 @@
         canvas.flash-red {
             animation: flashRed 0.5s ease;
         }
-        .glow-green {
-            box-shadow: 0 0 20px rgb(11, 74, 28);
-        }
-        .glow-red {
-            box-shadow: 0 0 20px rgb(130, 33, 33);
-        }
     </style>
 </head>
 <body>
@@ -391,7 +385,6 @@
             }
 
             if (level !== previousLevel) {
-                assignSections();
                 if (level < previousLevel) {
                     levelNumber.classList.remove('flash-red', 'flash-white');
                     void levelNumber.offsetHeight;
@@ -477,7 +470,9 @@
                 countdown,
                 countdownOpacity,
                 wasDraggingWhenPaused: circle.wasDraggingWhenPaused,
-                startingLives
+                startingLives,
+                greenSection,
+                redSection
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -499,6 +494,12 @@
             countdownOpacity = state.countdownOpacity;
             circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
             startingLives = state.startingLives !== undefined ? state.startingLives : (mode === 'survival' ? 3 : Infinity);
+            greenSection = state.greenSection !== undefined ? state.greenSection : null;
+            redSection = state.redSection !== undefined ? state.redSection : null;
+
+            if (!greenSection && !redSection && mode === 'survival' && map === 'rectangle') {
+                assignSections();
+            }
 
             if (state.circle.x !== undefined) {
                 circle.x = state.circle.x;
@@ -532,7 +533,6 @@
                 trail.push(...state.trail);
             }
 
-            // Ensure clean state transition
             currentMode = mode;
             currentMap = map;
             buttonActivated = { play: false, mode: false, map: false };
@@ -581,23 +581,10 @@
                 if (greenSection !== null) {
                     ctx.fillStyle = 'rgb(11, 74, 28)';
                     ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
-                    if (!isPaused) {
-                        ctx.shadowColor = 'rgb(11, 74, 28)';
-                        ctx.shadowBlur = 50 * pixelRatio;
-                        ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
-                        ctx.shadowBlur = 0;
-                    }
                 }
-
                 if (redSection !== null) {
                     ctx.fillStyle = 'rgb(130, 33, 33)';
                     ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
-                    if (!isPaused) {
-                        ctx.shadowColor = 'rgb(130, 33, 33)';
-                        ctx.shadowBlur = 50 * pixelRatio;
-                        ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
-                        ctx.shadowBlur = 0;
-                    }
                 }
 
                 ctx.font = 'bold 40px Impact, sans-serif';
@@ -616,13 +603,11 @@
                     ctx.fillText(`+${greenLives - lives}`, 40, greenSection * sectionHeight + sectionHeight / 2);
                     ctx.fillText(`+${greenLives - lives}`, canvasWidth - 40, greenSection * sectionHeight + sectionHeight / 2);
                 }
-
                 if (redSection !== null) {
                     ctx.fillStyle = 'rgb(130, 33, 33)';
                     ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, 40, redSection * sectionHeight + sectionHeight / 2);
                     ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, canvasWidth - 40, redSection * sectionHeight + sectionHeight / 2);
                 }
-
                 if (blackSection !== null) {
                     ctx.fillStyle = '#000';
                     ctx.fillText(`${blackLives - lives >= 0 ? '+' : ''}${blackLives - lives}`, 40, blackSection * sectionHeight + sectionHeight / 2);
@@ -1014,6 +999,7 @@
                         canvas.classList.add(flashColor);
                     }
                     startingLives = lives;
+                    assignSections(); // Only reassign on level completion
                     saveState();
                     updateDisplay();
                     startCountdown();
@@ -1024,6 +1010,7 @@
                 return;
             }
 
+            // New tap-to-move and win/lose logic
             if (wallHits === level) {
                 isTrackingHits = false;
                 const completedLevel = level;
@@ -1033,7 +1020,7 @@
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                     const sectionHeight = canvasHeight / 3;
-                    const circleSection = Math.floor(originalY / sectionHeight);
+                    const circleSection = Math.floor(pos.y / sectionHeight);
 
                     let baseLives;
                     if (startingLives > 3 && lives < 3) baseLives = 3;
@@ -1061,6 +1048,7 @@
                     canvas.classList.add(flashColor);
                 }
                 startingLives = lives;
+                assignSections(); // Only reassign on level completion
                 saveState();
                 updateDisplay();
                 startCountdown();
@@ -1425,60 +1413,28 @@
             drawScene();
         }
 
-        function handleMultiTouch(e) {
-            if (e.touches.length < 2) return;
-            const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
-            if (dragTouchIndex === -1) return;
-
-            const otherTouch = e.touches[dragTouchIndex === 0 ? 1 : 0];
-            const screenPos = { x: otherTouch.clientX, y: otherTouch.clientY };
-            const canvasRect = canvas.getBoundingClientRect();
-            const isOverCanvas = (
-                screenPos.x >= canvasRect.left &&
-                screenPos.x <= canvasRect.right &&
-                screenPos.y >= canvasRect.top &&
-                screenPos.y <= canvasRect.bottom
-            );
-
-            if (isOverCanvas && !circle.isResizing && !isPaused && !circle.resizeTouchId) {
-                circle.isDragging = false;
-                circle.dragTouchId = null;
-                circle.dx = 0;
-                circle.dy = 0;
-                if (!circle.hasBeenTouched) {
-                    circle.hasBeenTouched = true;
-                    startCountdown();
-                }
-                drawScene();
-            }
-        }
-
         modeButton.addEventListener('click', () => {
-            const newMode = currentMode === 'survival' ? 'endurance' : 'survival';
             if (!isPaused) {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
             }
             saveState();
-            currentMode = newMode; // Force the mode change
+            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
             circle.hasBeenTouched = false;
             loadState(currentMode, currentMap);
-            assignSections(); // Ensure sections update for new mode
             updateDisplay();
             drawScene();
         });
 
         mapButton.addEventListener('click', () => {
-            const newMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             if (!isPaused) {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
             }
             saveState();
-            currentMap = newMap; // Force the map change
+            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
             circle.hasBeenTouched = false;
             loadState(currentMode, currentMap);
-            assignSections(); // Ensure sections update for new map
             updateDisplay();
             drawScene();
         });
@@ -1527,7 +1483,6 @@
             handleCanvasTap(e);
             startDragging(e);
             startResizing(e);
-            handleMultiTouch(e);
         });
         canvas.addEventListener('touchmove', drag);
         canvas.addEventListener('touchend', (e) => {
