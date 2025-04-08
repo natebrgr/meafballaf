@@ -507,8 +507,8 @@
                 circle.radius = state.circle.radius || initialRadius;
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
-                circle.isDragging = state.circle.isDragging;
-                circle.dragTouchId = state.dragTouchId;
+                circle.isDragging = false; // Force reset to avoid drag state leak
+                circle.dragTouchId = null;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
                 circle.lastTime = state.lastTime || Date.now();
@@ -971,7 +971,7 @@
                     if (currentMode === 'survival' && currentMap === 'rectangle') {
                         const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                         const sectionHeight = canvasHeight / 3;
-                        const circleSection = Math.floor(originalY / sectionHeight);
+                        const circleSection = Math.floor(originalY / sectionHeight); // Use original position
 
                         let baseLives;
                         if (startingLives > 3 && lives < 3) baseLives = 3;
@@ -999,7 +999,7 @@
                         canvas.classList.add(flashColor);
                     }
                     startingLives = lives;
-                    assignSections(); // Only reassign on level completion
+                    assignSections();
                     saveState();
                     updateDisplay();
                     startCountdown();
@@ -1010,7 +1010,7 @@
                 return;
             }
 
-            // New tap-to-move and win/lose logic
+            // New tap-to-move and win/lose logic using original position
             if (wallHits === level) {
                 isTrackingHits = false;
                 const completedLevel = level;
@@ -1020,7 +1020,7 @@
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                     const sectionHeight = canvasHeight / 3;
-                    const circleSection = Math.floor(pos.y / sectionHeight);
+                    const circleSection = Math.floor(originalY / sectionHeight); // Use original position
 
                     let baseLives;
                     if (startingLives > 3 && lives < 3) baseLives = 3;
@@ -1048,7 +1048,7 @@
                     canvas.classList.add(flashColor);
                 }
                 startingLives = lives;
-                assignSections(); // Only reassign on level completion
+                assignSections();
                 saveState();
                 updateDisplay();
                 startCountdown();
@@ -1376,6 +1376,11 @@
             buttonActivated = { play: false, mode: false, map: false };
             if (!circle.isDragging && isPaused) saveState();
             drawScene();
+
+            // Ensure buttons are clickable by forcing a clean slate
+            [modeButton, mapButton].forEach(btn => {
+                btn.style.pointerEvents = 'auto'; // Reset pointer events
+            });
         }
 
         function stopResizing(e) {
