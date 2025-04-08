@@ -1257,6 +1257,7 @@
                             isPaused = true;
                             saveState();
                             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+                            circle.hasBeenTouched = false; // Reset touch state
                             loadState(currentMode, currentMap);
                             updateDisplay();
                             buttonActivated.mode = true;
@@ -1286,6 +1287,7 @@
                             isPaused = true;
                             saveState();
                             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+                            circle.hasBeenTouched = false; // Reset touch state
                             loadState(currentMode, currentMap);
                             updateDisplay();
                             buttonActivated.map = true;
@@ -1337,19 +1339,30 @@
             } else if (target === modeButton && !buttonActivated.mode) {
                 modeButton.classList.remove('glow-white');
                 modeButton.classList.add('recede');
-                target.click();
+                if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
+                isPaused = true;
+                saveState();
+                currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+                circle.hasBeenTouched = false; // Reset touch state
+                loadState(currentMode, currentMap);
+                updateDisplay();
             } else if (target === mapButton && !buttonActivated.map) {
                 mapButton.classList.remove('glow-white');
                 mapButton.classList.add('recede');
-                target.click();
+                if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
+                isPaused = true;
+                saveState();
+                currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+                circle.hasBeenTouched = false; // Reset touch state
+                loadState(currentMode, currentMap);
+                updateDisplay();
+            } else if (isOverCanvas && !circle.hasBeenTouched) {
+                circle.hasBeenTouched = true;
+                startCountdown();
             }
 
             circle.isDragging = false;
             circle.dragTouchId = null;
-            if (!circle.hasBeenTouched) {
-                circle.hasBeenTouched = true;
-                startCountdown();
-            }
             Object.keys(holdTimers).forEach(key => {
                 if (holdTimers[key]) {
                     clearTimeout(holdTimers[key]);
@@ -1426,6 +1439,10 @@
                 circle.dragTouchId = null;
                 circle.dx = 0;
                 circle.dy = 0;
+                if (!circle.hasBeenTouched) {
+                    circle.hasBeenTouched = true;
+                    startCountdown();
+                }
                 drawScene();
             }
         }
@@ -1437,6 +1454,7 @@
             }
             saveState();
             currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+            circle.hasBeenTouched = false; // Reset touch state
             loadState(currentMode, currentMap);
             updateDisplay();
             drawScene();
@@ -1449,6 +1467,7 @@
             }
             saveState();
             currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+            circle.hasBeenTouched = false; // Reset touch state
             loadState(currentMode, currentMap);
             updateDisplay();
             drawScene();
