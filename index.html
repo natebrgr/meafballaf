@@ -125,26 +125,9 @@
             font-weight: bold;
             z-index: 3;
         }
-        #livesLabel {
-            left: calc(50% - 330px);
-        }
-        #hiScoreLabel {
-            right: calc(50% - 330px);
-        }
-        #modeButton, #mapButton {
+        #modeButton, #mapButton, #playButton {
             position: absolute;
             z-index: 15;
-        }
-        #playButton {
-            position: absolute;
-            z-index: 20;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 8px 16px;
-            font-size: 1em;
-            display: block;
-        }
-        button {
             padding: 8px 16px;
             font-size: 1em;
             font-weight: bold;
@@ -157,7 +140,6 @@
             border-radius: 0;
             filter: drop-shadow(0 0 5px #fff);
             transition: none;
-            z-index: 25;
             pointer-events: auto;
         }
         button:hover {
@@ -277,7 +259,7 @@
             lastY: 0,
             lastTime: 0,
             wallContact: {
-                left: { time: 0, in AGR: false },
+                left: { time: 0, inContact: false },
                 right: { time: 0, inContact: false },
                 top: { time: 0, inContact: false },
                 bottom: { time: 0, inContact: false },
@@ -372,13 +354,18 @@
             countdownDisplay.style.top = `${canvasTop + 10}px`;
 
             const buttonTop = canvasBottom + snugGap;
-            modeButton.style.top = `${buttonTop}px`;
-            modeButton.style.left = `${canvasLeft}px`;
+            const buttonWidth = modeButton.offsetWidth || 60;
+            const totalButtonWidth = buttonWidth * 3 + 20; // 3 buttons + 10px gap between each
+            const buttonStartX = (window.innerWidth - totalButtonWidth) / 2;
 
-            mapButton.style.top = `${buttonTop}px`;
-            mapButton.style.right = `${canvasLeft}px`;
+            modeButton.style.top = `${buttonTop}px`;
+            modeButton.style.left = `${buttonStartX}px`;
 
             playButton.style.top = `${buttonTop}px`;
+            playButton.style.left = `${buttonStartX + buttonWidth + 10}px`;
+
+            mapButton.style.top = `${buttonTop}px`;
+            mapButton.style.left = `${buttonStartX + (buttonWidth + 10) * 2}px`;
 
             livesCount.style.left = `${canvasLeft}px`;
             hiScoreCount.style.right = `${canvasLeft}px`;
@@ -1449,7 +1436,7 @@
             }
 
             const elapsed = Date.now() - circle.resizeStartTime;
-            if (!circle.isResizing &&_elapsed < resizeHoldThreshold && !isPaused) {
+            if (!circle.isResizing && elapsed < resizeHoldThreshold && !isPaused) {
                 circle.isDragging = false;
                 circle.dragTouchId = null;
                 circle.dx = 0;
