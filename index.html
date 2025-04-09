@@ -162,11 +162,23 @@
             font-family: 'Impact', sans-serif;
             font-size: 1.5em;
             z-index: 2;
-            opacity: 1;
-            transition: opacity 0.5s ease;
+            opacity: 0;
+            transform: scale(0) rotate(0deg);
+            transform-origin: left center;
+        }
+        #livesChangeText.appear, #levelChangeText.appear {
+            animation: textAppear 0.2s ease forwards;
         }
         #livesChangeText.fade-out, #levelChangeText.fade-out {
-            opacity: 0;
+            animation: textFadeOut 0.2s ease forwards;
+        }
+        @keyframes textAppear {
+            0% { opacity: 0; transform: scale(0) rotate(0deg); }
+            100% { opacity: 1; transform: scale(1) rotate(-27.5deg); }
+        }
+        @keyframes textFadeOut {
+            0% { opacity: 1; transform: scale(1) rotate(-27.5deg); }
+            100% { opacity: 0; transform: scale(0) rotate(0deg); }
         }
         @keyframes glowGreen {
             0% { box-shadow: 0 0 5px rgb(11, 74, 28); }
@@ -389,8 +401,9 @@
             livesLabel.style.left = `${canvasLeft}px`;
             hiScoreLabel.style.right = `${canvasLeft}px`;
 
+            const livesCountWidth = livesCount.offsetWidth || 60;
             livesChangeText.style.top = `${wallHitsTop + wallHitsHeight / 2 - 15}px`;
-            livesChangeText.style.left = `${canvasLeft + 60 + 5}px`; // 60px width of livesCount + 5px gap
+            livesChangeText.style.left = `${canvasLeft + livesCountWidth + 10}px`; // 60px width of livesCount + 10px gap
 
             const levelContainerWidth = levelContainer.offsetWidth || 120;
             const levelContainerLeft = (window.innerWidth - levelContainerWidth) / 2;
@@ -412,22 +425,25 @@
 
             if (element === livesChangeText && livesChangeTimeout) {
                 clearTimeout(livesChangeTimeout);
-                livesChangeText.classList.remove('fade-out');
+                livesChangeText.classList.remove('appear', 'fade-out');
+                void livesChangeText.offsetHeight; // Trigger reflow
             } else if (element === levelChangeText && levelChangeTimeout) {
                 clearTimeout(levelChangeTimeout);
-                levelChangeText.classList.remove('fade-out');
+                levelChangeText.classList.remove('appear', 'fade-out');
+                void levelChangeText.offsetHeight; // Trigger reflow
             }
 
             element.textContent = `${change > 0 ? '+' : ''}${change}`;
             element.style.color = isPositive ? 'rgb(11, 74, 28)' : 'rgb(130, 33, 33)';
-            element.style.opacity = '1';
+            element.classList.add('appear');
 
             const timeout = setTimeout(() => {
+                element.classList.remove('appear');
                 element.classList.add('fade-out');
                 setTimeout(() => {
                     element.textContent = '';
                     element.classList.remove('fade-out');
-                }, 500); // Match the CSS transition duration
+                }, 200); // Match the fade-out animation duration
             }, 1000);
 
             if (element === livesChangeText) livesChangeTimeout = timeout;
