@@ -369,10 +369,10 @@
             canvas.style.left = `${canvasLeft}px`;
 
             const canvasBottom = canvasTop + (availableHeight - 2 * borderWidth);
+            const canvasRight = canvasLeft + (window.innerWidth * 0.9);
             countdownDisplay.style.top = `${canvasTop + 10}px`;
 
             const buttonTop = canvasBottom + snugGap;
-            const canvasRight = canvasLeft + (window.innerWidth * 0.9);
             const buttonWidth = modeButton.offsetWidth || 60;
 
             modeButton.style.top = `${buttonTop}px`;
@@ -392,8 +392,10 @@
             livesChangeText.style.top = `${wallHitsTop + wallHitsHeight / 2 - 15}px`;
             livesChangeText.style.left = `${canvasLeft + 60 + 5}px`; // 60px width of livesCount + 5px gap
 
+            const levelContainerWidth = levelContainer.offsetWidth || 120;
+            const levelContainerLeft = (window.innerWidth - levelContainerWidth) / 2;
             levelChangeText.style.top = `${wallHitsTop + wallHitsHeight / 2 - 15}px`;
-            levelChangeText.style.left = `${canvasLeft + 120 + 5}px`; // 120px width of levelContainer + 5px gap
+            levelChangeText.style.left = `${levelContainerLeft + levelContainerWidth + 10}px`; // Right edge of levelContainer + 10px gap
 
             constrainCircle();
         }
