@@ -173,12 +173,24 @@
             animation: textFadeOut 0.2s ease forwards;
         }
         @keyframes textAppear {
-            0% { opacity: 0; transform: scale(0) rotate(0deg); }
-            100% { opacity: 1; transform: scale(1) rotate(-27.5deg); }
+            from {
+                opacity: 0;
+                transform: scale(0) rotate(0deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotate(-27.5deg);
+            }
         }
         @keyframes textFadeOut {
-            0% { opacity: 1; transform: scale(1) rotate(-27.5deg); }
-            100% { opacity: 0; transform: scale(0) rotate(0deg); }
+            from {
+                opacity: 1;
+                transform: scale(1) rotate(-27.5deg);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0) rotate(0deg);
+            }
         }
         @keyframes glowGreen {
             0% { box-shadow: 0 0 5px rgb(11, 74, 28); }
@@ -403,12 +415,12 @@
 
             const livesCountWidth = livesCount.offsetWidth || 60;
             livesChangeText.style.top = `${wallHitsTop + wallHitsHeight / 2 - 15}px`;
-            livesChangeText.style.left = `${canvasLeft + livesCountWidth + 10}px`; // 60px width of livesCount + 10px gap
+            livesChangeText.style.left = `${canvasLeft + livesCountWidth + 10}px`; // 10px gap from livesCount
 
             const levelContainerWidth = levelContainer.offsetWidth || 120;
             const levelContainerLeft = (window.innerWidth - levelContainerWidth) / 2;
             levelChangeText.style.top = `${wallHitsTop + wallHitsHeight / 2 - 15}px`;
-            levelChangeText.style.left = `${levelContainerLeft + levelContainerWidth + 10}px`; // Right edge of levelContainer + 10px gap
+            levelChangeText.style.left = `${levelContainerLeft + levelContainerWidth + 10}px`; // 10px gap from levelContainer
 
             constrainCircle();
         }
@@ -421,31 +433,43 @@
         window.addEventListener('resize', setCanvasSize);
 
         function showChangeText(element, change, isPositive) {
-            if (change === 0) return; // No text if no change
+            if (change === 0) return; // No change, no text
 
+            // Clear any existing timeouts and reset animations
             if (element === livesChangeText && livesChangeTimeout) {
                 clearTimeout(livesChangeTimeout);
-                livesChangeText.classList.remove('appear', 'fade-out');
-                void livesChangeText.offsetHeight; // Trigger reflow
             } else if (element === levelChangeText && levelChangeTimeout) {
                 clearTimeout(levelChangeTimeout);
-                levelChangeText.classList.remove('appear', 'fade-out');
-                void levelChangeText.offsetHeight; // Trigger reflow
             }
 
+            // Reset the element to its initial state
+            element.classList.remove('appear', 'fade-out');
+            element.style.animation = 'none'; // Clear any ongoing animation
+            element.style.opacity = '0'; // Ensure it starts invisible
+            element.style.transform = 'scale(0) rotate(0deg)'; // Reset to initial upright and tiny state
+            void element.offsetHeight; // Trigger reflow to apply the reset
+
+            // Set text and color
             element.textContent = `${change > 0 ? '+' : ''}${change}`;
             element.style.color = isPositive ? 'rgb(11, 74, 28)' : 'rgb(130, 33, 33)';
+
+            // Apply the appear animation
             element.classList.add('appear');
 
+            // Schedule the fade-out after 1 second of visibility
             const timeout = setTimeout(() => {
                 element.classList.remove('appear');
                 element.classList.add('fade-out');
+                // Clean up after fade-out animation completes
                 setTimeout(() => {
-                    element.textContent = '';
                     element.classList.remove('fade-out');
-                }, 200); // Match the fade-out animation duration
-            }, 1000);
+                    element.textContent = ''; // Clear text
+                    element.style.opacity = '0'; // Ensure it’s reset
+                    element.style.transform = 'scale(0) rotate(0deg)'; // Reset transform
+                }, 200); // Matches fade-out duration
+            }, 1000); // 1-second delay before starting fade-out
 
+            // Store the timeout
             if (element === livesChangeText) livesChangeTimeout = timeout;
             else levelChangeTimeout = timeout;
         }
