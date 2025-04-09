@@ -161,10 +161,12 @@
             position: absolute;
             font-family: 'Impact', sans-serif;
             font-size: 1.5em;
-            z-index: 2;
+            z-index: 20;
             opacity: 0;
             transform: scale(0) rotate(0deg);
             transform-origin: left center;
+            display: block;
+            pointer-events: none;
         }
         #livesChangeText.appear, #levelChangeText.appear {
             animation: textAppear 0.25s ease forwards;
@@ -415,12 +417,12 @@
 
             const livesCountWidth = livesCount.offsetWidth || 60;
             livesChangeText.style.top = `${wallHitsTop + wallHitsHeight / 2 - 15}px`;
-            livesChangeText.style.left = `${canvasLeft + livesCountWidth + 10}px`; // 10px gap from livesCount
+            livesChangeText.style.left = `${canvasLeft + livesCountWidth + 10}px`;
 
             const levelContainerWidth = levelContainer.offsetWidth || 120;
             const levelContainerLeft = (window.innerWidth - levelContainerWidth) / 2;
             levelChangeText.style.top = `${wallHitsTop + wallHitsHeight / 2 - 15}px`;
-            levelChangeText.style.left = `${levelContainerLeft + levelContainerWidth + 10}px`; // 10px gap from levelContainer
+            levelChangeText.style.left = `${levelContainerLeft + levelContainerWidth + 10}px`;
 
             constrainCircle();
         }
@@ -433,9 +435,8 @@
         window.addEventListener('resize', setCanvasSize);
 
         function showChangeText(element, change, isPositive) {
-            if (change === 0) return; // No change, no text
+            if (change === 0) return;
 
-            // Clear any existing timeouts
             if (element === livesChangeText && livesChangeTimeout) {
                 clearTimeout(livesChangeTimeout);
                 livesChangeTimeout = null;
@@ -444,42 +445,38 @@
                 levelChangeTimeout = null;
             }
 
-            // Reset the element's state
             element.classList.remove('appear', 'fade-out');
-            element.style.opacity = '0'; // Ensure it starts invisible
-            element.style.transform = 'scale(0) rotate(0deg)'; // Start upright and tiny
-            element.style.animation = 'none'; // Clear any ongoing animation
-            void element.offsetHeight; // Force reflow to apply reset
+            element.style.opacity = '0';
+            element.style.transform = 'scale(0) rotate(0deg)';
+            element.style.display = 'block';
+            void element.offsetHeight;
 
-            // Set text and color based on element type
             if (element === livesChangeText) {
-                element.textContent = `${change > 0 ? '+' : ''}${change}`; // Keep +/- for lives
+                element.textContent = `${change > 0 ? '+' : ''}${change}`;
             } else if (element === levelChangeText) {
-                element.textContent = `${change > 0 ? '↑' : '↓'}${Math.abs(change)}`; // Use arrows for level
+                element.textContent = `${change > 0 ? '↑' : '↓'}${Math.abs(change)}`;
             }
             element.style.color = isPositive ? 'rgb(11, 74, 28)' : 'rgb(130, 33, 33)';
 
-            // Apply the appear animation
+            setCanvasSize();
+
             requestAnimationFrame(() => {
                 element.classList.add('appear');
             });
 
-            // Schedule the fade-out after 1 second of visibility
-            livesChangeTimeout = setTimeout(() => {
+            const timeout = setTimeout(() => {
                 element.classList.remove('appear');
                 element.classList.add('fade-out');
-                // Clean up after fade-out completes
                 setTimeout(() => {
                     element.classList.remove('fade-out');
-                    element.textContent = ''; // Clear text
-                    element.style.opacity = '0'; // Reset visibility
-                    element.style.transform = 'scale(0) rotate(0deg)'; // Reset transform
-                }, 250); // Matches fade-out duration (0.25s)
-            }, 1000); // 1-second stay duration
+                    element.textContent = '';
+                    element.style.opacity = '0';
+                    element.style.transform = 'scale(0) rotate(0deg)';
+                }, 250);
+            }, 1000);
 
-            // Store the timeout
-            if (element === livesChangeText) livesChangeTimeout = livesChangeTimeout;
-            else levelChangeTimeout = livesChangeTimeout;
+            if (element === livesChangeText) livesChangeTimeout = timeout;
+            else levelChangeTimeout = timeout;
         }
 
         function updateDisplay() {
@@ -1470,8 +1467,8 @@
             const isOverCanvas = (
                 screenPos.x >= canvasRect.left &&
                 screenPos.x <= canvasRect.right &&
-                screenPos.y >= canvasRect.top &&
-                screenPos.y <= canvasRect.bottom
+                screenPos.x >= canvasRect.top &&
+                screenPos.x <= canvasRect.bottom
             );
 
             if (target === playButton && !buttonActivated.play) {
