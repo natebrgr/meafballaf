@@ -113,6 +113,24 @@
         #hiScoreCount.flash-green {
             animation: flashGreen 0.5s ease;
         }
+        #livesLabel, #hiScoreLabel {
+            position: absolute;
+            top: 28px; /* Adjusted to sit above the number */
+            width: 60px;
+            text-align: center;
+            font-size: 0.7em; /* Small print */
+            color: #e0e0e0;
+            text-shadow: 0 0 5px #fff;
+            font-family: 'Arial', sans-serif;
+            font-weight: bold;
+            z-index: 3;
+        }
+        #livesLabel {
+            left: calc(50% - 330px); /* Matches livesCount position */
+        }
+        #hiScoreLabel {
+            right: calc(50% - 330px); /* Matches hiScoreCount position */
+        }
         #modeButton, #mapButton {
             position: absolute;
             z-index: 15;
@@ -219,7 +237,9 @@
     </div>
     <div id="countdown" style="opacity: 0;"></div>
     <div id="livesCount">3</div>
+    <div id="livesLabel">LIVES</div>
     <div id="hiScoreCount">0</div>
+    <div id="hiScoreLabel">HI SCORE</div>
     <button id="modeButton">MODE</button>
     <button id="mapButton">MAP</button>
     <canvas id="canvas"></canvas>
@@ -233,6 +253,8 @@
         const wallHitsDisplay = document.getElementById('wallHits');
         const livesCount = document.getElementById('livesCount');
         const hiScoreCount = document.getElementById('hiScoreCount');
+        const livesLabel = document.getElementById('livesLabel');
+        const hiScoreLabel = document.getElementById('hiScoreLabel');
         const titleDisplay = document.getElementById('title');
         const modeButton = document.getElementById('modeButton');
         const mapButton = document.getElementById('mapButton');
@@ -285,7 +307,7 @@
         let lives = 3;
         let hiScore = 0;
         let isPaused = false;
-        let greenStreak = 0; // Track consecutive green wins
+        let greenStreak = 0;
 
         let previousLives = lives;
         let previousLevel = level;
@@ -360,6 +382,8 @@
 
             livesCount.style.left = `${canvasLeft}px`;
             hiScoreCount.style.right = `${canvasLeft}px`;
+            livesLabel.style.left = `${canvasLeft}px`;
+            hiScoreLabel.style.right = `${canvasLeft}px`;
 
             constrainCircle();
         }
@@ -474,7 +498,7 @@
                 startingLives,
                 greenSection,
                 redSection,
-                greenStreak // Save the green streak
+                greenStreak
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -498,7 +522,7 @@
             startingLives = state.startingLives !== undefined ? state.startingLives : (mode === 'survival' ? 3 : Infinity);
             greenSection = state.greenSection !== undefined ? state.greenSection : null;
             redSection = state.redSection !== undefined ? state.redSection : null;
-            greenStreak = state.greenStreak !== undefined ? state.greenStreak : 0; // Load green streak
+            greenStreak = state.greenStreak !== undefined ? state.greenStreak : 0;
 
             if (!greenSection && !redSection && mode === 'survival' && map === 'rectangle') {
                 assignSections();
@@ -510,7 +534,7 @@
                 circle.radius = state.circle.radius || initialRadius;
                 circle.dx = state.circle.dx;
                 circle.dy = state.circle.dy;
-                circle.isDragging = false; // Force reset to avoid drag state leak
+                circle.isDragging = false;
                 circle.dragTouchId = null;
                 circle.lastX = state.lastX;
                 circle.lastY = state.lastY;
@@ -601,20 +625,30 @@
                 const blackSection = [0, 1, 2].find(s => s !== greenSection && s !== redSection);
                 const blackLives = startingLives <= 3 ? startingLives : (lives > 2 ? lives : 3);
 
-                if (greenSection !== null) {
+                const drawSectionText = (section, livesChange, fillStyle) => {
+                    const y = section * sectionHeight + sectionHeight / 2;
+                    ctx.fillStyle = fillStyle;
+                    ctx.font = 'bold 40px Impact, sans-serif';
+                    ctx.fillText(`${livesChange >= 0 ? '+' : ''}${livesChange}`, 40, y - 10);
+                    ctx.fillText(`${livesChange >= 0 ? '+' : ''}${livesChange}`, canvasWidth - 40, y - 10);
+                    ctx.font = 'bold 20px Impact, sans-serif';
+                    ctx.fillText('LF', 40, y + 15);
+                    ctx.fillText('LF', canvasWidth - 40, y + 15);
+                };
+
+                if (greenSection !== null) drawSectionText(greenSection, greenLives - lives, 'rgb(11, 74, 28)');
+                if (redSection !== null) drawSectionText(redSection, redLives - lives, 'rgb(130, 33, 33)');
+                if (blackSection !== null) drawSectionText(blackSection, blackLives - lives, '#000');
+
+                // Draw green streak level bonus text if streak exists
+                if (greenSection !== null && greenStreak > 0) {
+                    const nextLevelIncrement = greenStreak + 1;
+                    ctx.font = 'bold 40px Impact, sans-serif';
                     ctx.fillStyle = 'rgb(11, 74, 28)';
-                    ctx.fillText(`+${greenLives - lives}`, 40, greenSection * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`+${greenLives - lives}`, canvasWidth - 40, greenSection * sectionHeight + sectionHeight / 2);
-                }
-                if (redSection !== null) {
-                    ctx.fillStyle = 'rgb(130, 33, 33)';
-                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, 40, redSection * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, canvasWidth - 40, redSection * sectionHeight + sectionHeight / 2);
-                }
-                if (blackSection !== null) {
-                    ctx.fillStyle = '#000';
-                    ctx.fillText(`${blackLives - lives >= 0 ? '+' : ''}${blackLives - lives}`, 40, blackSection * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`${blackLives - lives >= 0 ? '+' : ''}${blackLives - lives}`, canvasWidth - 40, blackSection * sectionHeight + sectionHeight / 2);
+                    ctx.shadowColor = '#fff';
+                    ctx.shadowBlur = 10 * pixelRatio;
+                    ctx.fillText(`+${nextLevelIncrement} LVL`, canvasWidth / 2, greenSection * sectionHeight + sectionHeight / 2);
+                    ctx.shadowBlur = 0;
                 }
 
                 ctx.shadowBlur = 0;
@@ -974,7 +1008,7 @@
                     if (currentMode === 'survival' && currentMap === 'rectangle') {
                         const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                         const sectionHeight = canvasHeight / 3;
-                        const circleSection = Math.floor(originalY / sectionHeight); // Use original position
+                        const circleSection = Math.floor(originalY / sectionHeight);
 
                         let baseLives;
                         if (startingLives > 3 && lives < 3) baseLives = 3;
@@ -984,10 +1018,10 @@
                         if (circleSection === greenSection) {
                             lives = baseLives + 1;
                             greenStreak++;
-                            levelIncrement = Math.max(1, greenStreak); // Increase by streak count
+                            levelIncrement = Math.max(1, greenStreak);
                             flashColor = 'flash-green';
                         } else {
-                            greenStreak = 0; // Reset streak if not green
+                            greenStreak = 0;
                             if (circleSection === redSection) {
                                 lives = Math.max(baseLives - 1, 1);
                                 flashColor = 'flash-red';
@@ -1000,7 +1034,7 @@
                         greenStreak = 0;
                     }
 
-                    level += levelIncrement; // Apply the increment
+                    level += levelIncrement;
                     if (completedLevel > hiScore) hiScore = completedLevel;
                     wallHits = 0;
                     if (flashColor) {
@@ -1020,7 +1054,6 @@
                 return;
             }
 
-            // New tap-to-move and win/lose logic using original position
             if (wallHits === level) {
                 isTrackingHits = false;
                 const completedLevel = level;
@@ -1030,7 +1063,7 @@
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
                     const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                     const sectionHeight = canvasHeight / 3;
-                    const circleSection = Math.floor(originalY / sectionHeight); // Use original position
+                    const circleSection = Math.floor(originalY / sectionHeight);
 
                     let baseLives;
                     if (startingLives > 3 && lives < 3) baseLives = 3;
@@ -1040,10 +1073,10 @@
                     if (circleSection === greenSection) {
                         lives = baseLives + 1;
                         greenStreak++;
-                        levelIncrement = Math.max(1, greenStreak); // Increase by streak count
+                        levelIncrement = Math.max(1, greenStreak);
                         flashColor = 'flash-green';
                     } else {
-                        greenStreak = 0; // Reset streak if not green
+                        greenStreak = 0;
                         if (circleSection === redSection) {
                             lives = Math.max(baseLives - 1, 1);
                             flashColor = 'flash-red';
@@ -1056,7 +1089,7 @@
                     greenStreak = 0;
                 }
 
-                level += levelIncrement; // Apply the increment
+                level += levelIncrement;
                 if (completedLevel > hiScore) hiScore = completedLevel;
                 wallHits = 0;
                 if (flashColor) {
@@ -1071,7 +1104,7 @@
                 startCountdown();
             } else if (wallHits > level && currentMode === 'survival') {
                 lives--;
-                greenStreak = 0; // Reset streak on loss
+                greenStreak = 0;
                 if (lives <= 0) {
                     level = 1;
                     lives = 3;
@@ -1083,7 +1116,7 @@
                 startCountdown();
             } else if (wallHits < level && currentMode === 'survival') {
                 lives--;
-                greenStreak = 0; // Reset streak on loss
+                greenStreak = 0;
                 if (lives <= 0) {
                     level = 1;
                     lives = 3;
@@ -1396,9 +1429,8 @@
             if (!circle.isDragging && isPaused) saveState();
             drawScene();
 
-            // Ensure buttons are clickable by forcing a clean slate
             [modeButton, mapButton].forEach(btn => {
-                btn.style.pointerEvents = 'auto'; // Reset pointer events
+                btn.style.pointerEvents = 'auto';
             });
         }
 
