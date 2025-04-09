@@ -115,10 +115,10 @@
         }
         #livesLabel, #hiScoreLabel {
             position: absolute;
-            top: 28px; /* Adjusted to sit above the number */
+            top: 28px;
             width: 60px;
             text-align: center;
-            font-size: 0.7em; /* Small print */
+            font-size: 0.7em;
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
             font-family: 'Arial', sans-serif;
@@ -126,10 +126,10 @@
             z-index: 3;
         }
         #livesLabel {
-            left: calc(50% - 330px); /* Matches livesCount position */
+            left: calc(50% - 330px);
         }
         #hiScoreLabel {
-            right: calc(50% - 330px); /* Matches hiScoreCount position */
+            right: calc(50% - 330px);
         }
         #modeButton, #mapButton {
             position: absolute;
@@ -277,7 +277,7 @@
             lastY: 0,
             lastTime: 0,
             wallContact: {
-                left: { time: 0, inContact: false },
+                left: { time: 0, in AGR: false },
                 right: { time: 0, inContact: false },
                 top: { time: 0, inContact: false },
                 bottom: { time: 0, inContact: false },
@@ -627,27 +627,27 @@
 
                 const drawSectionText = (section, livesChange, fillStyle) => {
                     const y = section * sectionHeight + sectionHeight / 2;
+                    const livesText = Math.abs(livesChange) === 1 ? 'LIFE' : 'LIVES';
                     ctx.fillStyle = fillStyle;
                     ctx.font = 'bold 40px Impact, sans-serif';
                     ctx.fillText(`${livesChange >= 0 ? '+' : ''}${livesChange}`, 40, y - 10);
                     ctx.fillText(`${livesChange >= 0 ? '+' : ''}${livesChange}`, canvasWidth - 40, y - 10);
                     ctx.font = 'bold 20px Impact, sans-serif';
-                    ctx.fillText('LF', 40, y + 15);
-                    ctx.fillText('LF', canvasWidth - 40, y + 15);
+                    ctx.fillText(livesText, 40, y + 15);
+                    ctx.fillText(livesText, canvasWidth - 40, y + 15);
                 };
 
                 if (greenSection !== null) drawSectionText(greenSection, greenLives - lives, 'rgb(11, 74, 28)');
                 if (redSection !== null) drawSectionText(redSection, redLives - lives, 'rgb(130, 33, 33)');
                 if (blackSection !== null) drawSectionText(blackSection, blackLives - lives, '#000');
 
-                // Draw green streak level bonus text if streak exists
                 if (greenSection !== null && greenStreak > 0) {
                     const nextLevelIncrement = greenStreak + 1;
                     ctx.font = 'bold 40px Impact, sans-serif';
                     ctx.fillStyle = 'rgb(11, 74, 28)';
                     ctx.shadowColor = '#fff';
                     ctx.shadowBlur = 10 * pixelRatio;
-                    ctx.fillText(`+${nextLevelIncrement} LVL`, canvasWidth / 2, greenSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`(↑${nextLevelIncrement} LVL)`, canvasWidth / 2, greenSection * sectionHeight + sectionHeight / 2);
                     ctx.shadowBlur = 0;
                 }
 
@@ -1449,7 +1449,7 @@
             }
 
             const elapsed = Date.now() - circle.resizeStartTime;
-            if (!circle.isResizing && elapsed < resizeHoldThreshold && !isPaused) {
+            if (!circle.isResizing &&_elapsed < resizeHoldThreshold && !isPaused) {
                 circle.isDragging = false;
                 circle.dragTouchId = null;
                 circle.dx = 0;
