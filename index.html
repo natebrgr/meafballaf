@@ -391,12 +391,13 @@
 
             const canvasLeft = (window.innerWidth - (window.innerWidth * 0.9)) / 2;
             const canvasTop = wallHitsBottom + snugGap;
+            const canvasRight = canvasLeft + (window.innerWidth * 0.9);
+            const canvasBottom = canvasTop + (availableHeight - 2 * borderWidth);
+
             canvas.style.top = `${canvasTop}px`;
             canvas.style.left = `${canvasLeft}px`;
 
-            const canvasBottom = canvasTop + (availableHeight - 2 * borderWidth);
-            const canvasRight = canvasLeft + (window.innerWidth * 0.9);
-            countdownDisplay.style.top = `${canvasTop + 10}px`;
+            countdownDisplay.style.top = `${canvasTop + (availableHeight - 2 * borderWidth) / 2}px`;
 
             const buttonTop = canvasBottom + snugGap;
             const buttonWidth = modeButton.offsetWidth || 60;
@@ -405,15 +406,15 @@
             modeButton.style.left = `${canvasLeft}px`;
 
             playButton.style.top = `${buttonTop}px`;
-            playButton.style.left = `${(window.innerWidth - buttonWidth) / 2}px`;
+            playButton.style.left = `${canvasLeft + (window.innerWidth * 0.9 - buttonWidth) / 2}px`;
 
             mapButton.style.top = `${buttonTop}px`;
-            mapButton.style.left = `${canvasRight - buttonWidth}px`; // Aligned right edge with canvas
+            mapButton.style.left = `${canvasRight - buttonWidth}px`;
 
             livesCount.style.left = `${canvasLeft}px`;
-            hiScoreCount.style.right = `${canvasLeft}px`;
             livesLabel.style.left = `${canvasLeft}px`;
-            hiScoreLabel.style.right = `${canvasLeft}px`;
+            hiScoreCount.style.left = `${canvasRight - 60}px`;
+            hiScoreLabel.style.left = `${canvasRight - 60}px`;
 
             const livesCountWidth = livesCount.offsetWidth || 60;
             livesChangeText.style.top = `${wallHitsTop + wallHitsHeight / 2 - 15}px`;
@@ -422,7 +423,7 @@
             const levelContainerWidth = levelContainer.offsetWidth || 120;
             const levelContainerLeft = (window.innerWidth - levelContainerWidth) / 2;
             levelChangeText.style.top = `${wallHitsTop + wallHitsHeight / 2 - 15}px`;
-            levelChangeText.style.left = `${levelContainerLeft +стьянవ
+            levelChangeText.style.left = `${levelContainerLeft + levelContainerWidth + 10}px`;
 
             constrainCircle();
         }
@@ -473,7 +474,7 @@
                     element.style.opacity = '0';
                     element.style.transform = 'scale(0) rotate(0deg)';
                 }, 250);
-            }, 1250); // 0.25s grow + 1s pause
+            }, 1250); // 0.25s grow + 1s pause + 0.25s shrink
 
             if (element === livesChangeText) livesChangeTimeout = timeout;
             else levelChangeTimeout = timeout;
