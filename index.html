@@ -409,7 +409,7 @@
             playButton.style.left = `${canvasLeft + (window.innerWidth * 0.9 - buttonWidth) / 2}px`;
 
             mapButton.style.top = `${buttonTop}px`;
-            mapButton.style.left = `${canvasRight - buttonWidth}px`;
+            mapButton.style.left = `${canvasRight - buttonWidth - borderWidth * 2}px`; // Adjusted to align right border
 
             livesCount.style.left = `${canvasLeft}px`;
             livesLabel.style.left = `${canvasLeft}px`;
@@ -709,7 +709,7 @@
                 ctx.shadowColor = '#fff';
                 ctx.shadowBlur = 10 * pixelRatio;
 
-                const greenLives = startingLives <= 3 ? startingLives + greenStreak : (lives > 2 ? lives + greenStreak : 3 + greenStreak);
+                const greenLives = startingLives <= 3 ? startingLives + 1 + greenStreak : (lives > 2 ? lives + 1 + greenStreak : 3 + 1 + greenStreak);
                 const redLives = startingLives <= 3 ? Math.max(startingLives - 1, 1) : (lives > 2 ? Math.max(lives - 1, 1) : 2);
                 const blackSection = [0, 1, 2].find(s => s !== greenSection && s !== redSection);
                 const blackLives = startingLives <= 3 ? startingLives : (lives > 2 ? lives : 3);
@@ -1106,7 +1106,7 @@
 
                         if (circleSection === greenSection) {
                             greenStreak++;
-                            lives = baseLives + greenStreak;
+                            lives = baseLives + 1 + greenStreak;
                             levelIncrement = Math.max(1, greenStreak);
                             flashColor = 'flash-green';
                         } else {
@@ -1161,7 +1161,7 @@
 
                     if (circleSection === greenSection) {
                         greenStreak++;
-                        lives = baseLives + greenStreak;
+                        lives = baseLives + 1 + greenStreak;
                         levelIncrement = Math.max(1, greenStreak);
                         flashColor = 'flash-green';
                     } else {
