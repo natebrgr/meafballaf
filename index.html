@@ -157,6 +157,23 @@
         #playButton.recede, #modeButton.recede, #mapButton.recede {
             animation: recedeGlow 0.2s linear forwards;
         }
+        #livesChange {
+            position: absolute;
+            z-index: 3;
+            font-family: 'Impact', sans-serif;
+            font-size: 0; /* Start at 0 size */
+            top: 40px;
+            left: calc(60px + 10px); /* Positioned right of livesCount with a 10px gap */
+            pointer-events: none;
+        }
+        #livesChange.plus {
+            color: green;
+            animation: livesPlus 1.5s ease forwards;
+        }
+        #livesChange.minus {
+            color: red;
+            animation: livesMinus 1.5s ease forwards;
+        }
         @keyframes glowGreen {
             0% { box-shadow: 0 0 5px rgb(11, 74, 28); }
             100% { box-shadow: 0 0 20px rgb(11, 74, 28); }
@@ -203,6 +220,18 @@
             50% { color: #e0e0e0; text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
             100% { color: rgb(11, 74, 28); text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
         }
+        @keyframes livesPlus {
+            0% { font-size: 0; transform: rotate(0deg); opacity: 1; }
+            33% { font-size: 2.5em; transform: rotate(27.5deg); opacity: 1; }
+            66% { font-size: 2.5em; transform: rotate(27.5deg); opacity: 1; }
+            100% { font-size: 0; transform: rotate(0deg); opacity: 0; }
+        }
+        @keyframes livesMinus {
+            0% { font-size: 0; transform: rotate(0deg); opacity: 1; }
+            33% { font-size: 2.5em; transform: rotate(27.5deg); opacity: 1; }
+            66% { font-size: 2.5em; transform: rotate(27.5deg); opacity: 1; }
+            100% { font-size: 0; transform: rotate(0deg); opacity: 0; }
+        }
         canvas.flash-green {
             animation: flashGreen 0.5s ease;
         }
@@ -219,6 +248,7 @@
     </div>
     <div id="countdown" style="opacity: 0;"></div>
     <div id="livesCount">3</div>
+    <div id="livesChange"></div>
     <div id="hiScoreCount">0</div>
     <button id="modeButton">MODE</button>
     <button id="mapButton">MAP</button>
@@ -232,6 +262,7 @@
         const countdownDisplay = document.getElementById('countdown');
         const wallHitsDisplay = document.getElementById('wallHits');
         const livesCount = document.getElementById('livesCount');
+        const livesChange = document.getElementById('livesChange');
         const hiScoreCount = document.getElementById('hiScoreCount');
         const titleDisplay = document.getElementById('title');
         const modeButton = document.getElementById('modeButton');
@@ -357,6 +388,7 @@
         playButton.style.top = `${buttonTop}px`;
 
         livesCount.style.left = `${canvasLeft}px`;
+        livesChange.style.left = `${canvasLeft + 60 + 10}px`; // Position right of livesCount
         hiScoreCount.style.right = `${canvasLeft}px`;
 
         constrainCircle();
@@ -375,10 +407,18 @@
                 livesCount.classList.remove('flash-green', 'flash-red');
                 void livesCount.offsetHeight;
                 livesCount.classList.add('flash-green');
+                livesChange.textContent = '+1';
+                livesChange.classList.remove('plus', 'minus');
+                void livesChange.offsetHeight; // Reset animation
+                livesChange.classList.add('plus');
             } else if (lives < previousLives) {
                 livesCount.classList.remove('flash-green', 'flash-red');
                 void livesCount.offsetHeight;
                 livesCount.classList.add('flash-red');
+                livesChange.textContent = '-1';
+                livesChange.classList.remove('plus', 'minus');
+                void livesChange.offsetHeight; // Reset animation
+                livesChange.classList.add('minus');
             }
             previousLives = lives;
         }
@@ -1534,4 +1574,3 @@
 
 </body>
 </html>
-
