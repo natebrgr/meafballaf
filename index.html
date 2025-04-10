@@ -226,16 +226,16 @@
             100% { color: rgb(11, 74, 28); text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
         }
         @keyframes changePlus {
-            0% { font-size: 0; transform: rotate(0deg); opacity: 1; }
-            33% { font-size: 1.5em; transform: rotate(-27.5deg); opacity: 1; }
-            66% { font-size: 1.5em; transform: rotate(-27.5deg); opacity: 1; }
-            100% { font-size: 0; transform: rotate(0deg); opacity: 0; }
+            0% { font-size: 0; transform: translateY(15px) rotate(0deg); opacity: 1; } /* Start lower, no rotation */
+            33% { font-size: 1.5em; transform: translateY(0) rotate(27.5deg); opacity: 1; } /* Grow up to center, rotate clockwise */
+            66% { font-size: 1.5em; transform: translateY(0) rotate(27.5deg); opacity: 1; } /* Hold at center */
+            100% { font-size: 0; transform: translateY(0) rotate(0deg); opacity: 0; } /* Shrink back to center, rotate counterclockwise */
         }
         @keyframes changeMinus {
-            0% { font-size: 0; transform: rotate(0deg); opacity: 1; }
-            33% { font-size: 1.5em; transform: rotate(-27.5deg); opacity: 1; }
-            66% { font-size: 1.5em; transform: rotate(-27.5deg); opacity: 1; }
-            100% { font-size: 0; transform: rotate(0deg); opacity: 0; }
+            0% { font-size: 0; transform: translateY(15px) rotate(0deg); opacity: 1; } /* Start lower, no rotation */
+            33% { font-size: 1.5em; transform: translateY(0) rotate(27.5deg); opacity: 1; } /* Grow up to center, rotate clockwise */
+            66% { font-size: 1.5em; transform: translateY(0) rotate(27.5deg); opacity: 1; } /* Hold at center */
+            100% { font-size: 0; transform: translateY(0) rotate(0deg); opacity: 0; } /* Shrink back to center, rotate counterclockwise */
         }
         canvas.flash-green {
             animation: flashGreen 0.5s ease;
