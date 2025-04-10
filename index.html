@@ -157,22 +157,27 @@
         #playButton.recede, #modeButton.recede, #mapButton.recede {
             animation: recedeGlow 0.2s linear forwards;
         }
-        #livesChange {
+        #livesChange, #levelChange {
             position: absolute;
             z-index: 3;
             font-family: 'Impact', sans-serif;
             font-size: 0; /* Start at 0 size */
             top: 40px;
-            left: calc(60px + 10px); /* Positioned right of livesCount with a 10px gap */
             pointer-events: none;
         }
-        #livesChange.plus {
-            color: green;
-            animation: livesPlus 1.5s ease forwards;
+        #livesChange {
+            left: calc(60px + 10px); /* Right of livesCount with a 10px gap */
         }
-        #livesChange.minus {
+        #levelChange {
+            left: calc(50% + 60px + 10px); /* Right of levelContainer (120px wide, centered) */
+        }
+        #livesChange.plus, #levelChange.plus {
+            color: green;
+            animation: changePlus 1.5s ease forwards;
+        }
+        #livesChange.minus, #levelChange.minus {
             color: red;
-            animation: livesMinus 1.5s ease forwards;
+            animation: changeMinus 1.5s ease forwards;
         }
         @keyframes glowGreen {
             0% { box-shadow: 0 0 5px rgb(11, 74, 28); }
@@ -220,16 +225,16 @@
             50% { color: #e0e0e0; text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
             100% { color: rgb(11, 74, 28); text-shadow: 0 0 10px #fff, 0 0 2px rgb(50, 200, 100); }
         }
-        @keyframes livesPlus {
+        @keyframes changePlus {
             0% { font-size: 0; transform: rotate(0deg); opacity: 1; }
-            33% { font-size: 2.5em; transform: rotate(27.5deg); opacity: 1; }
-            66% { font-size: 2.5em; transform: rotate(27.5deg); opacity: 1; }
+            33% { font-size: 1.5em; transform: rotate(-27.5deg); opacity: 1; }
+            66% { font-size: 1.5em; transform: rotate(-27.5deg); opacity: 1; }
             100% { font-size: 0; transform: rotate(0deg); opacity: 0; }
         }
-        @keyframes livesMinus {
+        @keyframes changeMinus {
             0% { font-size: 0; transform: rotate(0deg); opacity: 1; }
-            33% { font-size: 2.5em; transform: rotate(27.5deg); opacity: 1; }
-            66% { font-size: 2.5em; transform: rotate(27.5deg); opacity: 1; }
+            33% { font-size: 1.5em; transform: rotate(-27.5deg); opacity: 1; }
+            66% { font-size: 1.5em; transform: rotate(-27.5deg); opacity: 1; }
             100% { font-size: 0; transform: rotate(0deg); opacity: 0; }
         }
         canvas.flash-green {
@@ -246,6 +251,7 @@
         <div id="wallHits">0</div>
         <div id="levelNumber">1</div>
     </div>
+    <div id="levelChange"></div>
     <div id="countdown" style="opacity: 0;"></div>
     <div id="livesCount">3</div>
     <div id="livesChange"></div>
@@ -259,6 +265,7 @@
         const ctx = canvas.getContext('2d');
         const levelContainer = document.getElementById('levelContainer');
         const levelNumber = document.getElementById('levelNumber');
+        const levelChange = document.getElementById('levelChange');
         const countdownDisplay = document.getElementById('countdown');
         const wallHitsDisplay = document.getElementById('wallHits');
         const livesCount = document.getElementById('livesCount');
@@ -388,8 +395,9 @@
         playButton.style.top = `${buttonTop}px`;
 
         livesCount.style.left = `${canvasLeft}px`;
-        livesChange.style.left = `${canvasLeft + 60 + 10}px`; // Position right of livesCount
+        livesChange.style.left = `${canvasLeft + 60 + 10}px`; // Right of livesCount
         hiScoreCount.style.right = `${canvasLeft}px`;
+        levelChange.style.left = `${canvasLeft + (window.innerWidth * 0.9 - 120) / 2 + 120 + 10}px`; // Right of levelContainer
 
         constrainCircle();
     }
@@ -403,11 +411,12 @@
 
     function updateDisplay() {
         if (lives !== previousLives) {
+            const livesDiff = lives - previousLives;
             if (lives > previousLives) {
                 livesCount.classList.remove('flash-green', 'flash-red');
                 void livesCount.offsetHeight;
                 livesCount.classList.add('flash-green');
-                livesChange.textContent = '+1';
+                livesChange.textContent = `+${livesDiff}`;
                 livesChange.classList.remove('plus', 'minus');
                 void livesChange.offsetHeight; // Reset animation
                 livesChange.classList.add('plus');
@@ -415,7 +424,7 @@
                 livesCount.classList.remove('flash-green', 'flash-red');
                 void livesCount.offsetHeight;
                 livesCount.classList.add('flash-red');
-                livesChange.textContent = '-1';
+                livesChange.textContent = `${livesDiff}`;
                 livesChange.classList.remove('plus', 'minus');
                 void livesChange.offsetHeight; // Reset animation
                 livesChange.classList.add('minus');
@@ -424,6 +433,7 @@
         }
 
         if (level !== previousLevel) {
+            const levelDiff = level - previousLevel;
             if (level < previousLevel) {
                 levelNumber.classList.remove('flash-red', 'flash-white');
                 void levelNumber.offsetHeight;
@@ -431,6 +441,10 @@
                 levelContainer.classList.remove('flash-green', 'flash-red');
                 void levelContainer.offsetHeight;
                 levelContainer.classList.add('flash-red');
+                levelChange.textContent = `${levelDiff}`;
+                levelChange.classList.remove('plus', 'minus');
+                void levelChange.offsetHeight; // Reset animation
+                levelChange.classList.add('minus');
             } else if (level > previousLevel) {
                 levelNumber.classList.remove('flash-red', 'flash-white');
                 void levelNumber.offsetHeight;
@@ -438,6 +452,10 @@
                 levelContainer.classList.remove('flash-green', 'flash-red');
                 void levelContainer.offsetHeight;
                 levelContainer.classList.add('flash-green');
+                levelChange.textContent = `+${levelDiff}`;
+                levelChange.classList.remove('plus', 'minus');
+                void levelChange.offsetHeight; // Reset animation
+                levelChange.classList.add('plus');
             }
             previousLevel = level;
         }
