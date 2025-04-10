@@ -172,7 +172,7 @@
             animation: textAppear 0.25s ease forwards;
         }
         #livesChangeText.fade-out, #levelChangeText.fade-out {
-            animation: textFadeOut 0.25s ease forwards;
+            animation: textFadeOut 0.25s ease 1s forwards;
         }
         @keyframes textAppear {
             from {
@@ -408,7 +408,7 @@
             playButton.style.left = `${(window.innerWidth - buttonWidth) / 2}px`;
 
             mapButton.style.top = `${buttonTop}px`;
-            mapButton.style.left = `${canvasRight - buttonWidth}px`;
+            mapButton.style.left = `${canvasRight - buttonWidth}px`; // Aligned right edge with canvas
 
             livesCount.style.left = `${canvasLeft}px`;
             hiScoreCount.style.right = `${canvasLeft}px`;
@@ -422,7 +422,7 @@
             const levelContainerWidth = levelContainer.offsetWidth || 120;
             const levelContainerLeft = (window.innerWidth - levelContainerWidth) / 2;
             levelChangeText.style.top = `${wallHitsTop + wallHitsHeight / 2 - 15}px`;
-            levelChangeText.style.left = `${levelContainerLeft + levelContainerWidth + 10}px`;
+            levelChangeText.style.left = `${levelContainerLeft +стьянవ
 
             constrainCircle();
         }
@@ -473,7 +473,7 @@
                     element.style.opacity = '0';
                     element.style.transform = 'scale(0) rotate(0deg)';
                 }, 250);
-            }, 1000);
+            }, 1250); // 0.25s grow + 1s pause
 
             if (element === livesChangeText) livesChangeTimeout = timeout;
             else levelChangeTimeout = timeout;
@@ -708,7 +708,7 @@
                 ctx.shadowColor = '#fff';
                 ctx.shadowBlur = 10 * pixelRatio;
 
-                const greenLives = startingLives <= 3 ? startingLives + 1 : (lives > 2 ? lives + 1 : 4);
+                const greenLives = startingLives <= 3 ? startingLives + greenStreak : (lives > 2 ? lives + greenStreak : 3 + greenStreak);
                 const redLives = startingLives <= 3 ? Math.max(startingLives - 1, 1) : (lives > 2 ? Math.max(lives - 1, 1) : 2);
                 const blackSection = [0, 1, 2].find(s => s !== greenSection && s !== redSection);
                 const blackLives = startingLives <= 3 ? startingLives : (lives > 2 ? lives : 3);
@@ -1104,8 +1104,8 @@
                         else baseLives = startingLives;
 
                         if (circleSection === greenSection) {
-                            lives = baseLives + 1;
                             greenStreak++;
+                            lives = baseLives + greenStreak;
                             levelIncrement = Math.max(1, greenStreak);
                             flashColor = 'flash-green';
                         } else {
@@ -1159,8 +1159,8 @@
                     else baseLives = startingLives;
 
                     if (circleSection === greenSection) {
-                        lives = baseLives + 1;
                         greenStreak++;
+                        lives = baseLives + greenStreak;
                         levelIncrement = Math.max(1, greenStreak);
                         flashColor = 'flash-green';
                     } else {
