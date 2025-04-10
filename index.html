@@ -172,7 +172,7 @@
             animation: textAppear 0.25s ease forwards;
         }
         #livesChangeText.fade-out, #levelChangeText.fade-out {
-            animation: textFadeOut 0.25s ease 1s forwards;
+            animation: textFadeOut 0.25s ease forwards;
         }
         @keyframes textAppear {
             from {
@@ -403,13 +403,13 @@
             const buttonWidth = modeButton.offsetWidth || 60;
 
             modeButton.style.top = `${buttonTop}px`;
-            modeButton.style.left = `${canvasLeft}px`;
+            modeButton.style.left = `${canvasLeft}px`; // Snug to left edge
 
             playButton.style.top = `${buttonTop}px`;
-            playButton.style.left = `${canvasLeft + (window.innerWidth * 0.9 - buttonWidth) / 2}px`;
+            playButton.style.left = `${canvasLeft + (window.innerWidth * 0.9 - buttonWidth) / 2}px`; // Centered
 
             mapButton.style.top = `${buttonTop}px`;
-            mapButton.style.left = `${canvasRight - buttonWidth - borderWidth * 2}px`; // Adjusted to align right border
+            mapButton.style.left = `${canvasRight - buttonWidth}px`; // Snug to right edge
 
             livesCount.style.left = `${canvasLeft}px`;
             livesLabel.style.left = `${canvasLeft}px`;
@@ -465,19 +465,17 @@
                 element.classList.add('appear');
             });
 
-            const timeout = setTimeout(() => {
+            livesChangeTimeout = setTimeout(() => {
                 element.classList.remove('appear');
                 element.classList.add('fade-out');
                 setTimeout(() => {
                     element.classList.remove('fade-out');
+                    element.style.display = 'none'; // Hide after animation completes
                     element.textContent = '';
                     element.style.opacity = '0';
                     element.style.transform = 'scale(0) rotate(0deg)';
-                }, 250);
-            }, 1250); // 0.25s grow + 1s pause + 0.25s shrink
-
-            if (element === livesChangeText) livesChangeTimeout = timeout;
-            else levelChangeTimeout = timeout;
+                }, 250); // Wait for fade-out animation to finish
+            }, 1000); // 1s pause before shrinking
         }
 
         function updateDisplay() {
@@ -709,10 +707,10 @@
                 ctx.shadowColor = '#fff';
                 ctx.shadowBlur = 10 * pixelRatio;
 
-                const greenLives = startingLives <= 3 ? startingLives + 1 + greenStreak : (lives > 2 ? lives + 1 + greenStreak : 3 + 1 + greenStreak);
-                const redLives = startingLives <= 3 ? Math.max(startingLives - 1, 1) : (lives > 2 ? Math.max(lives - 1, 1) : 2);
+                const greenLivesChange = 1 + greenStreak; // Base +1 plus streak
+                const redLivesChange = -1;
                 const blackSection = [0, 1, 2].find(s => s !== greenSection && s !== redSection);
-                const blackLives = startingLives <= 3 ? startingLives : (lives > 2 ? lives : 3);
+                const blackLivesChange = 0;
 
                 const drawSectionText = (section, livesChange, fillStyle) => {
                     const y = section * sectionHeight + sectionHeight / 2;
@@ -726,9 +724,9 @@
                     ctx.fillText(livesText, canvasWidth - 40, y + 15);
                 };
 
-                if (greenSection !== null) drawSectionText(greenSection, greenLives - lives, 'rgb(11, 74, 28)');
-                if (redSection !== null) drawSectionText(redSection, redLives - lives, 'rgb(130, 33, 33)');
-                if (blackSection !== null) drawSectionText(blackSection, blackLives - lives, '#000');
+                if (greenSection !== null) drawSectionText(greenSection, greenLivesChange, 'rgb(11, 74, 28)');
+                if (redSection !== null) drawSectionText(redSection, redLivesChange, 'rgb(130, 33, 33)');
+                if (blackSection !== null) drawSectionText(blackSection, blackLivesChange, '#000');
 
                 if (greenSection !== null && greenStreak > 0) {
                     const nextLevelIncrement = greenStreak + 1;
