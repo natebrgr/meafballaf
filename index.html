@@ -308,12 +308,14 @@
             hasBeenTouched: false
         };
 
-        const targetGravityAt200 = 0.5;
-        const gravityMultiplier = 0.99;
-        const initialGravity = targetGravityAt200 / Math.pow(gravityMultiplier, 199);
-        let gravity = initialGravity;
+        const gravity = 0.5;
         const friction = 0.98;
         const bounciness = 0.9;
+
+        const targetThrowAt200 = 1;
+        const throwGrowth = 1.01;
+        const baseThrowMultiplier = targetThrowAt200 / Math.pow(throwGrowth, 199);
+        let throwMultiplier = baseThrowMultiplier;
 
         let isCountingDown = false;
         let countdown = 3;
@@ -351,8 +353,8 @@
         let greenSection = null;
         let redSection = null;
 
-        function updateGravity() {
-            gravity = initialGravity * Math.pow(gravityMultiplier, level - 1);
+        function updateThrowMultiplier() {
+            throwMultiplier = baseThrowMultiplier * Math.pow(throwGrowth, level - 1);
         }
 
         function assignSections() {
@@ -605,7 +607,7 @@
                 btn.classList.remove('glow-green', 'glow-red', 'glow-white', 'recede');
             });
 
-            updateGravity();
+            updateThrowMultiplier();
             updateDisplay();
             drawScene();
         }
@@ -1031,7 +1033,7 @@
                     }
                     const completedLevel = level;
                     level++;
-                    updateGravity();
+                    updateThrowMultiplier();
                     let flashColor = null;
 
                     if (currentMode === 'survival' && currentMap === 'rectangle') {
@@ -1081,7 +1083,7 @@
                 isTrackingHits = false;
                 const completedLevel = level;
                 level++;
-                updateGravity();
+                updateThrowMultiplier();
                 let flashColor = null;
 
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
@@ -1123,7 +1125,7 @@
                 lives--;
                 if (lives <= 0) {
                     level = 1;
-                    updateGravity();
+                    updateThrowMultiplier();
                     lives = 3;
                     startingLives = 3;
                 }
@@ -1135,7 +1137,7 @@
                 lives--;
                 if (lives <= 0) {
                     level = 1;
-                    updateGravity();
+                    updateThrowMultiplier();
                     lives = 3;
                     startingLives = 3;
                 }
@@ -1231,8 +1233,8 @@
                     const currentTime = Date.now();
                     const dt = (currentTime - circle.lastTime) / 1000;
                     if (dt > 0) {
-                        circle.dx = (pos.x - circle.lastX) / dt;
-                        circle.dy = (pos.y - circle.lastY) / dt;
+                        circle.dx = ((pos.x - circle.lastX) / dt) * throwMultiplier;
+                        circle.dy = ((pos.y - circle.lastY) / dt) * throwMultiplier;
                     }
                     circle.lastTime = currentTime;
                 }
@@ -1597,7 +1599,7 @@
         circle.x = window.innerWidth * 0.45;
         circle.y = window.innerHeight * 0.5;
 
-        updateGravity();
+        updateThrowMultiplier();
         updateDisplay();
         drawScene();
         animate();
