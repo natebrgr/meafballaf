@@ -308,7 +308,8 @@
             hasBeenTouched: false
         };
 
-        const gravity = 0.5;
+        const initialGravity = 0.5;
+        let gravity = initialGravity;
         const friction = 0.98;
         const bounciness = 0.9;
 
@@ -347,6 +348,10 @@
 
         let greenSection = null;
         let redSection = null;
+
+        function updateGravity() {
+            gravity = initialGravity * Math.pow(0.99, level - 1);
+        }
 
         function assignSections() {
             if (currentMode === 'survival' && currentMap === 'rectangle') {
@@ -598,6 +603,7 @@
                 btn.classList.remove('glow-green', 'glow-red', 'glow-white', 'recede');
             });
 
+            updateGravity();
             updateDisplay();
             drawScene();
         }
@@ -1023,6 +1029,7 @@
                     }
                     const completedLevel = level;
                     level++;
+                    updateGravity();
                     let flashColor = null;
 
                     if (currentMode === 'survival' && currentMap === 'rectangle') {
@@ -1072,6 +1079,7 @@
                 isTrackingHits = false;
                 const completedLevel = level;
                 level++;
+                updateGravity();
                 let flashColor = null;
 
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
@@ -1113,6 +1121,7 @@
                 lives--;
                 if (lives <= 0) {
                     level = 1;
+                    updateGravity();
                     lives = 3;
                     startingLives = 3;
                 }
@@ -1124,6 +1133,7 @@
                 lives--;
                 if (lives <= 0) {
                     level = 1;
+                    updateGravity();
                     lives = 3;
                     startingLives = 3;
                 }
@@ -1585,6 +1595,7 @@
         circle.x = window.innerWidth * 0.45;
         circle.y = window.innerHeight * 0.5;
 
+        updateGravity();
         updateDisplay();
         drawScene();
         animate();
