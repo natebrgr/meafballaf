@@ -308,7 +308,9 @@
             hasBeenTouched: false
         };
 
-        const initialGravity = 0.5;
+        const targetGravityAt200 = 0.5;
+        const gravityMultiplier = 0.99;
+        const initialGravity = targetGravityAt200 / Math.pow(gravityMultiplier, 199);
         let gravity = initialGravity;
         const friction = 0.98;
         const bounciness = 0.9;
@@ -350,7 +352,7 @@
         let redSection = null;
 
         function updateGravity() {
-            gravity = initialGravity * Math.pow(0.99, level - 1);
+            gravity = initialGravity * Math.pow(gravityMultiplier, level - 1);
         }
 
         function assignSections() {
