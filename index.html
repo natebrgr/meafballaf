@@ -703,24 +703,15 @@
 
                 // Draw hole
                 ctx.beginPath();
+                ctx.shadowColor = '#fff';
+                ctx.shadowBlur = 5 * pixelRatio;
                 ctx.arc(h.x, h.y, 5, 0, Math.PI * 2);
-                ctx.fillStyle = '#333333';
+                ctx.fillStyle = h.bgColor;
                 ctx.fill();
                 ctx.strokeStyle = '#666666';
                 ctx.lineWidth = 1;
                 ctx.stroke();
-
-                // Draw smoke
-                let smokeY = h.y - 10;
-                let smokeSize = 4;
-                ctx.fillStyle = h.bgColor;
-                for (let i = 0; i < 4; i++) {
-                    ctx.beginPath();
-                    ctx.arc(h.x + h.smokeOffsets[i], smokeY, smokeSize, 0, Math.PI * 2);
-                    ctx.fill();
-                    smokeY -= smokeSize * 1.5;
-                    smokeSize += 1;
-                }
+                ctx.shadowBlur = 0;
 
                 ctx.restore();
             });
@@ -1074,6 +1065,19 @@
                     updateThrowMultiplier();
                     let flashColor = null;
 
+                    // Add bullet hole for winning during countdown
+                    let bgColor = '#000000';
+                    if (currentMode === 'survival' && currentMap === 'rectangle') {
+                        const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                        const sectionHeight = canvasHeight / 3;
+                        const section = Math.floor(originalY / sectionHeight);
+                        if (section === greenSection) bgColor = 'rgb(11, 74, 28)';
+                        else if (section === redSection) bgColor = 'rgb(130, 33, 33)';
+                        else bgColor = '#000000';
+                    }
+                    if (bgColor === '#000000') bgColor = 'rgba(200, 200, 200, 0.5)';
+                    bulletHoles.push({ x: originalX, y: originalY, startTime: Date.now(), bgColor, opacity: 1 });
+
                     if (currentMode === 'survival' && currentMap === 'rectangle') {
                         const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                         const sectionHeight = canvasHeight / 3;
@@ -1116,7 +1120,7 @@
                 return;
             }
 
-            // Add bullet hole effect if after countdown
+            // Add bullet hole effect for post-countdown taps
             if (!isCountingDown && circle.hasBeenTouched) {
                 let bgColor = '#000000';
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
@@ -1127,12 +1131,8 @@
                     else if (section === redSection) bgColor = 'rgb(130, 33, 33)';
                     else bgColor = '#000000';
                 }
-                if (bgColor === '#000000') bgColor = 'rgba(200, 200, 200, 0.5)'; // Make visible smoke for black
-                const smokeOffsets = [];
-                for (let i = 0; i < 4; i++) {
-                    smokeOffsets.push((Math.random() - 0.5) * 4);
-                }
-                bulletHoles.push({ x: originalX, y: originalY, startTime: Date.now(), bgColor, smokeOffsets, opacity: 1 });
+                if (bgColor === '#000000') bgColor = 'rgba(200, 200, 200, 0.5)';
+                bulletHoles.push({ x: originalX, y: originalY, startTime: Date.now(), bgColor, opacity: 1 });
             }
 
             // New tap-to-move and win/lose logic using original position
