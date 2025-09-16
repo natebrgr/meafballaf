@@ -353,6 +353,8 @@
         let greenSection = null;
         let redSection = null;
 
+        let bulletHoles = [];
+
         function updateThrowMultiplier() {
             throwMultiplier = baseThrowMultiplier * Math.pow(throwGrowth, level - 1);
         }
@@ -694,6 +696,35 @@
                 ctx.stroke();
             }
 
+            // Draw bullet holes and smoke
+            bulletHoles.forEach(h => {
+                ctx.save();
+                ctx.globalAlpha = h.opacity;
+
+                // Draw hole
+                ctx.beginPath();
+                ctx.arc(h.x, h.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#333333';
+                ctx.fill();
+                ctx.strokeStyle = '#666666';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Draw smoke
+                let smokeY = h.y - 10;
+                let smokeSize = 4;
+                ctx.fillStyle = h.bgColor;
+                for (let i = 0; i < 4; i++) {
+                    ctx.beginPath();
+                    ctx.arc(h.x + h.smokeOffsets[i], smokeY, smokeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    smokeY -= smokeSize * 1.5;
+                    smokeSize += 1;
+                }
+
+                ctx.restore();
+            });
+
             const greenColor = 'rgb(11, 74, 28)';
             let counterColor = '#e0e0e0';
             if (wallHits === level) counterColor = greenColor;
@@ -931,6 +962,13 @@
                     }
                 }
             }
+
+            // Update bullet holes opacity
+            const now = Date.now();
+            bulletHoles.forEach(h => {
+                h.opacity = Math.max(0, 1 - (now - h.startTime) / 2000);
+            });
+            bulletHoles = bulletHoles.filter(h => h.opacity > 0);
         }
 
         function startCountdown(isResuming = false) {
@@ -1076,6 +1114,25 @@
                 circle.y = pos.y;
                 constrainCircle();
                 return;
+            }
+
+            // Add bullet hole effect if after countdown
+            if (!isCountingDown && circle.hasBeenTouched) {
+                let bgColor = '#000000';
+                if (currentMode === 'survival' && currentMap === 'rectangle') {
+                    const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                    const sectionHeight = canvasHeight / 3;
+                    const section = Math.floor(originalY / sectionHeight);
+                    if (section === greenSection) bgColor = 'rgb(11, 74, 28)';
+                    else if (section === redSection) bgColor = 'rgb(130, 33, 33)';
+                    else bgColor = '#000000';
+                }
+                if (bgColor === '#000000') bgColor = 'rgba(200, 200, 200, 0.5)'; // Make visible smoke for black
+                const smokeOffsets = [];
+                for (let i = 0; i < 4; i++) {
+                    smokeOffsets.push((Math.random() - 0.5) * 4);
+                }
+                bulletHoles.push({ x: originalX, y: originalY, startTime: Date.now(), bgColor, smokeOffsets, opacity: 1 });
             }
 
             // New tap-to-move and win/lose logic using original position
