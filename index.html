@@ -410,10 +410,19 @@
 
         let oldGreenSection = null;
         let oldRedSection = null;
-
+        let oldDisplayLives = 0;
+        let oldDisplayStartingLives = 0;
         let sweepDirection = null;
         let sweepStartTime = null;
         const sweepDuration = 500;
+
+        let originalNextGreen = null;
+        let originalNextRed = null;
+        let originalPrevGreen = null;
+        let originalPrevRed = null;
+
+        let currentDisplayLives = lives;
+        let currentDisplayStartingLives = startingLives;
 
         function updateThrowMultiplier() {
             throwMultiplier = baseThrowMultiplier * Math.pow(throwGrowth, level - 1);
@@ -483,6 +492,7 @@
             hiScoreCount.style.right = `${canvasLeft}px`;
             levelChange.style.left = `${canvasLeft + (window.innerWidth * 0.9 - 120) / 2 + 120 + 10}px`; // Right of levelContainer
 
+            updatePreviews();
             constrainCircle();
         }
 
@@ -508,13 +518,8 @@
             if (currentMap !== 'rectangle' || currentMode !== 'survival') return;
 
             const canvasRect = canvas.getBoundingClientRect();
+            const previewWidth = 10;
             const sectionHeight = canvasRect.height / 3;
-
-            const canvasLeft = (window.innerWidth - window.innerWidth * 0.9) / 2;
-
-            const leftPreviewWidth = canvasLeft + 30;
-            const rightPreviewLeft = window.innerWidth - canvasLeft - 30;
-            const rightPreviewWidth = canvasLeft + 30;
 
             // Previous previews (left)
             if (prevGreenSection !== null || prevRedSection !== null) {
@@ -526,7 +531,7 @@
                 prevColors[blackSection] = '#000000';
 
                 for (let i = 0; i < 3; i++) {
-                    const rect = createPreviewRect(prevColors[i], canvasRect.top + i * sectionHeight, sectionHeight, 0, leftPreviewWidth);
+                    const rect = createPreviewRect(prevColors[i], canvasRect.top + i * sectionHeight, sectionHeight, 0, livesCount.getBoundingClientRect().left + livesCount.offsetWidth / 2);
                     if (isPaused && !isPreviousView) {
                         rect.classList.add('glow');
                         rect.classList.add('clickable');
@@ -547,7 +552,7 @@
                 nextColors[blackSection] = '#000000';
 
                 for (let i = 0; i < 3; i++) {
-                    const rect = createPreviewRect(nextColors[i], canvasRect.top + i * sectionHeight, sectionHeight, rightPreviewLeft, rightPreviewWidth);
+                    const rect = createPreviewRect(nextColors[i], canvasRect.top + i * sectionHeight, sectionHeight, hiScoreCount.getBoundingClientRect().left + hiScoreCount.offsetWidth / 2, window.innerWidth - (hiScoreCount.getBoundingClientRect().left + hiScoreCount.offsetWidth / 2));
                     if (isPreviousView) {
                         rect.classList.add('glow');
                     }
@@ -771,49 +776,28 @@
             drawScene();
         }
 
-        function drawSections(green, red, drawLives, drawStartingLives) {
-            const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
-            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-            const sectionHeight = canvasHeight / 3;
-            const pixelRatio = window.devicePixelRatio || 1;
+        function getCircleColor(counterColor) {
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28, 0.7)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33, 0.7)';
+            return 'rgba(255, 255, 255, 0.7)';
+        }
 
-            if (green !== null) {
-                ctx.fillStyle = 'rgb(11, 74, 28)';
-                ctx.fillRect(0, green * sectionHeight, canvasWidth, sectionHeight);
-            }
-            if (red !== null) {
-                ctx.fillStyle = 'rgb(130, 33, 33)';
-                ctx.fillRect(0, red * sectionHeight, canvasWidth, sectionHeight);
-            }
+        function getBorderColor(counterColor) {
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgb(11, 74, 28)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgb(130, 33, 33)';
+            return '#ffffff';
+        }
 
-            ctx.font = 'bold 40px Impact, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.shadowColor = '#fff';
-            ctx.shadowBlur = 10 * pixelRatio;
+        function getCrosshairColor(counterColor) {
+            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(0, 0, 0, 0.7)';
+            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(0, 0, 0, 0.7)';
+            return 'rgba(0, 0, 0, 0.7)';
+        }
 
-            const greenLives = drawStartingLives <= 3 ? drawStartingLives + 1 : (drawLives > 2 ? drawLives + 1 : 4);
-            const redLives = drawStartingLives <= 3 ? Math.max(drawStartingLives - 1, 1) : (drawLives > 2 ? Math.max(drawLives - 1, 1) : 2);
-            const blackSection = [0, 1, 2].find(s => s !== green && s !== red);
-            const blackLives = drawStartingLives <= 3 ? drawStartingLives : (drawLives > 2 ? drawLives : 3);
-
-            if (green !== null) {
-                ctx.fillStyle = 'rgb(11, 74, 28)';
-                ctx.fillText(`+${greenLives - drawLives}`, 40, green * sectionHeight + sectionHeight / 2);
-                ctx.fillText(`+${greenLives - drawLives}`, canvasWidth - 40, green * sectionHeight + sectionHeight / 2);
-            }
-            if (red !== null) {
-                ctx.fillStyle = 'rgb(130, 33, 33)';
-                ctx.fillText(`${redLives - drawLives >= 0 ? '+' : ''}${redLives - drawLives}`, 40, red * sectionHeight + sectionHeight / 2);
-                ctx.fillText(`${redLives - drawLives >= 0 ? '+' : ''}${redLives - drawLives}`, canvasWidth - 40, red * sectionHeight + sectionHeight / 2);
-            }
-            if (blackSection !== null) {
-                ctx.fillStyle = '#000';
-                ctx.fillText(`${blackLives - drawLives >= 0 ? '+' : ''}${blackLives - drawLives}`, 40, blackSection * sectionHeight + sectionHeight / 2);
-                ctx.fillText(`${blackLives - drawLives >= 0 ? '+' : ''}${blackLives - drawLives}`, canvasWidth - 40, blackSection * sectionHeight + sectionHeight / 2);
-            }
-
-            ctx.shadowBlur = 0;
+        function lightenColor(color) {
+            if (color === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28,';
+            if (color === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33,';
+            return 'rgba(255, 255, 255,';
         }
 
         function drawScene() {
@@ -821,56 +805,51 @@
 
             const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
             const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+            const sectionHeight = canvasHeight / 3;
             const pixelRatio = window.devicePixelRatio || 1;
 
             let currentGreen = isPreviousView ? prevGreenSection : greenSection;
             let currentRed = isPreviousView ? prevRedSection : redSection;
-            let currentLives = isPreviousView ? prevLives : lives;
-            let currentStartingLives = isPreviousView ? prevStartingLives : startingLives;
 
             let progress = 0;
             if (sweepStartTime) {
                 const elapsed = Date.now() - sweepStartTime;
-                progress = Math.min(elapsed / sweepDuration, 1) * canvasWidth;
-                if (progress >= canvasWidth) {
+                progress = Math.min(elapsed / sweepDuration, 1);
+                if (progress >= 1) {
                     sweepStartTime = null;
                 }
             }
 
-            if (progress > 0) {
-                if (sweepDirection === 'rightToLeft') {
+            if (currentMode === 'survival' && currentMap === 'rectangle') {
+                if (progress > 0) {
                     ctx.save();
-                    ctx.beginPath();
-                    ctx.rect(0, 0, progress, canvasHeight);
-                    ctx.clip();
-                    ctx.translate(-progress, 0);
+                    if (sweepDirection === 'rightToLeft') {
+                        ctx.beginPath();
+                        ctx.rect(0, 0, progress * canvasWidth, canvasHeight);
+                        ctx.clip();
+                    } else {
+                        ctx.beginPath();
+                        ctx.rect((1 - progress) * canvasWidth, 0, progress * canvasWidth, canvasHeight);
+                        ctx.clip();
+                    }
                     drawSections(oldGreenSection, oldRedSection, oldDisplayLives, oldDisplayStartingLives);
                     ctx.restore();
 
                     ctx.save();
-                    ctx.beginPath();
-                    ctx.rect(progress, 0, canvasWidth - progress, canvasHeight);
-                    ctx.clip();
+                    if (sweepDirection === 'rightToLeft') {
+                        ctx.beginPath();
+                        ctx.rect(progress * canvasWidth, 0, (1 - progress) * canvasWidth, canvasHeight);
+                        ctx.clip();
+                    } else {
+                        ctx.beginPath();
+                        ctx.rect(0, 0, (1 - progress) * canvasWidth, canvasHeight);
+                        ctx.clip();
+                    }
                     drawSections(currentGreen, currentRed, currentLives, currentStartingLives);
                     ctx.restore();
-                } else if (sweepDirection === 'leftToRight') {
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.rect(canvasWidth - progress, 0, progress, canvasHeight);
-                    ctx.clip();
-                    ctx.translate(progress, 0);
-                    drawSections(oldGreenSection, oldRedSection, oldDisplayLives, oldDisplayStartingLives);
-                    ctx.restore();
-
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.rect(0, 0, canvasWidth - progress, canvasHeight);
-                    ctx.clip();
-                    drawSections(currentGreen, currentRed, currentLives, currentStartingLives);
-                    ctx.restore();
+                } else {
+                    drawSections(currentGreen, currentRed, lives, startingLives);
                 }
-            } else {
-                drawSections(currentGreen, currentRed, currentLives, currentStartingLives);
             }
 
             ctx.strokeStyle = '#ffffff';
@@ -1039,7 +1018,7 @@
         }
 
         function updatePhysics() {
-            if (isPaused || isPreviousView || sweepStartTime) {
+            if (isPaused || isPreviousView) {
                 if (circle.isDragging) {
                     circle.dx = 0;
                     circle.dy = 0;
@@ -1378,188 +1357,444 @@
             startCountdown();
         }
 
-        function enterPreviousView(e) {
-            if (!isPaused || isPreviousView) return;
-            isPreviousView = true;
-
-            // Save current
-            const tempGreen = greenSection;
-            const tempRed = redSection;
-            const tempLives = lives;
-            const tempStartingLives = startingLives;
-
-            oldGreenSection = greenSection;
-            oldRedSection = redSection;
-            oldDisplayLives = lives;
-            oldDisplayStartingLives = startingLives;
-
-            greenSection = prevGreenSection;
-            redSection = prevRedSection;
-            lives = prevLives;
-            startingLives = prevStartingLives;
-            nextGreenSection = tempGreen;
-            nextRedSection = tempRed;
-
-            prevGreenSection = null;
-            prevRedSection = null;
-
-            // Animations for previews
-            leftPreviews.forEach(r => {
-                r.style.animation = 'sweepToRight 0.5s ease forwards';
-                setTimeout(() => r.remove(), 500);
-            });
-            leftPreviews = [];
-            rightPreviews.forEach(r => {
-                r.style.animation = 'sweepToRight 0.5s ease forwards';
-                setTimeout(() => r.remove(), 500);
-            });
-
-            // Create new right previews
-            updatePreviews();
-
-            rightPreviews.forEach(r => {
-                r.style.transform = 'translateX(-100%)';
-                r.style.animation = 'sweepFromLeft 0.5s ease forwards';
-            });
-
-            // Buttons
-            [playButton, modeButton, mapButton].forEach(btn => {
-                btn.style.animation = 'sweepUpward 0.5s ease forwards';
-                setTimeout(() => btn.style.display = 'none', 500);
-            });
-
-            // Title
-            titleDisplay.style.animation = 'sweepRightward 0.5s ease forwards';
-            setTimeout(() => {
-                titleDisplay.textContent = 'PREVIOUSLY...';
-                titleDisplay.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
-            }, 500);
-
-            // Numbers
-            levelContainer.style.animation = 'sweepRightward 0.5s ease forwards';
-            livesCount.style.animation = 'sweepRightward 0.5s ease forwards';
-            hiScoreCount.style.animation = 'sweepRightward 0.5s ease forwards';
-            setTimeout(() => {
-                wallHitsDisplay.textContent = prevWallHits;
-                levelNumber.textContent = prevLevel;
-                wallHitsDisplay.style.color = 'rgb(11, 74, 28)';
-                levelNumber.style.color = 'rgb(11, 74, 28)';
-                livesCount.textContent = prevLives;
-                hiScoreCount.textContent = prevHiScore;
-                levelContainer.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
-                livesCount.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
-                hiScoreCount.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
-            }, 500);
-
-            sweepDirection = 'leftToRight';
-            sweepStartTime = Date.now();
-
-            document.addEventListener('touchstart', exitPreviousView, { once: true });
-
+        function startDragging(e) {
+            if (isPaused && !circle.wasDraggingWhenPaused || isPreviousView) return;
+            const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
+            e.preventDefault();
+            circle.isDragging = true;
+            circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
+            circle.lastX = pos.x;
+            circle.lastY = pos.y;
+            circle.lastTime = Date.now();
+            circle.dx = 0;
+            circle.dy = 0;
+            circle.x = pos.x;
+            circle.y = pos.y;
+            constrainCircle();
+            if (!isPaused) trail.length = 0;
+            buttonActivated = { play: false, mode: false, map: false };
             drawScene();
         }
 
-        function exitPreviousView(e) {
-            isPreviousView = false;
+        function startResizing(e) {
+            if (!circle.isDragging || circle.isResizing || e.touches.length < 2 || isPreviousView) return;
+            if (isPaused && !circle.wasDraggingWhenPaused) return;
 
-            // Restore
-            const tempGreen = greenSection;
-            const tempRed = redSection;
-            const tempLives = lives;
-            const tempStartingLives = startingLives;
+            const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
+            if (dragTouchIndex === -1) return;
 
-            oldGreenSection = greenSection;
-            oldRedSection = redSection;
-            oldDisplayLives = lives;
-            oldDisplayStartingLives = startingLives;
+            const otherTouch = e.touches[dragTouchIndex === 0 ? 1 : 0];
+            const pos = getMousePos(e, otherTouch.identifier);
+            const canvasRect = canvas.getBoundingClientRect();
+            const isOverCanvas = (
+                otherTouch.clientX >= canvasRect.left &&
+                otherTouch.clientX <= canvasRect.right &&
+                otherTouch.clientY >= canvasRect.top &&
+                otherTouch.clientY <= canvasRect.bottom
+            );
 
-            greenSection = nextGreenSection;
-            redSection = nextRedSection;
-            lives = tempLives;
-            startingLives = tempStartingLives;
+            if (isOverCanvas) {
+                circle.resizeTouchId = otherTouch.identifier;
+                circle.resizeStartX = pos.x;
+                circle.resizeStartY = pos.y;
+                circle.initialRadius = circle.radius;
+                circle.resizeStartTime = Date.now();
+                circle.resizeTimer = setTimeout(() => {
+                    if (circle.resizeTouchId !== null) {
+                        circle.isResizing = true;
+                    }
+                }, resizeHoldThreshold);
+            }
+        }
 
-            nextGreenSection = null;
-            nextRedSection = null;
-            prevGreenSection = tempGreen;
-            prevRedSection = tempRed;
+        function drag(e) {
+            if (isPreviousView) return;
+            if (circle.isDragging && !circle.isResizing) {
+                const pos = getMousePos(e, circle.dragTouchId);
 
-            // Animations for previews
-            rightPreviews.forEach(r => {
-                r.style.animation = 'sweepToLeft 0.5s ease forwards';
-                setTimeout(() => r.remove(), 500);
-            });
+                if (currentMap === 'rectangle') {
+                    pos.x = Math.max(circle.radius, Math.min((canvas.width / (window.devicePixelRatio || 1)) - circle.radius, pos.x));
+                    pos.y = Math.max(circle.radius, Math.min((canvas.height / (window.devicePixelRatio || 1)) - circle.radius, pos.y));
+                } else {
+                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
+                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
+                    const maxRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth - circle.radius;
+                    const dx = pos.x - centerX;
+                    const dy = pos.y - centerY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > maxRadius) {
+                        const angle = Math.atan2(dy, dx);
+                        pos.x = centerX + Math.cos(angle) * maxRadius;
+                        pos.y = centerY + Math.sin(angle) * maxRadius;
+                    }
+                }
 
-            // Create new left previews
-            updatePreviews();
+                circle.x = pos.x;
+                circle.y = pos.y;
 
-            leftPreviews.forEach(r => {
-                r.style.transform = 'translateX(-100%)';
-                r.style.animation = 'sweepFromLeft 0.5s ease forwards';
-            });
+                if (!isPaused) {
+                    const currentTime = Date.now();
+                    const dt = (currentTime - circle.lastTime) / 1000;
+                    if (dt > 0) {
+                        circle.dx = ((pos.x - circle.lastX) / dt) * throwMultiplier;
+                        circle.dy = ((pos.y - circle.lastY) / dt) * throwMultiplier;
+                    }
+                    circle.lastTime = currentTime;
+                }
+                circle.lastX = pos.x;
+                circle.lastY = pos.y;
+            }
 
-            // Buttons
-            [playButton, modeButton, mapButton].forEach(btn => {
-                btn.style.display = 'block';
-                btn.style.animation = 'sweepUpward 0.5s ease reverse';
-            });
+            if (circle.isResizing) {
+                const resizePos = getMousePos(e, circle.resizeTouchId);
+                const dx = resizePos.x - circle.x;
+                const dy = resizePos.y - circle.y;
+                const currentDistance = Math.sqrt(dx * dx + dy * dy);
+                const initialDistance = Math.sqrt(
+                    (circle.resizeStartX - circle.x) ** 2 + 
+                    (circle.resizeStartY - circle.y) ** 2
+                );
+                const distanceDelta = currentDistance - initialDistance;
 
-            // Title
-            titleDisplay.style.animation = 'sweepRightward 0.5s ease reverse';
-            setTimeout(() => {
-                titleDisplay.textContent = 'SURVIVAL MODE';
-                titleDisplay.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
-            }, 500);
+                const newRadius = Math.max(defaultRadius, circle.initialRadius + distanceDelta / 2);
+                let maxAllowedRadius;
 
-            // Numbers
-            levelContainer.style.animation = 'sweepRightward 0.5s ease reverse';
-            livesCount.style.animation = 'sweepRightward 0.5s ease reverse';
-            hiScoreCount.style.animation = 'sweepRightward 0.5s ease reverse';
-            setTimeout(() => {
-                wallHitsDisplay.textContent = wallHits;
-                levelNumber.textContent = level;
-                wallHitsDisplay.style.color = '#e0e0e0';
-                levelNumber.style.color = 'rgb(11, 74, 28)';
-                livesCount.textContent = lives;
-                hiScoreCount.textContent = hiScore;
-                levelContainer.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
-                livesCount.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
-                hiScoreCount.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
-            }, 500);
+                if (currentMap === 'rectangle') {
+                    maxAllowedRadius = Math.min(
+                        circle.x, 
+                        (canvas.width / (window.devicePixelRatio || 1)) - circle.x,
+                        circle.y,
+                        (canvas.height / (window.devicePixelRatio || 1)) - circle.y
+                    );
+                } else {
+                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
+                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
+                    const distToCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
+                    maxAllowedRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth - distToCenter;
+                }
 
-            sweepDirection = 'rightToLeft';
-            sweepStartTime = Date.now();
+                circle.radius = Math.min(newRadius, maxAllowedRadius);
+            }
 
+            const screenPos = getScreenPos(e, circle.dragTouchId);
+            const target = document.elementFromPoint(screenPos.x, screenPos.y);
+
+            if (target === playButton) {
+                if (!holdTimers.play && !buttonActivated.play) {
+                    playButton.classList.remove('glow-green', 'glow-red', 'recede');
+                    playButton.classList.add(isPaused ? 'glow-green' : 'glow-red');
+                    holdTimers.play = setTimeout(() => {
+                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
+                            playButton.classList.remove('glow-green', 'glow-red');
+                            playButton.classList.add('recede');
+                            if (isPaused) {
+                                isPaused = false;
+                                circle.lastX = getMousePos(e, circle.dragTouchId).x;
+                                circle.lastY = getMousePos(e, circle.dragTouchId).y;
+                                circle.lastTime = Date.now();
+                                circle.dx = 0;
+                                circle.dy = 0;
+                                if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
+                            } else {
+                                circle.wasDraggingWhenPaused = circle.isDragging;
+                                isPaused = true;
+                                saveState();
+                            }
+                            updateDisplay();
+                            buttonActivated.play = true;
+                        }
+                        holdTimers.play = null;
+                    }, 1000);
+                }
+            } else {
+                if (holdTimers.play) {
+                    clearTimeout(holdTimers.play);
+                    holdTimers.play = null;
+                    playButton.classList.remove('glow-green', 'glow-red');
+                    playButton.classList.add('recede');
+                }
+                if (buttonActivated.play && target !== playButton) buttonActivated.play = false;
+            }
+
+            if (target === modeButton) {
+                if (!holdTimers.mode && !buttonActivated.mode) {
+                    modeButton.classList.remove('glow-white', 'recede');
+                    modeButton.classList.add('glow-white');
+                    holdTimers.mode = setTimeout(() => {
+                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === modeButton) {
+                            modeButton.classList.remove('glow-white');
+                            modeButton.classList.add('recede');
+                            if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
+                            isPaused = true;
+                            saveState();
+                            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+                            circle.hasBeenTouched = false;
+                            loadState(currentMode, currentMap);
+                            updateDisplay();
+                            buttonActivated.mode = true;
+                        }
+                        holdTimers.mode = null;
+                    }, 1000);
+                }
+            } else {
+                if (holdTimers.mode) {
+                    clearTimeout(holdTimers.mode);
+                    holdTimers.mode = null;
+                    modeButton.classList.remove('glow-white');
+                    modeButton.classList.add('recede');
+                }
+                if (buttonActivated.mode && target !== modeButton) buttonActivated.mode = false;
+            }
+
+            if (target === mapButton) {
+                if (!holdTimers.map && !buttonActivated.map) {
+                    mapButton.classList.remove('glow-white', 'recede');
+                    mapButton.classList.add('glow-white');
+                    holdTimers.map = setTimeout(() => {
+                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === mapButton) {
+                            mapButton.classList.remove('glow-white');
+                            mapButton.classList.add('recede');
+                            if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
+                            isPaused = true;
+                            saveState();
+                            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+                            circle.hasBeenTouched = false;
+                            loadState(currentMode, currentMap);
+                            updateDisplay();
+                            buttonActivated.map = true;
+                        }
+                        holdTimers.map = null;
+                    }, 1000);
+                }
+            } else {
+                if (holdTimers.map) {
+                    clearTimeout(holdTimers.map);
+                    holdTimers.map = null;
+                    mapButton.classList.remove('glow-white');
+                    mapButton.classList.add('recede');
+                }
+                if (buttonActivated.map && target !== mapButton) buttonActivated.map = false;
+            }
+
+            if (isPaused) saveState();
             drawScene();
         }
 
-        function animateLevelChange() {
-            sweepDirection = 'rightToLeft';
-            sweepStartTime = Date.now();
+        function stopDragging(e) {
+            if (!circle.isDragging || isPreviousView) return;
+            let touchId = circle.dragTouchId;
+            if (e.touches && e.touches.length > 0) return;
+            if (e.changedTouches) {
+                let matched = false;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchId) {
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) return;
+            }
 
-            // Animate old previews
-            leftPreviews.forEach(r => {
-                r.style.animation = 'sweepToLeft 0.5s ease forwards';
-                setTimeout(() => r.remove(), 500);
-            });
-            rightPreviews.forEach(r => {
-                r.style.animation = 'sweepToLeft 0.5s ease forwards';
-                setTimeout(() => r.remove(), 500);
-            });
+            const screenPos = getScreenPos(e, touchId);
+            const target = document.elementFromPoint(screenPos.x, screenPos.y);
+            const canvasRect = canvas.getBoundingClientRect();
+            const isOverCanvas = (
+                screenPos.x >= canvasRect.left &&
+                screenPos.x <= canvasRect.right &&
+                screenPos.y >= canvasRect.top &&
+                screenPos.y <= canvasRect.bottom
+            );
 
-            // Create new previews
-            updatePreviews();
+            if (target === playButton && !buttonActivated.play) {
+                playButton.click();
+            } else if (target === modeButton && !buttonActivated.mode) {
+                modeButton.classList.remove('glow-white');
+                modeButton.classList.add('recede');
+                if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
+                isPaused = true;
+                saveState();
+                currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+                circle.hasBeenTouched = false;
+                loadState(currentMode, currentMap);
+                updateDisplay();
+            } else if (target === mapButton && !buttonActivated.map) {
+                mapButton.classList.remove('glow-white');
+                mapButton.classList.add('recede');
+                if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
+                isPaused = true;
+                saveState();
+                currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+                circle.hasBeenTouched = false;
+                loadState(currentMode, currentMap);
+                updateDisplay();
+            } else if (isOverCanvas && !circle.hasBeenTouched) {
+                circle.hasBeenTouched = true;
+                startCountdown();
+            }
 
-            leftPreviews.forEach(r => {
-                r.style.transform = 'translateX(100%)';
-                r.style.animation = 'sweepFromRight 0.5s ease forwards';
+            circle.isDragging = false;
+            circle.dragTouchId = null;
+            Object.keys(holdTimers).forEach(key => {
+                if (holdTimers[key]) {
+                    clearTimeout(holdTimers[key]);
+                    holdTimers[key] = null;
+                    if (key === 'play') {
+                        playButton.classList.remove('glow-green', 'glow-red');
+                        playButton.classList.add('recede');
+                    } else {
+                        document.getElementById(key + 'Button').classList.remove('glow-white');
+                        document.getElementById(key + 'Button').classList.add('recede');
+                    }
+                }
             });
-            rightPreviews.forEach(r => {
-                r.style.transform = 'translateX(100%)';
-                r.style.animation = 'sweepFromRight 0.5s ease forwards';
+            buttonActivated = { play: false, mode: false, map: false };
+            if (!circle.isDragging && isPaused) saveState();
+            drawScene();
+
+            // Ensure buttons are clickable by forcing a clean slate
+            [modeButton, mapButton].forEach(btn => {
+                btn.style.pointerEvents = 'auto'; // Reset pointer events
             });
         }
 
-        // ... (other functions like startDragging, drag, stopDragging, etc.)
+        function stopResizing(e) {
+            if (circle.resizeTouchId === null || isPreviousView) return;
+            if (e.touches && e.touches.length > 1) return;
+            if (e.changedTouches) {
+                let matched = false;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === circle.resizeTouchId) {
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) return;
+            }
+
+            const elapsed = Date.now() - circle.resizeStartTime;
+            if (!circle.isResizing && elapsed < resizeHoldThreshold && !isPaused) {
+                circle.isDragging = false;
+                circle.dragTouchId = null;
+                circle.dx = 0;
+                circle.dy = 0;
+            }
+            if (circle.isResizing) {
+                circle.isResizing = false;
+            }
+
+            if (circle.resizeTimer) {
+                clearTimeout(circle.resizeTimer);
+                circle.resizeTimer = null;
+            }
+            circle.resizeTouchId = null;
+            constrainCircle();
+            if (isPaused) saveState();
+            drawScene();
+        }
+
+        modeButton.addEventListener('click', () => {
+            if (isPreviousView) return;
+            if (!isPaused) {
+                circle.wasDraggingWhenPaused = circle.isDragging;
+                isPaused = true;
+            }
+            saveState();
+            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+            circle.hasBeenTouched = false;
+            loadState(currentMode, currentMap);
+            updateDisplay();
+            drawScene();
+        });
+
+        mapButton.addEventListener('click', () => {
+            if (isPreviousView) return;
+            if (!isPaused) {
+                circle.wasDraggingWhenPaused = circle.isDragging;
+                isPaused = true;
+            }
+            saveState();
+            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
+            circle.hasBeenTouched = false;
+            loadState(currentMode, currentMap);
+            updateDisplay();
+            drawScene();
+        });
+
+        playButton.addEventListener('click', (e) => {
+            if (isPreviousView) return;
+            if (isPaused) {
+                isPaused = false;
+                if (circle.isDragging) {
+                    const pos = getMousePos(e);
+                    circle.lastX = pos.x;
+                    circle.lastY = pos.y;
+                    circle.lastTime = Date.now();
+                    circle.dx = 0;
+                    circle.dy = 0;
+                } else if (circle.wasDraggingWhenPaused) {
+                    circle.isDragging = false;
+                    circle.dragTouchId = null;
+                    constrainCircle();
+                    circle.dx = 0;
+                    circle.dy = 0;
+                } else {
+                    constrainCircle();
+                    circle.dx = circle.dx || 0;
+                    circle.dy = circle.dy || 0;
+                }
+                circle.wasDraggingWhenPaused = false;
+                if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
+                updateDisplay();
+            } else {
+                circle.wasDraggingWhenPaused = circle.isDragging;
+                isPaused = true;
+                saveState();
+                updateDisplay();
+            }
+            drawScene();
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            handleCanvasTap(e);
+            startDragging(e);
+        });
+        canvas.addEventListener('mousemove', drag);
+        canvas.addEventListener('mouseup', stopDragging);
+
+        canvas.addEventListener('touchstart', (e) => {
+            handleCanvasTap(e);
+            startDragging(e);
+            startResizing(e);
+        });
+        canvas.addEventListener('touchmove', drag);
+        canvas.addEventListener('touchend', (e) => {
+            stopDragging(e);
+            stopResizing(e);
+        });
+
+        document.addEventListener('mouseup', stopDragging);
+        document.addEventListener('touchend', (e) => {
+            stopDragging(e);
+            stopResizing(e);
+        });
+
+        modeButton.addEventListener('touchstart', (e) => {
+            if (circle.isDragging && e.touches.length > 1) {
+                modeButton.click();
+            }
+        });
+
+        mapButton.addEventListener('touchstart', (e) => {
+            if (circle.isDragging && e.touches.length > 1) {
+                mapButton.click();
+            }
+        });
+
+        playButton.addEventListener('touchstart', (e) => {
+            if (circle.isDragging && e.touches.length > 1) {
+                playButton.click();
+            }
+        });
 
         function animate() {
             updatePhysics();
