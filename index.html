@@ -497,13 +497,18 @@
             const previewWidth = 10;
             const sectionHeight = canvasRect.height / 3;
 
+            let currentPrevGreen = isPreviousView ? null : prevGreenSection;
+            let currentPrevRed = isPreviousView ? null : prevRedSection;
+            let currentNextGreen = isPreviousView ? greenSection : nextGreenSection;
+            let currentNextRed = isPreviousView ? redSection : nextRedSection;
+
             // Previous previews (left)
-            if (prevGreenSection !== null || prevRedSection !== null) {
+            if (currentPrevGreen !== null || currentPrevRed !== null) {
                 const sections = [0, 1, 2];
-                const blackSection = sections.find(s => s !== prevGreenSection && s !== prevRedSection);
+                const blackSection = sections.find(s => s !== currentPrevGreen && s !== currentPrevRed);
                 const prevColors = [];
-                prevColors[prevGreenSection] = 'rgb(11, 74, 28)';
-                prevColors[prevRedSection] = 'rgb(130, 33, 33)';
+                prevColors[currentPrevGreen] = 'rgb(11, 74, 28)';
+                prevColors[currentPrevRed] = 'rgb(130, 33, 33)';
                 prevColors[blackSection] = '#000000';
 
                 for (let i = 0; i < 3; i++) {
@@ -519,12 +524,12 @@
             }
 
             // Next previews (right)
-            if (nextGreenSection !== null || nextRedSection !== null) {
+            if (currentNextGreen !== null || currentNextRed !== null) {
                 const sections = [0, 1, 2];
-                const blackSection = sections.find(s => s !== nextGreenSection && s !== nextRedSection);
+                const blackSection = sections.find(s => s !== currentNextGreen && s !== currentNextRed);
                 const nextColors = [];
-                nextColors[nextGreenSection] = 'rgb(11, 74, 28)';
-                nextColors[nextRedSection] = 'rgb(130, 33, 33)';
+                nextColors[currentNextGreen] = 'rgb(11, 74, 28)';
+                nextColors[currentNextRed] = 'rgb(130, 33, 33)';
                 nextColors[blackSection] = '#000000';
 
                 for (let i = 0; i < 3; i++) {
@@ -1206,7 +1211,7 @@
             }
 
             let bgColor = '#000000';
-            let isBlackIfCondition = false;
+            let isBlackIfCondition = (wallHits >= level || !isCountingDown);
             if (currentMode === 'survival' && currentMap === 'rectangle') {
                 const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                 const sectionHeight = canvasHeight / 3;
@@ -1214,20 +1219,19 @@
                 if (section === greenSection) bgColor = 'rgb(11, 74, 28)';
                 else if (section === redSection) bgColor = 'rgb(130, 33, 33)';
                 else bgColor = '#000000';
-
-                isBlackIfCondition = (wallHits >= level || !isCountingDown);
             }
-
-            addBulletHole(originalX, originalY, bgColor, isBlackIfCondition);
 
             if (isCountingDown) {
                 if (wallHits === level) {
+                    addBulletHole(originalX, originalY, bgColor, isBlackIfCondition);
                     handleWin(originalX, originalY, bgColor, isBlackIfCondition);
                 }
                 circle.x = pos.x;
                 circle.y = pos.y;
                 constrainCircle();
                 return;
+            } else {
+                addBulletHole(originalX, originalY, bgColor, isBlackIfCondition);
             }
 
             // New tap-to-move and win/lose logic using original position
@@ -1322,15 +1326,15 @@
             greenSection = nextGreenSection;
             redSection = nextRedSection;
             assignNextSections();
-            animateLevelChange();
-            bulletHoles = [];
-            saveState();
-            updateDisplay();
-            startCountdown();
+            animateLevelChange(() => {
+                bulletHoles = [];
+                saveState();
+                updateDisplay();
+                startCountdown();
+            });
         }
 
-        function animateLevelChange() {
-            // Right to left sweep for previews and canvas
+        function animateLevelChange(callback = null) {
             leftPreviews.forEach(r => {
                 r.style.animation = 'sweepRightToLeft 0.5s ease forwards';
             });
@@ -1344,6 +1348,7 @@
                 canvas.style.animation = '';
                 updatePreviews();
                 drawScene();
+                if (callback) callback();
             }, 500);
         }
 
@@ -1401,6 +1406,11 @@
                 hiScoreCount.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
             }, 500);
 
+            setTimeout(() => {
+                setCanvasSize();
+                drawScene();
+            }, 500);
+
             // Set up tap anywhere to reverse
             document.addEventListener('touchstart', exitPreviousView, { once: true });
 
@@ -1446,13 +1456,28 @@
                 hiScoreCount.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
             }, 500);
 
+            setTimeout(() => {
+                setCanvasSize();
+                drawScene();
+            }, 500);
+
             // Restore sections
             prevGreenSection = greenSection;
             prevRedSection = redSection;
             greenSection = nextGreenSection;
             redSection = nextRedSection;
-            nextGreenSection = tempGreen; // Assuming temp from enter
-            nextRedSection = tempRed;
+            nextGreenSection = null; // Wait, previously tempGreen, but since not saved, perhaps reassign if needed, but code had tempGreen
+            nextRedSection = null;
+            // Wait, in enter, tempGreen = greenSection before swap, but in exit, need to restore.
+            // Wait, in code, tempGreen is local, so to restore, need to swap back.
+            const tempGreen2 = greenSection;
+            const tempRed2 = redSection;
+            greenSection = nextGreenSection;
+            redSection = nextRedSection;
+            nextGreenSection = null;
+            nextRedSection = null;
+            prevGreenSection = tempGreen2;
+            prevRedSection = tempRed2;
 
             updatePreviews();
             drawScene();
