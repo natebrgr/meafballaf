@@ -254,13 +254,21 @@
         .preview-rect.clickable {
             pointer-events: auto;
         }
-        @keyframes sweepRightToLeft {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(0); }
+        @keyframes sweepToLeft {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
         }
-        @keyframes sweepLeftToRight {
+        @keyframes sweepToRight {
             0% { transform: translateX(0); }
             100% { transform: translateX(100%); }
+        }
+        @keyframes sweepFromLeft {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(0); }
+        }
+        @keyframes sweepFromRight {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(0); }
         }
         @keyframes sweepUpward {
             0% { transform: translateY(0); opacity: 1; }
@@ -273,14 +281,6 @@
         @keyframes sweepLeftwardIn {
             0% { transform: translateX(-100%); opacity: 0; }
             100% { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes revealRightToLeft {
-            0% { clip-path: inset(0 0 0 100%); }
-            100% { clip-path: inset(0 0 0 0); }
-        }
-        @keyframes revealLeftToRight {
-            0% { clip-path: inset(0 100% 0 0); }
-            100% { clip-path: inset(0 0 0 0); }
         }
     </style>
 </head>
@@ -397,6 +397,7 @@
         let prevRedSection = null;
 
         let bulletHoles = [];
+        let prevBulletHole = null; // For previous view
 
         let isPreviousView = false;
         let prevWallHits = 0;
@@ -406,6 +407,13 @@
 
         let leftPreviews = [];
         let rightPreviews = [];
+
+        let oldGreenSection = null;
+        let oldRedSection = null;
+
+        let sweepDirection = null;
+        let sweepStartTime = null;
+        const sweepDuration = 500;
 
         function updateThrowMultiplier() {
             throwMultiplier = baseThrowMultiplier * Math.pow(throwGrowth, level - 1);
@@ -478,9 +486,81 @@
             constrainCircle();
         }
 
+        function createPreviewRect(color, top, height, left, width) {
+            const rect = document.createElement('div');
+            rect.classList.add('preview-rect');
+            rect.style.backgroundColor = color;
+            rect.style.top = `${top}px`;
+            rect.style.height = `${height}px`;
+            rect.style.left = `${left}px`;
+            rect.style.width = `${width}px`;
+            rect.style.position = 'absolute';
+            return rect;
+        }
+
+        function updatePreviews() {
+            // Clear existing previews
+            leftPreviews.forEach(r => r.remove());
+            rightPreviews.forEach(r => r.remove());
+            leftPreviews = [];
+            rightPreviews = [];
+
+            if (currentMap !== 'rectangle' || currentMode !== 'survival') return;
+
+            const canvasRect = canvas.getBoundingClientRect();
+            const sectionHeight = canvasRect.height / 3;
+
+            const canvasLeft = (window.innerWidth - window.innerWidth * 0.9) / 2;
+
+            const leftPreviewWidth = canvasLeft + 30;
+            const rightPreviewLeft = window.innerWidth - canvasLeft - 30;
+            const rightPreviewWidth = canvasLeft + 30;
+
+            // Previous previews (left)
+            if (prevGreenSection !== null || prevRedSection !== null) {
+                const sections = [0, 1, 2];
+                const blackSection = sections.find(s => s !== prevGreenSection && s !== prevRedSection);
+                const prevColors = [];
+                prevColors[prevGreenSection] = 'rgb(11, 74, 28)';
+                prevColors[prevRedSection] = 'rgb(130, 33, 33)';
+                prevColors[blackSection] = '#000000';
+
+                for (let i = 0; i < 3; i++) {
+                    const rect = createPreviewRect(prevColors[i], canvasRect.top + i * sectionHeight, sectionHeight, 0, leftPreviewWidth);
+                    if (isPaused && !isPreviousView) {
+                        rect.classList.add('glow');
+                        rect.classList.add('clickable');
+                        rect.addEventListener('touchstart', enterPreviousView);
+                    }
+                    document.body.appendChild(rect);
+                    leftPreviews.push(rect);
+                }
+            }
+
+            // Next previews (right)
+            if (nextGreenSection !== null || nextRedSection !== null) {
+                const sections = [0, 1, 2];
+                const blackSection = sections.find(s => s !== nextGreenSection && s !== nextRedSection);
+                const nextColors = [];
+                nextColors[nextGreenSection] = 'rgb(11, 74, 28)';
+                nextColors[nextRedSection] = 'rgb(130, 33, 33)';
+                nextColors[blackSection] = '#000000';
+
+                for (let i = 0; i < 3; i++) {
+                    const rect = createPreviewRect(nextColors[i], canvasRect.top + i * sectionHeight, sectionHeight, rightPreviewLeft, rightPreviewWidth);
+                    if (isPreviousView) {
+                        rect.classList.add('glow');
+                    }
+                    document.body.appendChild(rect);
+                    rightPreviews.push(rect);
+                }
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             setCanvasSize();
             assignSections();
+            assignNextSections();
             requestAnimationFrame(() => setCanvasSize());
         });
         window.addEventListener('resize', setCanvasSize);
@@ -548,7 +628,7 @@
             levelNumber.textContent = `${level}`;
             livesCount.textContent = lives === Infinity ? '∞' : lives;
             hiScoreCount.textContent = hiScore;
-            titleDisplay.textContent = currentMode === 'survival' ? 'SURVIVAL MODE' : 'ENDURANCE MODE';
+            titleDisplay.textContent = currentMode === 'survival' ? (isPreviousView ? 'PREVIOUSLY...' : 'SURVIVAL MODE') : 'ENDURANCE MODE';
             setCanvasSize();
 
             playButton.textContent = isPaused ? 'RESUME' : 'PAUSE';
@@ -556,6 +636,7 @@
             countdownDisplay.textContent = countdown;
 
             wallHitsDisplay.textContent = `${wallHits}`;
+            updatePreviews();
         }
 
         function constrainCircle() {
@@ -603,7 +684,13 @@
                 countdown,
                 countdownOpacity,
                 wasDraggingWhenPaused: circle.wasDraggingWhenPaused,
-                startingLives
+                startingLives,
+                greenSection,
+                redSection,
+                nextGreenSection,
+                nextRedSection,
+                prevGreenSection,
+                prevRedSection
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -625,6 +712,19 @@
             countdownOpacity = state.countdownOpacity;
             circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
             startingLives = state.startingLives !== undefined ? state.startingLives : (mode === 'survival' ? 3 : Infinity);
+            greenSection = state.greenSection !== undefined ? state.greenSection : null;
+            redSection = state.redSection !== undefined ? state.redSection : null;
+            nextGreenSection = state.nextGreenSection !== undefined ? state.nextGreenSection : null;
+            nextRedSection = state.nextRedSection !== undefined ? state.nextRedSection : null;
+            prevGreenSection = state.prevGreenSection !== undefined ? state.prevGreenSection : null;
+            prevRedSection = state.prevRedSection !== undefined ? state.prevRedSection : null;
+
+            if (!greenSection && !redSection && mode === 'survival' && map === 'rectangle') {
+                assignSections();
+            }
+            if (!nextGreenSection && !nextRedSection && mode === 'survival' && map === 'rectangle') {
+                assignNextSections();
+            }
 
             if (state.circle.x !== undefined) {
                 circle.x = state.circle.x;
@@ -671,28 +771,49 @@
             drawScene();
         }
 
-        function getCircleColor(counterColor) {
-            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28, 0.7)';
-            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33, 0.7)';
-            return 'rgba(255, 255, 255, 0.7)';
-        }
+        function drawSections(green, red, drawLives, drawStartingLives) {
+            const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+            const sectionHeight = canvasHeight / 3;
+            const pixelRatio = window.devicePixelRatio || 1;
 
-        function getBorderColor(counterColor) {
-            if (counterColor === 'rgb(11, 74, 28)') return 'rgb(11, 74, 28)';
-            if (counterColor === 'rgb(130, 33, 33)') return 'rgb(130, 33, 33)';
-            return '#ffffff';
-        }
+            if (green !== null) {
+                ctx.fillStyle = 'rgb(11, 74, 28)';
+                ctx.fillRect(0, green * sectionHeight, canvasWidth, sectionHeight);
+            }
+            if (red !== null) {
+                ctx.fillStyle = 'rgb(130, 33, 33)';
+                ctx.fillRect(0, red * sectionHeight, canvasWidth, sectionHeight);
+            }
 
-        function getCrosshairColor(counterColor) {
-            if (counterColor === 'rgb(11, 74, 28)') return 'rgba(0, 0, 0, 0.7)';
-            if (counterColor === 'rgb(130, 33, 33)') return 'rgba(0, 0, 0, 0.7)';
-            return 'rgba(0, 0, 0, 0.7)';
-        }
+            ctx.font = 'bold 40px Impact, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 10 * pixelRatio;
 
-        function lightenColor(color) {
-            if (color === 'rgb(11, 74, 28)') return 'rgba(11, 74, 28,';
-            if (color === 'rgb(130, 33, 33)') return 'rgba(130, 33, 33,';
-            return 'rgba(255, 255, 255,';
+            const greenLives = drawStartingLives <= 3 ? drawStartingLives + 1 : (drawLives > 2 ? drawLives + 1 : 4);
+            const redLives = drawStartingLives <= 3 ? Math.max(drawStartingLives - 1, 1) : (drawLives > 2 ? Math.max(drawLives - 1, 1) : 2);
+            const blackSection = [0, 1, 2].find(s => s !== green && s !== red);
+            const blackLives = drawStartingLives <= 3 ? drawStartingLives : (drawLives > 2 ? drawLives : 3);
+
+            if (green !== null) {
+                ctx.fillStyle = 'rgb(11, 74, 28)';
+                ctx.fillText(`+${greenLives - drawLives}`, 40, green * sectionHeight + sectionHeight / 2);
+                ctx.fillText(`+${greenLives - drawLives}`, canvasWidth - 40, green * sectionHeight + sectionHeight / 2);
+            }
+            if (red !== null) {
+                ctx.fillStyle = 'rgb(130, 33, 33)';
+                ctx.fillText(`${redLives - drawLives >= 0 ? '+' : ''}${redLives - drawLives}`, 40, red * sectionHeight + sectionHeight / 2);
+                ctx.fillText(`${redLives - drawLives >= 0 ? '+' : ''}${redLives - drawLives}`, canvasWidth - 40, red * sectionHeight + sectionHeight / 2);
+            }
+            if (blackSection !== null) {
+                ctx.fillStyle = '#000';
+                ctx.fillText(`${blackLives - drawLives >= 0 ? '+' : ''}${blackLives - drawLives}`, 40, blackSection * sectionHeight + sectionHeight / 2);
+                ctx.fillText(`${blackLives - drawLives >= 0 ? '+' : ''}${blackLives - drawLives}`, canvasWidth - 40, blackSection * sectionHeight + sectionHeight / 2);
+            }
+
+            ctx.shadowBlur = 0;
         }
 
         function drawScene() {
@@ -700,47 +821,56 @@
 
             const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
             const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-            const sectionHeight = canvasHeight / 3;
             const pixelRatio = window.devicePixelRatio || 1;
 
-            if (currentMode === 'survival' && currentMap === 'rectangle') {
-                if (greenSection !== null) {
-                    ctx.fillStyle = 'rgb(11, 74, 28)';
-                    ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
-                }
-                if (redSection !== null) {
-                    ctx.fillStyle = 'rgb(130, 33, 33)';
-                    ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
-                }
+            let currentGreen = isPreviousView ? prevGreenSection : greenSection;
+            let currentRed = isPreviousView ? prevRedSection : redSection;
+            let currentLives = isPreviousView ? prevLives : lives;
+            let currentStartingLives = isPreviousView ? prevStartingLives : startingLives;
 
-                ctx.font = 'bold 40px Impact, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.shadowColor = '#fff';
-                ctx.shadowBlur = 10 * pixelRatio;
-
-                const greenLives = startingLives <= 3 ? startingLives + 1 : (lives > 2 ? lives + 1 : 4);
-                const redLives = startingLives <= 3 ? Math.max(startingLives - 1, 1) : (lives > 2 ? Math.max(lives - 1, 1) : 2);
-                const blackSection = [0, 1, 2].find(s => s !== greenSection && s !== redSection);
-                const blackLives = startingLives <= 3 ? startingLives : (lives > 2 ? lives : 3);
-
-                if (greenSection !== null) {
-                    ctx.fillStyle = 'rgb(11, 74, 28)';
-                    ctx.fillText(`+${greenLives - lives}`, 40, greenSection * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`+${greenLives - lives}`, canvasWidth - 40, greenSection * sectionHeight + sectionHeight / 2);
+            let progress = 0;
+            if (sweepStartTime) {
+                const elapsed = Date.now() - sweepStartTime;
+                progress = Math.min(elapsed / sweepDuration, 1) * canvasWidth;
+                if (progress >= canvasWidth) {
+                    sweepStartTime = null;
                 }
-                if (redSection !== null) {
-                    ctx.fillStyle = 'rgb(130, 33, 33)';
-                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, 40, redSection * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, canvasWidth - 40, redSection * sectionHeight + sectionHeight / 2);
-                }
-                if (blackSection !== null) {
-                    ctx.fillStyle = '#000';
-                    ctx.fillText(`${blackLives - lives >= 0 ? '+' : ''}${blackLives - lives}`, 40, blackSection * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`${blackLives - lives >= 0 ? '+' : ''}${blackLives - lives}`, canvasWidth - 40, blackSection * sectionHeight + sectionHeight / 2);
-                }
+            }
 
-                ctx.shadowBlur = 0;
+            if (progress > 0) {
+                if (sweepDirection === 'rightToLeft') {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(0, 0, progress, canvasHeight);
+                    ctx.clip();
+                    ctx.translate(-progress, 0);
+                    drawSections(oldGreenSection, oldRedSection, oldDisplayLives, oldDisplayStartingLives);
+                    ctx.restore();
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(progress, 0, canvasWidth - progress, canvasHeight);
+                    ctx.clip();
+                    drawSections(currentGreen, currentRed, currentLives, currentStartingLives);
+                    ctx.restore();
+                } else if (sweepDirection === 'leftToRight') {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(canvasWidth - progress, 0, progress, canvasHeight);
+                    ctx.clip();
+                    ctx.translate(progress, 0);
+                    drawSections(oldGreenSection, oldRedSection, oldDisplayLives, oldDisplayStartingLives);
+                    ctx.restore();
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(0, 0, canvasWidth - progress, canvasHeight);
+                    ctx.clip();
+                    drawSections(currentGreen, currentRed, currentLives, currentStartingLives);
+                    ctx.restore();
+                }
+            } else {
+                drawSections(currentGreen, currentRed, currentLives, currentStartingLives);
             }
 
             ctx.strokeStyle = '#ffffff';
@@ -753,39 +883,34 @@
                 ctx.stroke();
             }
 
-            // Draw bullet holes and smoke
-            bulletHoles.forEach(h => {
+            // Draw bullet holes
+            const holes = isPreviousView ? (prevBulletHole ? [prevBulletHole] : []) : bulletHoles;
+            holes.forEach(h => {
                 ctx.save();
                 ctx.globalAlpha = h.opacity;
 
                 // Draw hole
                 ctx.beginPath();
                 ctx.arc(h.x, h.y, 5, 0, Math.PI * 2);
-                ctx.fillStyle = '#333333';
+                ctx.fillStyle = h.color;
                 ctx.fill();
-                ctx.strokeStyle = '#666666';
-                ctx.lineWidth = 1;
-                ctx.stroke();
 
-                // Draw smoke
-                let smokeY = h.y - 10;
-                let smokeSize = 4;
-                ctx.fillStyle = h.bgColor;
-                for (let i = 0; i < 4; i++) {
-                    ctx.beginPath();
-                    ctx.arc(h.x + h.smokeOffsets[i], smokeY, smokeSize, 0, Math.PI * 2);
-                    ctx.fill();
-                    smokeY -= smokeSize * 1.5;
-                    smokeSize += 1;
-                }
+                // White glow
+                ctx.shadowColor = '#fff';
+                ctx.shadowBlur = 10;
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
 
                 ctx.restore();
             });
 
             const greenColor = 'rgb(11, 74, 28)';
             let counterColor = '#e0e0e0';
-            if (wallHits === level) counterColor = greenColor;
-            else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
+            const currentWallHits = isPreviousView ? prevWallHits : wallHits;
+            const currentLevel = isPreviousView ? prevLevel : level;
+            if (currentWallHits === currentLevel) counterColor = greenColor;
+            else if (currentWallHits > currentLevel) counterColor = 'rgb(130, 33, 33)';
 
             const circleColor = getCircleColor(counterColor);
             const borderColor = getBorderColor(counterColor);
@@ -875,46 +1000,46 @@
             if (counterColor === 'rgb(11, 74, 28)') {
                 ctx.shadowColor = 'rgb(50, 200, 100)';
                 ctx.shadowBlur = 2 * pixelRatio;
-                ctx.fillText(wallHits, circle.x, circle.y - offset);
-                ctx.fillText(wallHits, circle.x, circle.y + offset);
-                ctx.fillText(wallHits, circle.x - offset, circle.y);
-                ctx.fillText(wallHits, circle.x + offset, circle.y);
+                ctx.fillText(currentWallHits, circle.x, circle.y - offset);
+                ctx.fillText(currentWallHits, circle.x, circle.y + offset);
+                ctx.fillText(currentWallHits, circle.x - offset, circle.y);
+                ctx.fillText(currentWallHits, circle.x + offset, circle.y);
                 ctx.shadowColor = '#fff';
                 ctx.shadowBlur = 10 * pixelRatio;
             } else if (counterColor === 'rgb(130, 33, 33)') {
                 ctx.shadowColor = 'rgb(255, 80, 80)';
                 ctx.shadowBlur = 2 * pixelRatio;
-                ctx.fillText(wallHits, circle.x, circle.y - offset);
-                ctx.fillText(wallHits, circle.x, circle.y + offset);
-                ctx.fillText(wallHits, circle.x - offset, circle.y);
-                ctx.fillText(wallHits, circle.x + offset, circle.y);
+                ctx.fillText(currentWallHits, circle.x, circle.y - offset);
+                ctx.fillText(currentWallHits, circle.x, circle.y + offset);
+                ctx.fillText(currentWallHits, circle.x - offset, circle.y);
+                ctx.fillText(currentWallHits, circle.x + offset, circle.y);
                 ctx.shadowColor = '#fff';
                 ctx.shadowBlur = 10 * pixelRatio;
             }
-            ctx.fillText(wallHits, circle.x, circle.y - offset);
-            ctx.fillText(wallHits, circle.x, circle.y + offset);
-            ctx.fillText(wallHits, circle.x - offset, circle.y);
-            ctx.fillText(wallHits, circle.x + offset, circle.y);
+            ctx.fillText(currentWallHits, circle.x, circle.y - offset);
+            ctx.fillText(currentWallHits, circle.x, circle.y + offset);
+            ctx.fillText(currentWallHits, circle.x - offset, circle.y);
+            ctx.fillText(currentWallHits, circle.x + offset, circle.y);
 
             ctx.fillStyle = greenColor;
             ctx.shadowColor = 'rgb(50, 200, 100)';
             ctx.shadowBlur = 2 * pixelRatio;
-            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
-            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
-            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
-            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(currentLevel, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(currentLevel, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(currentLevel, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(currentLevel, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
             ctx.shadowColor = '#fff';
             ctx.shadowBlur = 10 * pixelRatio;
-            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
-            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
-            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
-            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(currentLevel, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(currentLevel, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(currentLevel, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(currentLevel, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
 
             ctx.shadowBlur = 0;
         }
 
         function updatePhysics() {
-            if (isPaused) {
+            if (isPaused || isPreviousView || sweepStartTime) {
                 if (circle.isDragging) {
                     circle.dx = 0;
                     circle.dy = 0;
@@ -1097,8 +1222,18 @@
             };
         }
 
+        function addBulletHole(x, y, bgColor, isBlackIfCondition) {
+            let color = bgColor;
+            if (isBlackIfCondition && bgColor === '#000000') {
+                color = '#000000';
+            } else if (bgColor === '#000000') {
+                color = '#333333'; // Default for visibility
+            }
+            bulletHoles.push({ x, y, startTime: Date.now(), color, opacity: 1 });
+        }
+
         function handleCanvasTap(e) {
-            if (isPaused) return;
+            if (isPaused || isPreviousView) return;
             const pos = getMousePos(e);
             e.preventDefault();
 
@@ -1116,56 +1251,22 @@
                 return;
             }
 
+            let bgColor = '#000000';
+            let isBlackIfCondition = (wallHits >= level || !isCountingDown);
+            if (currentMode === 'survival' && currentMap === 'rectangle') {
+                const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                const sectionHeight = canvasHeight / 3;
+                const section = Math.floor(originalY / sectionHeight);
+                if (section === greenSection) bgColor = 'rgb(11, 74, 28)';
+                else if (section === redSection) bgColor = 'rgb(130, 33, 33)';
+                else bgColor = '#000000';
+            }
+
+            addBulletHole(originalX, originalY, bgColor, isBlackIfCondition);
+
             if (isCountingDown) {
                 if (wallHits === level) {
-                    isTrackingHits = false;
-                    if (countdownInterval) {
-                        clearInterval(countdownInterval);
-                        countdownInterval = null;
-                        countdownOpacity = 0;
-                        countdownDisplay.style.opacity = countdownOpacity;
-                        isCountingDown = false;
-                    }
-                    const completedLevel = level;
-                    level++;
-                    updateThrowMultiplier();
-                    let flashColor = null;
-
-                    if (currentMode === 'survival' && currentMap === 'rectangle') {
-                        const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                        const sectionHeight = canvasHeight / 3;
-                        const circleSection = Math.floor(originalY / sectionHeight); // Use original position
-
-                        let baseLives;
-                        if (startingLives > 3 && lives < 3) baseLives = 3;
-                        else if (startingLives > 3 && lives > 2) baseLives = lives;
-                        else baseLives = startingLives;
-
-                        if (circleSection === greenSection) {
-                            lives = baseLives + 1;
-                            flashColor = 'flash-green';
-                        } else if (circleSection === redSection) {
-                            lives = Math.max(baseLives - 1, 1);
-                            flashColor = 'flash-red';
-                        } else {
-                            lives = baseLives;
-                        }
-                    } else if (currentMode === 'survival') {
-                        lives = 3;
-                    }
-
-                    if (completedLevel > hiScore) hiScore = completedLevel;
-                    wallHits = 0;
-                    if (flashColor) {
-                        canvas.classList.remove('flash-green', 'flash-red');
-                        void canvas.offsetHeight;
-                        canvas.classList.add(flashColor);
-                    }
-                    startingLives = lives;
-                    assignSections();
-                    saveState();
-                    updateDisplay();
-                    startCountdown();
+                    handleWin(originalX, originalY, bgColor, isBlackIfCondition);
                 }
                 circle.x = pos.x;
                 circle.y = pos.y;
@@ -1173,68 +1274,9 @@
                 return;
             }
 
-            // Add bullet hole effect if after countdown
-            if (!isCountingDown && circle.hasBeenTouched) {
-                let bgColor = '#000000';
-                if (currentMode === 'survival' && currentMap === 'rectangle') {
-                    const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                    const sectionHeight = canvasHeight / 3;
-                    const section = Math.floor(originalY / sectionHeight);
-                    if (section === greenSection) bgColor = 'rgb(11, 74, 28)';
-                    else if (section === redSection) bgColor = 'rgb(130, 33, 33)';
-                    else bgColor = '#000000';
-                }
-                if (bgColor === '#000000') bgColor = 'rgba(200, 200, 200, 0.5)'; // Make visible smoke for black
-                const smokeOffsets = [];
-                for (let i = 0; i < 4; i++) {
-                    smokeOffsets.push((Math.random() - 0.5) * 4);
-                }
-                bulletHoles.push({ x: originalX, y: originalY, startTime: Date.now(), bgColor, smokeOffsets, opacity: 1 });
-            }
-
             // New tap-to-move and win/lose logic using original position
             if (wallHits === level) {
-                isTrackingHits = false;
-                const completedLevel = level;
-                level++;
-                updateThrowMultiplier();
-                let flashColor = null;
-
-                if (currentMode === 'survival' && currentMap === 'rectangle') {
-                    const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                    const sectionHeight = canvasHeight / 3;
-                    const circleSection = Math.floor(originalY / sectionHeight); // Use original position
-
-                    let baseLives;
-                    if (startingLives > 3 && lives < 3) baseLives = 3;
-                    else if (startingLives > 3 && lives > 2) baseLives = lives;
-                    else baseLives = startingLives;
-
-                    if (circleSection === greenSection) {
-                        lives = baseLives + 1;
-                        flashColor = 'flash-green';
-                    } else if (circleSection === redSection) {
-                        lives = Math.max(baseLives - 1, 1);
-                        flashColor = 'flash-red';
-                    } else {
-                        lives = baseLives;
-                    }
-                } else if (currentMode === 'survival') {
-                    lives = 3;
-                }
-
-                if (completedLevel > hiScore) hiScore = completedLevel;
-                wallHits = 0;
-                if (flashColor) {
-                    canvas.classList.remove('flash-green', 'flash-red');
-                    void canvas.offsetHeight;
-                    canvas.classList.add(flashColor);
-                }
-                startingLives = lives;
-                assignSections();
-                saveState();
-                updateDisplay();
-                startCountdown();
+                handleWin(originalX, originalY, bgColor, isBlackIfCondition);
             } else if (wallHits > level && currentMode === 'survival') {
                 lives--;
                 if (lives <= 0) {
@@ -1269,436 +1311,255 @@
             constrainCircle();
         }
 
-        function startDragging(e) {
-            const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
-            e.preventDefault();
-            circle.isDragging = true;
-            circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
-            circle.lastX = pos.x;
-            circle.lastY = pos.y;
-            circle.lastTime = Date.now();
-            circle.dx = 0;
-            circle.dy = 0;
-            circle.x = pos.x;
-            circle.y = pos.y;
-            constrainCircle();
-            trail.length = 0;
-            buttonActivated = { play: false, mode: false, map: false };
-            drawScene();
-        }
-
-        function startResizing(e) {
-            if (!circle.isDragging || circle.isResizing || e.touches.length < 2) return;
-
-            const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
-            if (dragTouchIndex === -1) return;
-
-            const otherTouch = e.touches[dragTouchIndex === 0 ? 1 : 0];
-            const pos = getMousePos(e, otherTouch.identifier);
-            const canvasRect = canvas.getBoundingClientRect();
-            const isOverCanvas = (
-                otherTouch.clientX >= canvasRect.left &&
-                otherTouch.clientX <= canvasRect.right &&
-                otherTouch.clientY >= canvasRect.top &&
-                otherTouch.clientY <= canvasRect.bottom
-            );
-
-            if (isOverCanvas) {
-                circle.resizeTouchId = otherTouch.identifier;
-                circle.resizeStartX = pos.x;
-                circle.resizeStartY = pos.y;
-                circle.initialRadius = circle.radius;
-                circle.resizeStartTime = Date.now();
-                circle.resizeTimer = setTimeout(() => {
-                    if (circle.resizeTouchId !== null) {
-                        circle.isResizing = true;
-                    }
-                }, resizeHoldThreshold);
+        function handleWin(originalX, originalY, bgColor, isBlackIfCondition) {
+            isTrackingHits = false;
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+                countdownOpacity = 0;
+                countdownDisplay.style.opacity = countdownOpacity;
+                isCountingDown = false;
             }
-        }
+            const completedLevel = level;
+            prevBulletHole = { x: originalX, y: originalY, color: isBlackIfCondition && bgColor === '#000000' ? '#000000' : bgColor, opacity: 1 };
+            prevWallHits = wallHits;
+            prevLevel = level;
+            prevLives = lives;
+            prevHiScore = hiScore;
+            level++;
+            updateThrowMultiplier();
+            let flashColor = null;
 
-        function drag(e) {
-            if (circle.isDragging && !circle.isResizing) {
-                const pos = getMousePos(e, circle.dragTouchId);
+            if (currentMode === 'survival' && currentMap === 'rectangle') {
+                const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                const sectionHeight = canvasHeight / 3;
+                const circleSection = Math.floor(originalY / sectionHeight); // Use original position
 
-                if (currentMap === 'rectangle') {
-                    pos.x = Math.max(circle.radius, Math.min((canvas.width / (window.devicePixelRatio || 1)) - circle.radius, pos.x));
-                    pos.y = Math.max(circle.radius, Math.min((canvas.height / (window.devicePixelRatio || 1)) - circle.radius, pos.y));
+                let baseLives;
+                if (startingLives > 3 && lives < 3) baseLives = 3;
+                else if (startingLives > 3 && lives > 2) baseLives = lives;
+                else baseLives = startingLives;
+
+                if (circleSection === greenSection) {
+                    lives = baseLives + 1;
+                    flashColor = 'flash-green';
+                } else if (circleSection === redSection) {
+                    lives = Math.max(baseLives - 1, 1);
+                    flashColor = 'flash-red';
                 } else {
-                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
-                    const maxRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth - circle.radius;
-                    const dx = pos.x - centerX;
-                    const dy = pos.y - centerY;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance > maxRadius) {
-                        const angle = Math.atan2(dy, dx);
-                        pos.x = centerX + Math.cos(angle) * maxRadius;
-                        pos.y = centerY + Math.sin(angle) * maxRadius;
-                    }
+                    lives = baseLives;
                 }
-
-                circle.x = pos.x;
-                circle.y = pos.y;
-
-                const currentTime = Date.now();
-                const dt = (currentTime - circle.lastTime) / 1000;
-                if (dt > 0) {
-                    circle.dx = ((pos.x - circle.lastX) / dt) * throwMultiplier;
-                    circle.dy = ((pos.y - circle.lastY) / dt) * throwMultiplier;
-                }
-                circle.lastTime = currentTime;
-                circle.lastX = pos.x;
-                circle.lastY = pos.y;
+            } else if (currentMode === 'survival') {
+                lives = 3;
             }
 
-            if (circle.isResizing) {
-                const resizePos = getMousePos(e, circle.resizeTouchId);
-                const dx = resizePos.x - circle.x;
-                const dy = resizePos.y - circle.y;
-                const currentDistance = Math.sqrt(dx * dx + dy * dy);
-                const initialDistance = Math.sqrt(
-                    (circle.resizeStartX - circle.x) ** 2 + 
-                    (circle.resizeStartY - circle.y) ** 2
-                );
-                const distanceDelta = currentDistance - initialDistance;
-
-                const newRadius = Math.max(defaultRadius, circle.initialRadius + distanceDelta / 2);
-                let maxAllowedRadius;
-
-                if (currentMap === 'rectangle') {
-                    maxAllowedRadius = Math.min(
-                        circle.x, 
-                        (canvas.width / (window.devicePixelRatio || 1)) - circle.x,
-                        circle.y,
-                        (canvas.height / (window.devicePixelRatio || 1)) - circle.y
-                    );
-                } else {
-                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
-                    const distToCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
-                    maxAllowedRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth - distToCenter;
-                }
-
-                circle.radius = Math.min(newRadius, maxAllowedRadius);
+            if (completedLevel > hiScore) hiScore = completedLevel;
+            wallHits = 0;
+            if (flashColor) {
+                canvas.classList.remove('flash-green', 'flash-red');
+                void canvas.offsetHeight;
+                canvas.classList.add(flashColor);
             }
-
-            const screenPos = getScreenPos(e, circle.dragTouchId);
-            const target = document.elementFromPoint(screenPos.x, screenPos.y);
-
-            if (target === playButton) {
-                if (!holdTimers.play && !buttonActivated.play) {
-                    playButton.classList.remove('glow-green', 'glow-red', 'recede');
-                    playButton.classList.add(isPaused ? 'glow-green' : 'glow-red');
-                    holdTimers.play = setTimeout(() => {
-                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === playButton) {
-                            playButton.classList.remove('glow-green', 'glow-red');
-                            playButton.classList.add('recede');
-                            if (isPaused) {
-                                isPaused = false;
-                                circle.lastX = getMousePos(e, circle.dragTouchId).x;
-                                circle.lastY = getMousePos(e, circle.dragTouchId).y;
-                                circle.lastTime = Date.now();
-                                circle.dx = 0;
-                                circle.dy = 0;
-                                if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
-                            } else {
-                                circle.wasDraggingWhenPaused = circle.isDragging;
-                                isPaused = true;
-                                saveState();
-                            }
-                            updateDisplay();
-                            buttonActivated.play = true;
-                        }
-                        holdTimers.play = null;
-                    }, 1000);
-                }
-            } else {
-                if (holdTimers.play) {
-                    clearTimeout(holdTimers.play);
-                    holdTimers.play = null;
-                    playButton.classList.remove('glow-green', 'glow-red');
-                    playButton.classList.add('recede');
-                }
-                if (buttonActivated.play && target !== playButton) buttonActivated.play = false;
-            }
-
-            if (target === modeButton) {
-                if (!holdTimers.mode && !buttonActivated.mode) {
-                    modeButton.classList.remove('glow-white', 'recede');
-                    modeButton.classList.add('glow-white');
-                    holdTimers.mode = setTimeout(() => {
-                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === modeButton) {
-                            modeButton.classList.remove('glow-white');
-                            modeButton.classList.add('recede');
-                            if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
-                            isPaused = true;
-                            saveState();
-                            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-                            circle.hasBeenTouched = false;
-                            loadState(currentMode, currentMap);
-                            updateDisplay();
-                            buttonActivated.mode = true;
-                        }
-                        holdTimers.mode = null;
-                    }, 1000);
-                }
-            } else {
-                if (holdTimers.mode) {
-                    clearTimeout(holdTimers.mode);
-                    holdTimers.mode = null;
-                    modeButton.classList.remove('glow-white');
-                    modeButton.classList.add('recede');
-                }
-                if (buttonActivated.mode && target !== modeButton) buttonActivated.mode = false;
-            }
-
-            if (target === mapButton) {
-                if (!holdTimers.map && !buttonActivated.map) {
-                    mapButton.classList.remove('glow-white', 'recede');
-                    mapButton.classList.add('glow-white');
-                    holdTimers.map = setTimeout(() => {
-                        if (circle.isDragging && document.elementFromPoint(screenPos.x, screenPos.y) === mapButton) {
-                            mapButton.classList.remove('glow-white');
-                            mapButton.classList.add('recede');
-                            if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
-                            isPaused = true;
-                            saveState();
-                            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-                            circle.hasBeenTouched = false;
-                            loadState(currentMode, currentMap);
-                            updateDisplay();
-                            buttonActivated.map = true;
-                        }
-                        holdTimers.map = null;
-                    }, 1000);
-                }
-            } else {
-                if (holdTimers.map) {
-                    clearTimeout(holdTimers.map);
-                    holdTimers.map = null;
-                    mapButton.classList.remove('glow-white');
-                    mapButton.classList.add('recede');
-                }
-                if (buttonActivated.map && target !== mapButton) buttonActivated.map = false;
-            }
-
+            startingLives = lives;
+            prevGreenSection = greenSection;
+            prevRedSection = redSection;
+            greenSection = nextGreenSection;
+            redSection = nextRedSection;
+            assignNextSections();
+            oldGreenSection = prevGreenSection;
+            oldRedSection = prevRedSection;
+            oldDisplayLives = prevLives;
+            oldDisplayStartingLives = prevStartingLives;
+            sweepDirection = 'rightToLeft';
+            sweepStartTime = Date.now();
+            bulletHoles = [];
             saveState();
-            drawScene();
+            updateDisplay();
+            startCountdown();
         }
 
-        function stopDragging(e) {
-            if (!circle.isDragging) return;
-            let touchId = circle.dragTouchId;
-            if (e.touches && e.touches.length > 0) return;
-            if (e.changedTouches) {
-                let matched = false;
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === touchId) {
-                        matched = true;
-                        break;
-                    }
-                }
-                if (!matched) return;
-            }
+        function enterPreviousView(e) {
+            if (!isPaused || isPreviousView) return;
+            isPreviousView = true;
 
-            const screenPos = getScreenPos(e, touchId);
-            const target = document.elementFromPoint(screenPos.x, screenPos.y);
-            const canvasRect = canvas.getBoundingClientRect();
-            const isOverCanvas = (
-                screenPos.x >= canvasRect.left &&
-                screenPos.x <= canvasRect.right &&
-                screenPos.y >= canvasRect.top &&
-                screenPos.y <= canvasRect.bottom
-            );
+            // Save current
+            const tempGreen = greenSection;
+            const tempRed = redSection;
+            const tempLives = lives;
+            const tempStartingLives = startingLives;
 
-            if (target === playButton && !buttonActivated.play) {
-                playButton.click();
-            } else if (target === modeButton && !buttonActivated.mode) {
-                modeButton.classList.remove('glow-white');
-                modeButton.classList.add('recede');
-                if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-                saveState();
-                currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-                circle.hasBeenTouched = false;
-                loadState(currentMode, currentMap);
-                updateDisplay();
-            } else if (target === mapButton && !buttonActivated.map) {
-                mapButton.classList.remove('glow-white');
-                mapButton.classList.add('recede');
-                if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-                saveState();
-                currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-                circle.hasBeenTouched = false;
-                loadState(currentMode, currentMap);
-                updateDisplay();
-            } else if (isOverCanvas && !circle.hasBeenTouched) {
-                circle.hasBeenTouched = true;
-                startCountdown();
-            }
+            oldGreenSection = greenSection;
+            oldRedSection = redSection;
+            oldDisplayLives = lives;
+            oldDisplayStartingLives = startingLives;
 
-            circle.isDragging = false;
-            circle.dragTouchId = null;
-            Object.keys(holdTimers).forEach(key => {
-                if (holdTimers[key]) {
-                    clearTimeout(holdTimers[key]);
-                    holdTimers[key] = null;
-                    if (key === 'play') {
-                        playButton.classList.remove('glow-green', 'glow-red');
-                        playButton.classList.add('recede');
-                    } else {
-                        document.getElementById(key + 'Button').classList.remove('glow-white');
-                        document.getElementById(key + 'Button').classList.add('recede');
-                    }
-                }
+            greenSection = prevGreenSection;
+            redSection = prevRedSection;
+            lives = prevLives;
+            startingLives = prevStartingLives;
+            nextGreenSection = tempGreen;
+            nextRedSection = tempRed;
+
+            prevGreenSection = null;
+            prevRedSection = null;
+
+            // Animations for previews
+            leftPreviews.forEach(r => {
+                r.style.animation = 'sweepToRight 0.5s ease forwards';
+                setTimeout(() => r.remove(), 500);
             });
-            buttonActivated = { play: false, mode: false, map: false };
-            saveState();
-            drawScene();
+            leftPreviews = [];
+            rightPreviews.forEach(r => {
+                r.style.animation = 'sweepToRight 0.5s ease forwards';
+                setTimeout(() => r.remove(), 500);
+            });
 
-            // Ensure buttons are clickable by forcing a clean slate
-            [modeButton, mapButton].forEach(btn => {
-                btn.style.pointerEvents = 'auto'; // Reset pointer events
+            // Create new right previews
+            updatePreviews();
+
+            rightPreviews.forEach(r => {
+                r.style.transform = 'translateX(-100%)';
+                r.style.animation = 'sweepFromLeft 0.5s ease forwards';
+            });
+
+            // Buttons
+            [playButton, modeButton, mapButton].forEach(btn => {
+                btn.style.animation = 'sweepUpward 0.5s ease forwards';
+                setTimeout(() => btn.style.display = 'none', 500);
+            });
+
+            // Title
+            titleDisplay.style.animation = 'sweepRightward 0.5s ease forwards';
+            setTimeout(() => {
+                titleDisplay.textContent = 'PREVIOUSLY...';
+                titleDisplay.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
+            }, 500);
+
+            // Numbers
+            levelContainer.style.animation = 'sweepRightward 0.5s ease forwards';
+            livesCount.style.animation = 'sweepRightward 0.5s ease forwards';
+            hiScoreCount.style.animation = 'sweepRightward 0.5s ease forwards';
+            setTimeout(() => {
+                wallHitsDisplay.textContent = prevWallHits;
+                levelNumber.textContent = prevLevel;
+                wallHitsDisplay.style.color = 'rgb(11, 74, 28)';
+                levelNumber.style.color = 'rgb(11, 74, 28)';
+                livesCount.textContent = prevLives;
+                hiScoreCount.textContent = prevHiScore;
+                levelContainer.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
+                livesCount.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
+                hiScoreCount.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
+            }, 500);
+
+            sweepDirection = 'leftToRight';
+            sweepStartTime = Date.now();
+
+            document.addEventListener('touchstart', exitPreviousView, { once: true });
+
+            drawScene();
+        }
+
+        function exitPreviousView(e) {
+            isPreviousView = false;
+
+            // Restore
+            const tempGreen = greenSection;
+            const tempRed = redSection;
+            const tempLives = lives;
+            const tempStartingLives = startingLives;
+
+            oldGreenSection = greenSection;
+            oldRedSection = redSection;
+            oldDisplayLives = lives;
+            oldDisplayStartingLives = startingLives;
+
+            greenSection = nextGreenSection;
+            redSection = nextRedSection;
+            lives = tempLives;
+            startingLives = tempStartingLives;
+
+            nextGreenSection = null;
+            nextRedSection = null;
+            prevGreenSection = tempGreen;
+            prevRedSection = tempRed;
+
+            // Animations for previews
+            rightPreviews.forEach(r => {
+                r.style.animation = 'sweepToLeft 0.5s ease forwards';
+                setTimeout(() => r.remove(), 500);
+            });
+
+            // Create new left previews
+            updatePreviews();
+
+            leftPreviews.forEach(r => {
+                r.style.transform = 'translateX(-100%)';
+                r.style.animation = 'sweepFromLeft 0.5s ease forwards';
+            });
+
+            // Buttons
+            [playButton, modeButton, mapButton].forEach(btn => {
+                btn.style.display = 'block';
+                btn.style.animation = 'sweepUpward 0.5s ease reverse';
+            });
+
+            // Title
+            titleDisplay.style.animation = 'sweepRightward 0.5s ease reverse';
+            setTimeout(() => {
+                titleDisplay.textContent = 'SURVIVAL MODE';
+                titleDisplay.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
+            }, 500);
+
+            // Numbers
+            levelContainer.style.animation = 'sweepRightward 0.5s ease reverse';
+            livesCount.style.animation = 'sweepRightward 0.5s ease reverse';
+            hiScoreCount.style.animation = 'sweepRightward 0.5s ease reverse';
+            setTimeout(() => {
+                wallHitsDisplay.textContent = wallHits;
+                levelNumber.textContent = level;
+                wallHitsDisplay.style.color = '#e0e0e0';
+                levelNumber.style.color = 'rgb(11, 74, 28)';
+                livesCount.textContent = lives;
+                hiScoreCount.textContent = hiScore;
+                levelContainer.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
+                livesCount.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
+                hiScoreCount.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
+            }, 500);
+
+            sweepDirection = 'rightToLeft';
+            sweepStartTime = Date.now();
+
+            drawScene();
+        }
+
+        function animateLevelChange() {
+            sweepDirection = 'rightToLeft';
+            sweepStartTime = Date.now();
+
+            // Animate old previews
+            leftPreviews.forEach(r => {
+                r.style.animation = 'sweepToLeft 0.5s ease forwards';
+                setTimeout(() => r.remove(), 500);
+            });
+            rightPreviews.forEach(r => {
+                r.style.animation = 'sweepToLeft 0.5s ease forwards';
+                setTimeout(() => r.remove(), 500);
+            });
+
+            // Create new previews
+            updatePreviews();
+
+            leftPreviews.forEach(r => {
+                r.style.transform = 'translateX(100%)';
+                r.style.animation = 'sweepFromRight 0.5s ease forwards';
+            });
+            rightPreviews.forEach(r => {
+                r.style.transform = 'translateX(100%)';
+                r.style.animation = 'sweepFromRight 0.5s ease forwards';
             });
         }
 
-        function stopResizing(e) {
-            if (circle.resizeTouchId === null) return;
-            if (e.touches && e.touches.length > 1) return;
-            if (e.changedTouches) {
-                let matched = false;
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === circle.resizeTouchId) {
-                        matched = true;
-                        break;
-                    }
-                }
-                if (!matched) return;
-            }
-
-            const elapsed = Date.now() - circle.resizeStartTime;
-            if (!circle.isResizing && elapsed < resizeHoldThreshold) {
-                circle.isDragging = false;
-                circle.dragTouchId = null;
-                circle.dx = 0;
-                circle.dy = 0;
-            }
-            if (circle.isResizing) {
-                circle.isResizing = false;
-            }
-
-            if (circle.resizeTimer) {
-                clearTimeout(circle.resizeTimer);
-                circle.resizeTimer = null;
-            }
-            circle.resizeTouchId = null;
-            constrainCircle();
-            saveState();
-            drawScene();
-        }
-
-        modeButton.addEventListener('click', () => {
-            if (!isPaused) {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-            }
-            saveState();
-            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
-            circle.hasBeenTouched = false;
-            loadState(currentMode, currentMap);
-            updateDisplay();
-            drawScene();
-        });
-
-        mapButton.addEventListener('click', () => {
-            if (!isPaused) {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-            }
-            saveState();
-            currentMap = currentMap === 'rectangle' ? 'circle' : 'rectangle';
-            circle.hasBeenTouched = false;
-            loadState(currentMode, currentMap);
-            updateDisplay();
-            drawScene();
-        });
-
-        playButton.addEventListener('click', (e) => {
-            if (isPaused) {
-                isPaused = false;
-                if (circle.isDragging) {
-                    const pos = getMousePos(e);
-                    circle.lastX = pos.x;
-                    circle.lastY = pos.y;
-                    circle.lastTime = Date.now();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                } else if (circle.wasDraggingWhenPaused) {
-                    circle.isDragging = false;
-                    circle.dragTouchId = null;
-                    constrainCircle();
-                    circle.dx = 0;
-                    circle.dy = 0;
-                } else {
-                    constrainCircle();
-                    circle.dx = circle.dx || 0;
-                    circle.dy = circle.dy || 0;
-                }
-                circle.wasDraggingWhenPaused = false;
-                if (gameStates[`${currentMode}-${currentMap}`].isCountingDown) startCountdown(true);
-                updateDisplay();
-            } else {
-                circle.wasDraggingWhenPaused = circle.isDragging;
-                isPaused = true;
-                saveState();
-                updateDisplay();
-            }
-            drawScene();
-        });
-
-        canvas.addEventListener('mousedown', (e) => {
-            handleCanvasTap(e);
-            startDragging(e);
-        });
-        canvas.addEventListener('mousemove', drag);
-        canvas.addEventListener('mouseup', stopDragging);
-
-        canvas.addEventListener('touchstart', (e) => {
-            handleCanvasTap(e);
-            startDragging(e);
-            startResizing(e);
-        });
-        canvas.addEventListener('touchmove', drag);
-        canvas.addEventListener('touchend', (e) => {
-            stopDragging(e);
-            stopResizing(e);
-        });
-
-        document.addEventListener('mouseup', stopDragging);
-        document.addEventListener('touchend', (e) => {
-            stopDragging(e);
-            stopResizing(e);
-        });
-
-        modeButton.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1) {
-                modeButton.click();
-            }
-        });
-
-        mapButton.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1) {
-                mapButton.click();
-            }
-        });
-
-        playButton.addEventListener('touchstart', (e) => {
-            if (circle.isDragging && e.touches.length > 1) {
-                playButton.click();
-            }
-        });
+        // ... (other functions like startDragging, drag, stopDragging, etc.)
 
         function animate() {
             updatePhysics();
