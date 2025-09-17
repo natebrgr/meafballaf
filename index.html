@@ -274,6 +274,14 @@
             0% { transform: translateX(-100%); opacity: 0; }
             100% { transform: translateX(0); opacity: 1; }
         }
+        @keyframes revealRightToLeft {
+            0% { clip-path: inset(0 0 0 100%); }
+            100% { clip-path: inset(0 0 0 0); }
+        }
+        @keyframes revealLeftToRight {
+            0% { clip-path: inset(0 100% 0 0); }
+            100% { clip-path: inset(0 0 0 0); }
+        }
     </style>
 </head>
 <body>
@@ -389,7 +397,6 @@
         let prevRedSection = null;
 
         let bulletHoles = [];
-        let prevBulletHole = null; // For previous view
 
         let isPreviousView = false;
         let prevWallHits = 0;
@@ -468,85 +475,12 @@
             hiScoreCount.style.right = `${canvasLeft}px`;
             levelChange.style.left = `${canvasLeft + (window.innerWidth * 0.9 - 120) / 2 + 120 + 10}px`; // Right of levelContainer
 
-            updatePreviews();
             constrainCircle();
-        }
-
-        function createPreviewRect(color, top, height, left, width) {
-            const rect = document.createElement('div');
-            rect.classList.add('preview-rect');
-            rect.style.backgroundColor = color;
-            rect.style.top = `${top}px`;
-            rect.style.height = `${height}px`;
-            rect.style.left = `${left}px`;
-            rect.style.width = `${width}px`;
-            rect.style.position = 'absolute';
-            return rect;
-        }
-
-        function updatePreviews() {
-            // Clear existing previews
-            leftPreviews.forEach(r => r.remove());
-            rightPreviews.forEach(r => r.remove());
-            leftPreviews = [];
-            rightPreviews = [];
-
-            if (currentMap !== 'rectangle' || currentMode !== 'survival') return;
-
-            const canvasRect = canvas.getBoundingClientRect();
-            const previewWidth = 10;
-            const sectionHeight = canvasRect.height / 3;
-
-            let currentPrevGreen = isPreviousView ? null : prevGreenSection;
-            let currentPrevRed = isPreviousView ? null : prevRedSection;
-            let currentNextGreen = isPreviousView ? greenSection : nextGreenSection;
-            let currentNextRed = isPreviousView ? redSection : nextRedSection;
-
-            // Previous previews (left)
-            if (currentPrevGreen !== null || currentPrevRed !== null) {
-                const sections = [0, 1, 2];
-                const blackSection = sections.find(s => s !== currentPrevGreen && s !== currentPrevRed);
-                const prevColors = [];
-                prevColors[currentPrevGreen] = 'rgb(11, 74, 28)';
-                prevColors[currentPrevRed] = 'rgb(130, 33, 33)';
-                prevColors[blackSection] = '#000000';
-
-                for (let i = 0; i < 3; i++) {
-                    const rect = createPreviewRect(prevColors[i], canvasRect.top + i * sectionHeight, sectionHeight, canvasRect.left - previewWidth, previewWidth);
-                    if (isPaused && !isPreviousView) {
-                        rect.classList.add('glow');
-                        rect.classList.add('clickable');
-                        rect.addEventListener('touchstart', enterPreviousView);
-                    }
-                    document.body.appendChild(rect);
-                    leftPreviews.push(rect);
-                }
-            }
-
-            // Next previews (right)
-            if (currentNextGreen !== null || currentNextRed !== null) {
-                const sections = [0, 1, 2];
-                const blackSection = sections.find(s => s !== currentNextGreen && s !== currentNextRed);
-                const nextColors = [];
-                nextColors[currentNextGreen] = 'rgb(11, 74, 28)';
-                nextColors[currentNextRed] = 'rgb(130, 33, 33)';
-                nextColors[blackSection] = '#000000';
-
-                for (let i = 0; i < 3; i++) {
-                    const rect = createPreviewRect(nextColors[i], canvasRect.top + i * sectionHeight, sectionHeight, canvasRect.right, previewWidth);
-                    if (isPreviousView) {
-                        rect.classList.add('glow');
-                    }
-                    document.body.appendChild(rect);
-                    rightPreviews.push(rect);
-                }
-            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             setCanvasSize();
             assignSections();
-            assignNextSections();
             requestAnimationFrame(() => setCanvasSize());
         });
         window.addEventListener('resize', setCanvasSize);
@@ -614,7 +548,7 @@
             levelNumber.textContent = `${level}`;
             livesCount.textContent = lives === Infinity ? '∞' : lives;
             hiScoreCount.textContent = hiScore;
-            titleDisplay.textContent = currentMode === 'survival' ? (isPreviousView ? 'PREVIOUSLY...' : 'SURVIVAL MODE') : 'ENDURANCE MODE';
+            titleDisplay.textContent = currentMode === 'survival' ? 'SURVIVAL MODE' : 'ENDURANCE MODE';
             setCanvasSize();
 
             playButton.textContent = isPaused ? 'RESUME' : 'PAUSE';
@@ -622,7 +556,6 @@
             countdownDisplay.textContent = countdown;
 
             wallHitsDisplay.textContent = `${wallHits}`;
-            updatePreviews();
         }
 
         function constrainCircle() {
@@ -670,13 +603,7 @@
                 countdown,
                 countdownOpacity,
                 wasDraggingWhenPaused: circle.wasDraggingWhenPaused,
-                startingLives,
-                greenSection,
-                redSection,
-                nextGreenSection,
-                nextRedSection,
-                prevGreenSection,
-                prevRedSection
+                startingLives
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -698,19 +625,6 @@
             countdownOpacity = state.countdownOpacity;
             circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
             startingLives = state.startingLives !== undefined ? state.startingLives : (mode === 'survival' ? 3 : Infinity);
-            greenSection = state.greenSection !== undefined ? state.greenSection : null;
-            redSection = state.redSection !== undefined ? state.redSection : null;
-            nextGreenSection = state.nextGreenSection !== undefined ? state.nextGreenSection : null;
-            nextRedSection = state.nextRedSection !== undefined ? state.nextRedSection : null;
-            prevGreenSection = state.prevGreenSection !== undefined ? state.prevGreenSection : null;
-            prevRedSection = state.prevRedSection !== undefined ? state.prevRedSection : null;
-
-            if (!greenSection && !redSection && mode === 'survival' && map === 'rectangle') {
-                assignSections();
-            }
-            if (!nextGreenSection && !nextRedSection && mode === 'survival' && map === 'rectangle') {
-                assignNextSections();
-            }
 
             if (state.circle.x !== undefined) {
                 circle.x = state.circle.x;
@@ -789,17 +703,14 @@
             const sectionHeight = canvasHeight / 3;
             const pixelRatio = window.devicePixelRatio || 1;
 
-            let currentGreen = isPreviousView ? prevGreenSection : greenSection;
-            let currentRed = isPreviousView ? prevRedSection : redSection;
-
             if (currentMode === 'survival' && currentMap === 'rectangle') {
-                if (currentGreen !== null) {
+                if (greenSection !== null) {
                     ctx.fillStyle = 'rgb(11, 74, 28)';
-                    ctx.fillRect(0, currentGreen * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
                 }
-                if (currentRed !== null) {
+                if (redSection !== null) {
                     ctx.fillStyle = 'rgb(130, 33, 33)';
-                    ctx.fillRect(0, currentRed * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
                 }
 
                 ctx.font = 'bold 40px Impact, sans-serif';
@@ -810,18 +721,18 @@
 
                 const greenLives = startingLives <= 3 ? startingLives + 1 : (lives > 2 ? lives + 1 : 4);
                 const redLives = startingLives <= 3 ? Math.max(startingLives - 1, 1) : (lives > 2 ? Math.max(lives - 1, 1) : 2);
-                const blackSection = [0, 1, 2].find(s => s !== currentGreen && s !== currentRed);
+                const blackSection = [0, 1, 2].find(s => s !== greenSection && s !== redSection);
                 const blackLives = startingLives <= 3 ? startingLives : (lives > 2 ? lives : 3);
 
-                if (currentGreen !== null) {
+                if (greenSection !== null) {
                     ctx.fillStyle = 'rgb(11, 74, 28)';
-                    ctx.fillText(`+${greenLives - lives}`, 40, currentGreen * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`+${greenLives - lives}`, canvasWidth - 40, currentGreen * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`+${greenLives - lives}`, 40, greenSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`+${greenLives - lives}`, canvasWidth - 40, greenSection * sectionHeight + sectionHeight / 2);
                 }
-                if (currentRed !== null) {
+                if (redSection !== null) {
                     ctx.fillStyle = 'rgb(130, 33, 33)';
-                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, 40, currentRed * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, canvasWidth - 40, currentRed * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, 40, redSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, canvasWidth - 40, redSection * sectionHeight + sectionHeight / 2);
                 }
                 if (blackSection !== null) {
                     ctx.fillStyle = '#000';
@@ -842,34 +753,39 @@
                 ctx.stroke();
             }
 
-            // Draw bullet holes
-            const holes = isPreviousView ? (prevBulletHole ? [prevBulletHole] : []) : bulletHoles;
-            holes.forEach(h => {
+            // Draw bullet holes and smoke
+            bulletHoles.forEach(h => {
                 ctx.save();
                 ctx.globalAlpha = h.opacity;
 
                 // Draw hole
                 ctx.beginPath();
                 ctx.arc(h.x, h.y, 5, 0, Math.PI * 2);
-                ctx.fillStyle = h.color;
+                ctx.fillStyle = '#333333';
                 ctx.fill();
-
-                // White glow
-                ctx.shadowColor = '#fff';
-                ctx.shadowBlur = 10;
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#666666';
+                ctx.lineWidth = 1;
                 ctx.stroke();
+
+                // Draw smoke
+                let smokeY = h.y - 10;
+                let smokeSize = 4;
+                ctx.fillStyle = h.bgColor;
+                for (let i = 0; i < 4; i++) {
+                    ctx.beginPath();
+                    ctx.arc(h.x + h.smokeOffsets[i], smokeY, smokeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    smokeY -= smokeSize * 1.5;
+                    smokeSize += 1;
+                }
 
                 ctx.restore();
             });
 
             const greenColor = 'rgb(11, 74, 28)';
             let counterColor = '#e0e0e0';
-            const currentWallHits = isPreviousView ? prevWallHits : wallHits;
-            const currentLevel = isPreviousView ? prevLevel : level;
-            if (currentWallHits === currentLevel) counterColor = greenColor;
-            else if (currentWallHits > currentLevel) counterColor = 'rgb(130, 33, 33)';
+            if (wallHits === level) counterColor = greenColor;
+            else if (wallHits > level) counterColor = 'rgb(130, 33, 33)';
 
             const circleColor = getCircleColor(counterColor);
             const borderColor = getBorderColor(counterColor);
@@ -882,7 +798,7 @@
                 ctx.lineCap = 'round';
                 for (let i = 0; i < trail.length - 1; i++) {
                     const start = trail[i];
-                    const end = trail[i + 1];
+                    const end = trail[i + 1);
                     const opacity = start.opacity * (1 - (i / trail.length));
                     ctx.strokeStyle = `${trailBaseColor} ${opacity})`;
                     ctx.moveTo(start.x, start.y);
@@ -959,46 +875,46 @@
             if (counterColor === 'rgb(11, 74, 28)') {
                 ctx.shadowColor = 'rgb(50, 200, 100)';
                 ctx.shadowBlur = 2 * pixelRatio;
-                ctx.fillText(currentWallHits, circle.x, circle.y - offset);
-                ctx.fillText(currentWallHits, circle.x, circle.y + offset);
-                ctx.fillText(currentWallHits, circle.x - offset, circle.y);
-                ctx.fillText(currentWallHits, circle.x + offset, circle.y);
+                ctx.fillText(wallHits, circle.x, circle.y - offset);
+                ctx.fillText(wallHits, circle.x, circle.y + offset);
+                ctx.fillText(wallHits, circle.x - offset, circle.y);
+                ctx.fillText(wallHits, circle.x + offset, circle.y);
                 ctx.shadowColor = '#fff';
                 ctx.shadowBlur = 10 * pixelRatio;
             } else if (counterColor === 'rgb(130, 33, 33)') {
                 ctx.shadowColor = 'rgb(255, 80, 80)';
                 ctx.shadowBlur = 2 * pixelRatio;
-                ctx.fillText(currentWallHits, circle.x, circle.y - offset);
-                ctx.fillText(currentWallHits, circle.x, circle.y + offset);
-                ctx.fillText(currentWallHits, circle.x - offset, circle.y);
-                ctx.fillText(currentWallHits, circle.x + offset, circle.y);
+                ctx.fillText(wallHits, circle.x, circle.y - offset);
+                ctx.fillText(wallHits, circle.x, circle.y + offset);
+                ctx.fillText(wallHits, circle.x - offset, circle.y);
+                ctx.fillText(wallHits, circle.x + offset, circle.y);
                 ctx.shadowColor = '#fff';
                 ctx.shadowBlur = 10 * pixelRatio;
             }
-            ctx.fillText(currentWallHits, circle.x, circle.y - offset);
-            ctx.fillText(currentWallHits, circle.x, circle.y + offset);
-            ctx.fillText(currentWallHits, circle.x - offset, circle.y);
-            ctx.fillText(currentWallHits, circle.x + offset, circle.y);
+            ctx.fillText(wallHits, circle.x, circle.y - offset);
+            ctx.fillText(wallHits, circle.x, circle.y + offset);
+            ctx.fillText(wallHits, circle.x - offset, circle.y);
+            ctx.fillText(wallHits, circle.x + offset, circle.y);
 
             ctx.fillStyle = greenColor;
             ctx.shadowColor = 'rgb(50, 200, 100)';
             ctx.shadowBlur = 2 * pixelRatio;
-            ctx.fillText(currentLevel, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
-            ctx.fillText(currentLevel, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
-            ctx.fillText(currentLevel, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
-            ctx.fillText(currentLevel, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
             ctx.shadowColor = '#fff';
             ctx.shadowBlur = 10 * pixelRatio;
-            ctx.fillText(currentLevel, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
-            ctx.fillText(currentLevel, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
-            ctx.fillText(currentLevel, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
-            ctx.fillText(currentLevel, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y - offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x - offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
+            ctx.fillText(level, circle.x + offset * Math.sqrt(2) / 2, circle.y + offset * Math.sqrt(2) / 2);
 
             ctx.shadowBlur = 0;
         }
 
         function updatePhysics() {
-            if (isPaused || isPreviousView) {
+            if (isPaused) {
                 if (circle.isDragging) {
                     circle.dx = 0;
                     circle.dy = 0;
@@ -1181,18 +1097,8 @@
             };
         }
 
-        function addBulletHole(x, y, bgColor, isBlackIfCondition) {
-            let color = bgColor;
-            if (isBlackIfCondition && bgColor === '#000000') {
-                color = '#000000';
-            } else if (bgColor === '#000000') {
-                color = '#333333'; // Default for visibility
-            }
-            bulletHoles.push({ x, y, startTime: Date.now(), color, opacity: 1 });
-        }
-
         function handleCanvasTap(e) {
-            if (isPaused || isPreviousView) return;
+            if (isPaused) return;
             const pos = getMousePos(e);
             e.preventDefault();
 
@@ -1210,33 +1116,125 @@
                 return;
             }
 
-            let bgColor = '#000000';
-            let isBlackIfCondition = (wallHits >= level || !isCountingDown);
-            if (currentMode === 'survival' && currentMap === 'rectangle') {
-                const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                const sectionHeight = canvasHeight / 3;
-                const section = Math.floor(originalY / sectionHeight);
-                if (section === greenSection) bgColor = 'rgb(11, 74, 28)';
-                else if (section === redSection) bgColor = 'rgb(130, 33, 33)';
-                else bgColor = '#000000';
-            }
-
             if (isCountingDown) {
                 if (wallHits === level) {
-                    addBulletHole(originalX, originalY, bgColor, isBlackIfCondition);
-                    handleWin(originalX, originalY, bgColor, isBlackIfCondition);
+                    isTrackingHits = false;
+                    if (countdownInterval) {
+                        clearInterval(countdownInterval);
+                        countdownInterval = null;
+                        countdownOpacity = 0;
+                        countdownDisplay.style.opacity = countdownOpacity;
+                        isCountingDown = false;
+                    }
+                    const completedLevel = level;
+                    level++;
+                    updateThrowMultiplier();
+                    let flashColor = null;
+
+                    if (currentMode === 'survival' && currentMap === 'rectangle') {
+                        const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                        const sectionHeight = canvasHeight / 3;
+                        const circleSection = Math.floor(originalY / sectionHeight); // Use original position
+
+                        let baseLives;
+                        if (startingLives > 3 && lives < 3) baseLives = 3;
+                        else if (startingLives > 3 && lives > 2) baseLives = lives;
+                        else baseLives = startingLives;
+
+                        if (circleSection === greenSection) {
+                            lives = baseLives + 1;
+                            flashColor = 'flash-green';
+                        } else if (circleSection === redSection) {
+                            lives = Math.max(baseLives - 1, 1);
+                            flashColor = 'flash-red';
+                        } else {
+                            lives = baseLives;
+                        }
+                    } else if (currentMode === 'survival') {
+                        lives = 3;
+                    }
+
+                    if (completedLevel > hiScore) hiScore = completedLevel;
+                    wallHits = 0;
+                    if (flashColor) {
+                        canvas.classList.remove('flash-green', 'flash-red');
+                        void canvas.offsetHeight;
+                        canvas.classList.add(flashColor);
+                    }
+                    startingLives = lives;
+                    assignSections();
+                    saveState();
+                    updateDisplay();
+                    startCountdown();
                 }
                 circle.x = pos.x;
                 circle.y = pos.y;
                 constrainCircle();
                 return;
-            } else {
-                addBulletHole(originalX, originalY, bgColor, isBlackIfCondition);
+            }
+
+            // Add bullet hole effect if after countdown
+            if (!isCountingDown && circle.hasBeenTouched) {
+                let bgColor = '#000000';
+                if (currentMode === 'survival' && currentMap === 'rectangle') {
+                    const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                    const sectionHeight = canvasHeight / 3;
+                    const section = Math.floor(originalY / sectionHeight);
+                    if (section === greenSection) bgColor = 'rgb(11, 74, 28)';
+                    else if (section === redSection) bgColor = 'rgb(130, 33, 33)';
+                    else bgColor = '#000000';
+                }
+                if (bgColor === '#000000') bgColor = 'rgba(200, 200, 200, 0.5)'; // Make visible smoke for black
+                const smokeOffsets = [];
+                for (let i = 0; i < 4; i++) {
+                    smokeOffsets.push((Math.random() - 0.5) * 4);
+                }
+                bulletHoles.push({ x: originalX, y: originalY, startTime: Date.now(), bgColor, smokeOffsets, opacity: 1 });
             }
 
             // New tap-to-move and win/lose logic using original position
             if (wallHits === level) {
-                handleWin(originalX, originalY, bgColor, isBlackIfCondition);
+                isTrackingHits = false;
+                const completedLevel = level;
+                level++;
+                updateThrowMultiplier();
+                let flashColor = null;
+
+                if (currentMode === 'survival' && currentMap === 'rectangle') {
+                    const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                    const sectionHeight = canvasHeight / 3;
+                    const circleSection = Math.floor(originalY / sectionHeight); // Use original position
+
+                    let baseLives;
+                    if (startingLives > 3 && lives < 3) baseLives = 3;
+                    else if (startingLives > 3 && lives > 2) baseLives = lives;
+                    else baseLives = startingLives;
+
+                    if (circleSection === greenSection) {
+                        lives = baseLives + 1;
+                        flashColor = 'flash-green';
+                    } else if (circleSection === redSection) {
+                        lives = Math.max(baseLives - 1, 1);
+                        flashColor = 'flash-red';
+                    } else {
+                        lives = baseLives;
+                    }
+                } else if (currentMode === 'survival') {
+                    lives = 3;
+                }
+
+                if (completedLevel > hiScore) hiScore = completedLevel;
+                wallHits = 0;
+                if (flashColor) {
+                    canvas.classList.remove('flash-green', 'flash-red');
+                    void canvas.offsetHeight;
+                    canvas.classList.add(flashColor);
+                }
+                startingLives = lives;
+                assignSections();
+                saveState();
+                updateDisplay();
+                startCountdown();
             } else if (wallHits > level && currentMode === 'survival') {
                 lives--;
                 if (lives <= 0) {
@@ -1271,220 +1269,7 @@
             constrainCircle();
         }
 
-        function handleWin(originalX, originalY, bgColor, isBlackIfCondition) {
-            isTrackingHits = false;
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-                countdownOpacity = 0;
-                countdownDisplay.style.opacity = countdownOpacity;
-                isCountingDown = false;
-            }
-            const completedLevel = level;
-            prevBulletHole = { x: originalX, y: originalY, color: isBlackIfCondition && bgColor === '#000000' ? '#000000' : bgColor, opacity: 1 };
-            prevWallHits = wallHits;
-            prevLevel = level;
-            prevLives = lives;
-            prevHiScore = hiScore;
-            level++;
-            updateThrowMultiplier();
-            let flashColor = null;
-
-            if (currentMode === 'survival' && currentMap === 'rectangle') {
-                const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-                const sectionHeight = canvasHeight / 3;
-                const circleSection = Math.floor(originalY / sectionHeight); // Use original position
-
-                let baseLives;
-                if (startingLives > 3 && lives < 3) baseLives = 3;
-                else if (startingLives > 3 && lives > 2) baseLives = lives;
-                else baseLives = startingLives;
-
-                if (circleSection === greenSection) {
-                    lives = baseLives + 1;
-                    flashColor = 'flash-green';
-                } else if (circleSection === redSection) {
-                    lives = Math.max(baseLives - 1, 1);
-                    flashColor = 'flash-red';
-                } else {
-                    lives = baseLives;
-                }
-            } else if (currentMode === 'survival') {
-                lives = 3;
-            }
-
-            if (completedLevel > hiScore) hiScore = completedLevel;
-            wallHits = 0;
-            if (flashColor) {
-                canvas.classList.remove('flash-green', 'flash-red');
-                void canvas.offsetHeight;
-                canvas.classList.add(flashColor);
-            }
-            startingLives = lives;
-            prevGreenSection = greenSection;
-            prevRedSection = redSection;
-            greenSection = nextGreenSection;
-            redSection = nextRedSection;
-            assignNextSections();
-            animateLevelChange(() => {
-                bulletHoles = [];
-                saveState();
-                updateDisplay();
-                startCountdown();
-            });
-        }
-
-        function animateLevelChange(callback = null) {
-            leftPreviews.forEach(r => {
-                r.style.animation = 'sweepRightToLeft 0.5s ease forwards';
-            });
-            rightPreviews.forEach(r => {
-                r.style.animation = 'sweepRightToLeft 0.5s ease forwards';
-            });
-            canvas.style.animation = 'sweepRightToLeft 0.5s ease forwards';
-            setTimeout(() => {
-                leftPreviews.forEach(r => r.style.animation = '');
-                rightPreviews.forEach(r => r.style.animation = '');
-                canvas.style.animation = '';
-                updatePreviews();
-                drawScene();
-                if (callback) callback();
-            }, 500);
-        }
-
-        function enterPreviousView(e) {
-            if (!isPaused || isPreviousView) return;
-            isPreviousView = true;
-
-            // Save current state for reverse
-            const tempGreen = greenSection;
-            const tempRed = redSection;
-            greenSection = prevGreenSection;
-            redSection = prevRedSection;
-            nextGreenSection = tempGreen;
-            nextRedSection = tempRed;
-            prevGreenSection = null;
-            prevRedSection = null;
-
-            // Animations
-            leftPreviews.forEach(r => {
-                r.style.animation = 'sweepLeftToRight 0.5s ease forwards';
-                setTimeout(() => r.remove(), 500);
-            });
-            leftPreviews = [];
-            rightPreviews.forEach(r => {
-                r.style.animation = 'sweepLeftToRight 0.5s ease forwards';
-            });
-            canvas.style.animation = 'sweepLeftToRight 0.5s ease forwards';
-
-            // Buttons sweep upward
-            [playButton, modeButton, mapButton].forEach(btn => {
-                btn.style.animation = 'sweepUpward 0.5s ease forwards';
-                setTimeout(() => { btn.style.display = 'none'; }, 500);
-            });
-
-            // Title sweep rightward
-            titleDisplay.style.animation = 'sweepRightward 0.5s ease forwards';
-            setTimeout(() => {
-                titleDisplay.textContent = 'PREVIOUSLY...';
-                titleDisplay.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
-            }, 500);
-
-            // Numbers sweep right
-            levelContainer.style.animation = 'sweepRightward 0.5s ease forwards';
-            livesCount.style.animation = 'sweepRightward 0.5s ease forwards';
-            hiScoreCount.style.animation = 'sweepRightward 0.5s ease forwards';
-            setTimeout(() => {
-                wallHitsDisplay.textContent = prevWallHits;
-                levelNumber.textContent = prevLevel;
-                wallHitsDisplay.style.color = 'rgb(11, 74, 28)';
-                levelNumber.style.color = 'rgb(11, 74, 28)';
-                livesCount.textContent = prevLives;
-                hiScoreCount.textContent = prevHiScore;
-                levelContainer.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
-                livesCount.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
-                hiScoreCount.style.animation = 'sweepLeftwardIn 0.5s ease forwards';
-            }, 500);
-
-            setTimeout(() => {
-                setCanvasSize();
-                drawScene();
-            }, 500);
-
-            // Set up tap anywhere to reverse
-            document.addEventListener('touchstart', exitPreviousView, { once: true });
-
-            updatePreviews();
-            drawScene();
-        }
-
-        function exitPreviousView(e) {
-            isPreviousView = false;
-
-            // Reverse animations
-            rightPreviews.forEach(r => {
-                r.style.animation = 'sweepRightToLeft 0.5s ease forwards';
-            });
-            canvas.style.animation = 'sweepRightToLeft 0.5s ease forwards';
-
-            // Buttons reverse
-            [playButton, modeButton, mapButton].forEach(btn => {
-                btn.style.display = 'block';
-                btn.style.animation = 'sweepUpward 0.5s ease reverse';
-            });
-
-            // Title reverse
-            titleDisplay.style.animation = 'sweepRightward 0.5s ease reverse';
-            setTimeout(() => {
-                titleDisplay.textContent = 'SURVIVAL MODE';
-                titleDisplay.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
-            }, 500);
-
-            // Numbers reverse
-            levelContainer.style.animation = 'sweepRightward 0.5s ease reverse';
-            livesCount.style.animation = 'sweepRightward 0.5s ease reverse';
-            hiScoreCount.style.animation = 'sweepRightward 0.5s ease reverse';
-            setTimeout(() => {
-                wallHitsDisplay.textContent = wallHits;
-                levelNumber.textContent = level;
-                wallHitsDisplay.style.color = '#e0e0e0';
-                levelNumber.style.color = 'rgb(11, 74, 28)';
-                livesCount.textContent = lives;
-                hiScoreCount.textContent = hiScore;
-                levelContainer.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
-                livesCount.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
-                hiScoreCount.style.animation = 'sweepLeftwardIn 0.5s ease reverse';
-            }, 500);
-
-            setTimeout(() => {
-                setCanvasSize();
-                drawScene();
-            }, 500);
-
-            // Restore sections
-            prevGreenSection = greenSection;
-            prevRedSection = redSection;
-            greenSection = nextGreenSection;
-            redSection = nextRedSection;
-            nextGreenSection = null; // Wait, previously tempGreen, but since not saved, perhaps reassign if needed, but code had tempGreen
-            nextRedSection = null;
-            // Wait, in enter, tempGreen = greenSection before swap, but in exit, need to restore.
-            // Wait, in code, tempGreen is local, so to restore, need to swap back.
-            const tempGreen2 = greenSection;
-            const tempRed2 = redSection;
-            greenSection = nextGreenSection;
-            redSection = nextRedSection;
-            nextGreenSection = null;
-            nextRedSection = null;
-            prevGreenSection = tempGreen2;
-            prevRedSection = tempRed2;
-
-            updatePreviews();
-            drawScene();
-        }
-
         function startDragging(e) {
-            if (isPaused && !circle.wasDraggingWhenPaused || isPreviousView) return;
             const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
             e.preventDefault();
             circle.isDragging = true;
@@ -1497,14 +1282,13 @@
             circle.x = pos.x;
             circle.y = pos.y;
             constrainCircle();
-            if (!isPaused) trail.length = 0;
+            trail.length = 0;
             buttonActivated = { play: false, mode: false, map: false };
             drawScene();
         }
 
         function startResizing(e) {
-            if (!circle.isDragging || circle.isResizing || e.touches.length < 2 || isPreviousView) return;
-            if (isPaused && !circle.wasDraggingWhenPaused) return;
+            if (!circle.isDragging || circle.isResizing || e.touches.length < 2) return;
 
             const dragTouchIndex = Array.from(e.touches).findIndex(t => t.identifier === circle.dragTouchId);
             if (dragTouchIndex === -1) return;
@@ -1534,7 +1318,6 @@
         }
 
         function drag(e) {
-            if (isPreviousView) return;
             if (circle.isDragging && !circle.isResizing) {
                 const pos = getMousePos(e, circle.dragTouchId);
 
@@ -1558,15 +1341,13 @@
                 circle.x = pos.x;
                 circle.y = pos.y;
 
-                if (!isPaused) {
-                    const currentTime = Date.now();
-                    const dt = (currentTime - circle.lastTime) / 1000;
-                    if (dt > 0) {
-                        circle.dx = ((pos.x - circle.lastX) / dt) * throwMultiplier;
-                        circle.dy = ((pos.y - circle.lastY) / dt) * throwMultiplier;
-                    }
-                    circle.lastTime = currentTime;
+                const currentTime = Date.now();
+                const dt = (currentTime - circle.lastTime) / 1000;
+                if (dt > 0) {
+                    circle.dx = ((pos.x - circle.lastX) / dt) * throwMultiplier;
+                    circle.dy = ((pos.y - circle.lastY) / dt) * throwMultiplier;
                 }
+                circle.lastTime = currentTime;
                 circle.lastX = pos.x;
                 circle.lastY = pos.y;
             }
@@ -1702,12 +1483,12 @@
                 if (buttonActivated.map && target !== mapButton) buttonActivated.map = false;
             }
 
-            if (isPaused) saveState();
+            saveState();
             drawScene();
         }
 
         function stopDragging(e) {
-            if (!circle.isDragging || isPreviousView) return;
+            if (!circle.isDragging) return;
             let touchId = circle.dragTouchId;
             if (e.touches && e.touches.length > 0) return;
             if (e.changedTouches) {
@@ -1774,7 +1555,7 @@
                 }
             });
             buttonActivated = { play: false, mode: false, map: false };
-            if (!circle.isDragging && isPaused) saveState();
+            saveState();
             drawScene();
 
             // Ensure buttons are clickable by forcing a clean slate
@@ -1784,7 +1565,7 @@
         }
 
         function stopResizing(e) {
-            if (circle.resizeTouchId === null || isPreviousView) return;
+            if (circle.resizeTouchId === null) return;
             if (e.touches && e.touches.length > 1) return;
             if (e.changedTouches) {
                 let matched = false;
@@ -1798,7 +1579,7 @@
             }
 
             const elapsed = Date.now() - circle.resizeStartTime;
-            if (!circle.isResizing && elapsed < resizeHoldThreshold && !isPaused) {
+            if (!circle.isResizing && elapsed < resizeHoldThreshold) {
                 circle.isDragging = false;
                 circle.dragTouchId = null;
                 circle.dx = 0;
@@ -1814,12 +1595,11 @@
             }
             circle.resizeTouchId = null;
             constrainCircle();
-            if (isPaused) saveState();
+            saveState();
             drawScene();
         }
 
         modeButton.addEventListener('click', () => {
-            if (isPreviousView) return;
             if (!isPaused) {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
@@ -1833,7 +1613,6 @@
         });
 
         mapButton.addEventListener('click', () => {
-            if (isPreviousView) return;
             if (!isPaused) {
                 circle.wasDraggingWhenPaused = circle.isDragging;
                 isPaused = true;
@@ -1847,7 +1626,6 @@
         });
 
         playButton.addEventListener('click', (e) => {
-            if (isPreviousView) return;
             if (isPaused) {
                 isPaused = false;
                 if (circle.isDragging) {
