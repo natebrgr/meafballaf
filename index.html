@@ -352,24 +352,46 @@
 
         let greenSection = null;
         let redSection = null;
+        let previousGreenSection = null;
+        let previousRedSection = null;
+        let nextGreenSection = null;
+        let nextRedSection = null;
 
         let bulletHoles = [];
 
-        function updateThrowMultiplier() {
-            throwMultiplier = baseThrowMultiplier * Math.pow(throwGrowth, level - 1);
+        function getRandomSections() {
+            const sections = [0, 1, 2];
+            const greenIndex = Math.floor(Math.random() * sections.length);
+            const green = sections.splice(greenIndex, 1)[0];
+            const redIndex = Math.floor(Math.random() * sections.length);
+            const red = sections.splice(redIndex, 1)[0];
+            return { green, red };
         }
 
-        function assignSections() {
-            if (currentMode === 'survival' && currentMap === 'rectangle') {
-                const sections = [0, 1, 2];
-                const greenIndex = Math.floor(Math.random() * sections.length);
-                greenSection = sections.splice(greenIndex, 1)[0];
-                const redIndex = Math.floor(Math.random() * sections.length);
-                redSection = sections.splice(redIndex, 1)[0];
-            } else {
+        function assignCurrentSections() {
+            if (currentMode !== 'survival' || currentMap !== 'rectangle') {
                 greenSection = null;
                 redSection = null;
+                return;
             }
+            const sects = getRandomSections();
+            greenSection = sects.green;
+            redSection = sects.red;
+        }
+
+        function assignNextSections() {
+            if (currentMode !== 'survival' || currentMap !== 'rectangle') {
+                nextGreenSection = null;
+                nextRedSection = null;
+                return;
+            }
+            const sects = getRandomSections();
+            nextGreenSection = sects.green;
+            nextRedSection = sects.red;
+        }
+
+        function updateThrowMultiplier() {
+            throwMultiplier = baseThrowMultiplier * Math.pow(throwGrowth, level - 1);
         }
 
         function setCanvasSize() {
@@ -382,13 +404,14 @@
 
             const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
             const pixelRatio = window.devicePixelRatio || 1;
-            canvas.style.width = `${window.innerWidth * 0.9}px`;
+            const canvasStyleWidth = window.innerWidth * 0.9;
+            canvas.style.width = `${canvasStyleWidth}px`;
             canvas.style.height = `${availableHeight - 2 * borderWidth}px`;
-            canvas.width = window.innerWidth * 0.9 * pixelRatio;
+            canvas.width = canvasStyleWidth * pixelRatio;
             canvas.height = (availableHeight - 2 * borderWidth) * pixelRatio;
             ctx.scale(pixelRatio, pixelRatio);
 
-            const canvasLeft = (window.innerWidth - (window.innerWidth * 0.9)) / 2;
+            const canvasLeft = (window.innerWidth - canvasStyleWidth) / 2;
             const canvasTop = wallHitsBottom + snugGap;
             canvas.style.top = `${canvasTop}px`;
             canvas.style.left = `${canvasLeft}px`;
@@ -415,7 +438,8 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             setCanvasSize();
-            assignSections();
+            assignCurrentSections();
+            assignNextSections();
             requestAnimationFrame(() => setCanvasSize());
         });
         window.addEventListener('resize', setCanvasSize);
@@ -494,13 +518,17 @@
         }
 
         function constrainCircle() {
+            const sideStripWidth = 30;
+            const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+            const playableWidth = canvasWidth - 2 * sideStripWidth;
             if (currentMap === 'rectangle') {
-                circle.x = Math.max(circle.radius, Math.min(canvas.width / (window.devicePixelRatio || 1) - circle.radius, circle.x));
-                circle.y = Math.max(circle.radius, Math.min(canvas.height / (window.devicePixelRatio || 1) - circle.radius, circle.y));
+                circle.x = Math.max(sideStripWidth + circle.radius, Math.min(canvasWidth - sideStripWidth - circle.radius, circle.x));
+                circle.y = Math.max(circle.radius, Math.min(canvasHeight - circle.radius, circle.y));
             } else {
-                const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
-                const maxRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth;
+                const centerX = canvasWidth / 2;
+                const centerY = canvasHeight / 2;
+                const maxRadius = Math.min(playableWidth, canvasHeight) / 2 - borderWidth;
                 const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                 if (distFromCenter + circle.radius > maxRadius) {
                     const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
@@ -540,7 +568,11 @@
                 wasDraggingWhenPaused: circle.wasDraggingWhenPaused,
                 startingLives,
                 greenSection,
-                redSection
+                redSection,
+                previousGreenSection,
+                previousRedSection,
+                nextGreenSection,
+                nextRedSection
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -562,11 +594,28 @@
             countdownOpacity = state.countdownOpacity;
             circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
             startingLives = state.startingLives !== undefined ? state.startingLives : (mode === 'survival' ? 3 : Infinity);
+
             greenSection = state.greenSection !== undefined ? state.greenSection : null;
             redSection = state.redSection !== undefined ? state.redSection : null;
+            previousGreenSection = state.previousGreenSection !== undefined ? state.previousGreenSection : null;
+            previousRedSection = state.previousRedSection !== undefined ? state.previousRedSection : null;
+            nextGreenSection = state.nextGreenSection !== undefined ? state.nextGreenSection : null;
+            nextRedSection = state.nextRedSection !== undefined ? state.nextRedSection : null;
 
-            if (!greenSection && !redSection && mode === 'survival' && map === 'rectangle') {
-                assignSections();
+            if (mode === 'survival' && map === 'rectangle') {
+                if (greenSection === null) {
+                    assignCurrentSections();
+                }
+                if (nextGreenSection === null) {
+                    assignNextSections();
+                }
+            } else {
+                greenSection = null;
+                redSection = null;
+                previousGreenSection = null;
+                previousRedSection = null;
+                nextGreenSection = null;
+                nextRedSection = null;
             }
 
             if (state.circle.x !== undefined) {
@@ -641,19 +690,21 @@
         function drawScene() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            const sideStripWidth = 30;
             const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
             const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+            const playableWidth = canvasWidth - 2 * sideStripWidth;
             const sectionHeight = canvasHeight / 3;
             const pixelRatio = window.devicePixelRatio || 1;
 
             if (currentMode === 'survival' && currentMap === 'rectangle') {
                 if (greenSection !== null) {
                     ctx.fillStyle = 'rgb(11, 74, 28)';
-                    ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.fillRect(sideStripWidth, greenSection * sectionHeight, playableWidth, sectionHeight);
                 }
                 if (redSection !== null) {
                     ctx.fillStyle = 'rgb(130, 33, 33)';
-                    ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.fillRect(sideStripWidth, redSection * sectionHeight, playableWidth, sectionHeight);
                 }
 
                 ctx.font = 'bold 40px Impact, sans-serif';
@@ -669,30 +720,50 @@
 
                 if (greenSection !== null) {
                     ctx.fillStyle = 'rgb(11, 74, 28)';
-                    ctx.fillText(`+${greenLives - lives}`, 40, greenSection * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`+${greenLives - lives}`, canvasWidth - 40, greenSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`+${greenLives - lives}`, sideStripWidth + 40, greenSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`+${greenLives - lives}`, canvasWidth - sideStripWidth - 40, greenSection * sectionHeight + sectionHeight / 2);
                 }
                 if (redSection !== null) {
                     ctx.fillStyle = 'rgb(130, 33, 33)';
-                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, 40, redSection * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, canvasWidth - 40, redSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, sideStripWidth + 40, redSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, canvasWidth - sideStripWidth - 40, redSection * sectionHeight + sectionHeight / 2);
                 }
                 if (blackSection !== null) {
                     ctx.fillStyle = '#000';
-                    ctx.fillText(`${blackLives - lives >= 0 ? '+' : ''}${blackLives - lives}`, 40, blackSection * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`${blackLives - lives >= 0 ? '+' : ''}${blackLives - lives}`, canvasWidth - 40, blackSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`${blackLives - lives >= 0 ? '+' : ''}${blackLives - lives}`, sideStripWidth + 40, blackSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`${blackLives - lives >= 0 ? '+' : ''}${blackLives - lives}`, canvasWidth - sideStripWidth - 40, blackSection * sectionHeight + sectionHeight / 2);
                 }
 
                 ctx.shadowBlur = 0;
             }
 
+            if (currentMode === 'survival' && currentMap === 'rectangle') {
+                if (previousGreenSection !== null) {
+                    ctx.fillStyle = 'rgb(11, 74, 28)';
+                    ctx.fillRect(0, previousGreenSection * sectionHeight, sideStripWidth, sectionHeight);
+                }
+                if (previousRedSection !== null) {
+                    ctx.fillStyle = 'rgb(130, 33, 33)';
+                    ctx.fillRect(0, previousRedSection * sectionHeight, sideStripWidth, sectionHeight);
+                }
+
+                if (nextGreenSection !== null) {
+                    ctx.fillStyle = 'rgb(11, 74, 28)';
+                    ctx.fillRect(canvasWidth - sideStripWidth, nextGreenSection * sectionHeight, sideStripWidth, sectionHeight);
+                }
+                if (nextRedSection !== null) {
+                    ctx.fillStyle = 'rgb(130, 33, 33)';
+                    ctx.fillRect(canvasWidth - sideStripWidth, nextRedSection * sectionHeight, sideStripWidth, sectionHeight);
+                }
+            }
+
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = borderWidth * 2;
             if (currentMap === 'rectangle') {
-                ctx.strokeRect(0, 0, canvasWidth, canvasHeight);
+                ctx.strokeRect(sideStripWidth, 0, playableWidth, canvasHeight);
             } else {
                 ctx.beginPath();
-                ctx.arc(canvasWidth / 2, canvasHeight / 2, Math.min(canvasWidth, canvasHeight) / 2 - borderWidth, 0, Math.PI * 2);
+                ctx.arc(canvasWidth / 2, canvasHeight / 2, Math.min(playableWidth, canvasHeight) / 2 - borderWidth, 0, Math.PI * 2);
                 ctx.stroke();
             }
 
@@ -856,6 +927,11 @@
                 return;
             }
 
+            const sideStripWidth = 30;
+            const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+            const playableWidth = canvasWidth - 2 * sideStripWidth;
+
             const currentTime = Date.now();
 
             if (!circle.isDragging) {
@@ -877,15 +953,15 @@
                 let walls;
                 if (currentMap === 'rectangle') {
                     walls = [
-                        { name: 'right', edge: canvas.width / (window.devicePixelRatio || 1), pos: circle.x + circle.radius, velocity: circle.dx, isContact: circle.x + circle.radius >= canvas.width / (window.devicePixelRatio || 1) },
-                        { name: 'left', edge: 0, pos: circle.x - circle.radius, velocity: circle.dx, isContact: circle.x - circle.radius <= 0 },
-                        { name: 'bottom', edge: canvas.height / (window.devicePixelRatio || 1), pos: circle.y + circle.radius, velocity: circle.dy, isContact: circle.y + circle.radius >= canvas.height / (window.devicePixelRatio || 1) },
+                        { name: 'right', edge: canvasWidth - sideStripWidth, pos: circle.x + circle.radius, velocity: circle.dx, isContact: circle.x + circle.radius >= canvasWidth - sideStripWidth },
+                        { name: 'left', edge: sideStripWidth, pos: circle.x - circle.radius, velocity: circle.dx, isContact: circle.x - circle.radius <= sideStripWidth },
+                        { name: 'bottom', edge: canvasHeight, pos: circle.y + circle.radius, velocity: circle.dy, isContact: circle.y + circle.radius >= canvasHeight },
                         { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, isContact: circle.y - circle.radius <= 0 }
                     ];
                 } else {
-                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
-                    const radius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth;
+                    const centerX = canvasWidth / 2;
+                    const centerY = canvasHeight / 2;
+                    const radius = Math.min(playableWidth, canvasHeight) / 2 - borderWidth;
                     const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                     const isContact = distFromCenter + circle.radius >= radius;
                     walls = [{ name: 'boundary', edge: radius, pos: distFromCenter + circle.radius, velocity: 0, isContact }];
@@ -924,24 +1000,24 @@
                 });
 
                 if (currentMap === 'rectangle') {
-                    if (circle.x + circle.radius > canvas.width / (window.devicePixelRatio || 1)) {
-                        circle.x = (canvas.width / (window.devicePixelRatio || 1)) - circle.radius;
+                    if (circle.x + circle.radius > canvasWidth - sideStripWidth) {
+                        circle.x = (canvasWidth - sideStripWidth) - circle.radius;
                         circle.dx = -circle.dx * bounciness;
-                    } else if (circle.x - circle.radius < 0) {
-                        circle.x = circle.radius;
+                    } else if (circle.x - circle.radius < sideStripWidth) {
+                        circle.x = sideStripWidth + circle.radius;
                         circle.dx = -circle.dx * bounciness;
                     }
-                    if (circle.y + circle.radius > canvas.height / (window.devicePixelRatio || 1)) {
-                        circle.y = (canvas.height / (window.devicePixelRatio || 1)) - circle.radius;
+                    if (circle.y + circle.radius > canvasHeight) {
+                        circle.y = canvasHeight - circle.radius;
                         circle.dy = -circle.dy * bounciness;
                     } else if (circle.y - circle.radius < 0) {
                         circle.y = circle.radius;
                         circle.dy = -circle.dy * bounciness;
                     }
                 } else {
-                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
-                    const radius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth;
+                    const centerX = canvasWidth / 2;
+                    const centerY = canvasHeight / 2;
+                    const radius = Math.min(playableWidth, canvasHeight) / 2 - borderWidth;
                     const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                     if (distFromCenter + circle.radius >= radius) {
                         const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
@@ -1109,7 +1185,11 @@
                         canvas.classList.add(flashColor);
                     }
                     startingLives = lives;
-                    assignSections();
+                    previousGreenSection = greenSection;
+                    previousRedSection = redSection;
+                    greenSection = nextGreenSection;
+                    redSection = nextRedSection;
+                    assignNextSections();
                     saveState();
                     updateDisplay();
                     startCountdown();
@@ -1174,7 +1254,11 @@
                     canvas.classList.add(flashColor);
                 }
                 startingLives = lives;
-                assignSections();
+                previousGreenSection = greenSection;
+                previousRedSection = redSection;
+                greenSection = nextGreenSection;
+                redSection = nextRedSection;
+                assignNextSections();
                 saveState();
                 updateDisplay();
                 startCountdown();
@@ -1263,16 +1347,20 @@
         }
 
         function drag(e) {
+            const sideStripWidth = 30;
+            const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+            const playableWidth = canvasWidth - 2 * sideStripWidth;
             if (circle.isDragging && !circle.isResizing) {
                 const pos = getMousePos(e, circle.dragTouchId);
 
                 if (currentMap === 'rectangle') {
-                    pos.x = Math.max(circle.radius, Math.min((canvas.width / (window.devicePixelRatio || 1)) - circle.radius, pos.x));
-                    pos.y = Math.max(circle.radius, Math.min((canvas.height / (window.devicePixelRatio || 1)) - circle.radius, pos.y));
+                    pos.x = Math.max(sideStripWidth + circle.radius, Math.min(canvasWidth - sideStripWidth - circle.radius, pos.x));
+                    pos.y = Math.max(circle.radius, Math.min(canvasHeight - circle.radius, pos.y));
                 } else {
-                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
-                    const maxRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth - circle.radius;
+                    const centerX = canvasWidth / 2;
+                    const centerY = canvasHeight / 2;
+                    const maxRadius = Math.min(playableWidth, canvasHeight) / 2 - borderWidth - circle.radius;
                     const dx = pos.x - centerX;
                     const dy = pos.y - centerY;
                     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -1315,16 +1403,16 @@
 
                 if (currentMap === 'rectangle') {
                     maxAllowedRadius = Math.min(
-                        circle.x, 
-                        (canvas.width / (window.devicePixelRatio || 1)) - circle.x,
+                        circle.x - sideStripWidth, 
+                        canvasWidth - sideStripWidth - circle.x,
                         circle.y,
-                        (canvas.height / (window.devicePixelRatio || 1)) - circle.y
+                        canvasHeight - circle.y
                     );
                 } else {
-                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
+                    const centerX = canvasWidth / 2;
+                    const centerY = canvasHeight / 2;
                     const distToCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
-                    maxAllowedRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth - distToCenter;
+                    maxAllowedRadius = Math.min(playableWidth, canvasHeight) / 2 - borderWidth - distToCenter;
                 }
 
                 circle.radius = Math.min(newRadius, maxAllowedRadius);
