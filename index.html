@@ -279,6 +279,7 @@
         const defaultRadius = 30;
         const initialRadius = 60;
         const resizeHoldThreshold = 200;
+        const sideStripWidth = 30;
         const circle = {
             x: 0,
             y: 0,
@@ -527,7 +528,6 @@
         function constrainCircle() {
             const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
             const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
-            const playableWidth = canvasWidth - 2 * sideStripWidth;
             if (currentMap === 'rectangle') {
                 circle.x = Math.max(sideStripWidth + circle.radius, Math.min(canvasWidth - sideStripWidth - circle.radius, circle.x));
                 circle.y = Math.max(circle.radius, Math.min(canvasHeight - circle.radius, circle.y));
@@ -804,7 +804,7 @@
                 ctx.strokeRect(sideStripWidth, 0, playableWidth, canvasHeight);
             } else {
                 ctx.beginPath();
-                ctx.arc(canvasWidth / 2, canvasHeight / 2, Math.min(playableWidth, canvasHeight) / 2 - borderWidth, 0, Math.PI * 2);
+                ctx.arc(canvasWidth / 2, canvasHeight / 2, Math.min(canvasWidth, canvasHeight) / 2 - borderWidth, 0, Math.PI * 2);
                 ctx.stroke();
             }
 
@@ -1422,16 +1422,18 @@
         }
 
         function drag(e) {
+            const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
             if (circle.isDragging && !circle.isResizing) {
                 const pos = getMousePos(e, circle.dragTouchId);
 
                 if (currentMap === 'rectangle') {
-                    pos.x = Math.max(sideStripWidth + circle.radius, Math.min(canvas.width / (window.devicePixelRatio || 1) - sideStripWidth - circle.radius, pos.x));
-                    pos.y = Math.max(circle.radius, Math.min(canvas.height / (window.devicePixelRatio || 1) - circle.radius, pos.y));
+                    pos.x = Math.max(sideStripWidth + circle.radius, Math.min(canvasWidth - sideStripWidth - circle.radius, pos.x));
+                    pos.y = Math.max(circle.radius, Math.min(canvasHeight - circle.radius, pos.y));
                 } else {
-                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
-                    const maxRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth - circle.radius;
+                    const centerX = canvasWidth / 2;
+                    const centerY = canvasHeight / 2;
+                    const maxRadius = Math.min(canvasWidth, canvasHeight) / 2 - borderWidth - circle.radius;
                     const dx = pos.x - centerX;
                     const dy = pos.y - centerY;
                     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -1475,16 +1477,15 @@
                 if (currentMap === 'rectangle') {
                     maxAllowedRadius = Math.min(
                         circle.x - sideStripWidth, 
-                        (canvas.width / (window.devicePixelRatio || 1)) - sideStripWidth - circle.x,
+                        canvasWidth - sideStripWidth - circle.x,
                         circle.y,
-                        (canvas.height / (window.devicePixelRatio || 1)) - circle.y
+                        canvasHeight - circle.y
                     );
                 } else {
-                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
+                    const centerX = canvasWidth / 2;
+                    const centerY = canvasHeight / 2;
                     const distToCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
-                    const maxRadius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth - distToCenter;
-                    circle.radius = Math.min(newRadius, maxRadius);
+                    maxAllowedRadius = Math.min(canvasWidth, canvasHeight) / 2 - borderWidth - distToCenter;
                 }
 
                 circle.radius = Math.min(newRadius, maxAllowedRadius);
@@ -1651,7 +1652,7 @@
             Object.keys(holdTimers).forEach(key => {
                 if (holdTimers[key]) {
                     clearTimeout(holdTimers[key]);
-                    holdTimers[key] = null;
+                    holdTimers[key = null;
                     if (key === 'play') {
                         playButton.classList.remove('glow-green', 'glow-red');
                         playButton.classList.add('recede');
@@ -1713,7 +1714,8 @@
                     y: circle.y,
                     dx: circle.dx,
                     dy: circle.dy,
-                    radius: circle.radius
+                    radius: circle.radius,
+                    hasBeenTouched: circle.hasBeenTouched
                 },
                 trail: trail.map(t => ({x: t.x, y: t.y, opacity: t.opacity})),
                 wallHits: wallHits,
@@ -1732,8 +1734,7 @@
                 nextRedSection: nextRedSection,
                 previousLandedSection: previousLandedSection,
                 isPaused: isPaused,
-                isTrackingHits: isTrackingHits,
-                hasBeenTouched: circle.hasBeenTouched
+                isTrackingHits: isTrackingHits
             };
         }
 
@@ -1744,6 +1745,7 @@
             circle.dx = savedState.circle.dx;
             circle.dy = savedState.circle.dy;
             circle.radius = savedState.circle.radius;
+            circle.hasBeenTouched = savedState.circle.hasBeenTouched;
             trail = savedState.trail.map(t => ({x: t.x, y: t.y, opacity: t.opacity}));
             wallHits = savedState.wallHits;
             level = savedState.level;
@@ -1762,8 +1764,9 @@
             previousLandedSection = savedState.previousLandedSection;
             isPaused = savedState.isPaused;
             isTrackingHits = savedState.isTrackingHits;
-            circle.hasBeenTouched = savedState.hasBeenTouched;
             savedState = null;
+            updateDisplay();
+            drawScene();
         }
 
         modeButton.addEventListener('click', () => {
@@ -1830,8 +1833,6 @@
             if (isReplaying) {
                 isReplaying = false;
                 restoreSavedState();
-                updateDisplay();
-                drawScene();
                 return;
             }
             if (isPaused && pos.x < sideStripWidth && lastWonReplay.length > 0) {
@@ -1851,8 +1852,6 @@
             if (isReplaying) {
                 isReplaying = false;
                 restoreSavedState();
-                updateDisplay();
-                drawScene();
                 e.preventDefault();
                 return;
             }
@@ -1923,8 +1922,6 @@
                 } else {
                     isReplaying = false;
                     restoreSavedState();
-                    updateDisplay();
-                    drawScene();
                 }
             } else {
                 updatePhysics();
