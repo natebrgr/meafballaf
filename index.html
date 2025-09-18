@@ -353,10 +353,10 @@
         let buttonActivated = { play: false, mode: false, map: false };
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity }
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3, isGameStarted: false },
+            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity, isGameStarted: false },
+            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3, isGameStarted: false },
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity, isGameStarted: false }
         };
 
         let previousSections = null;
@@ -364,6 +364,8 @@
         let nextSections = null;
 
         let bulletHoles = [];
+
+        let isGameStarted = false;
 
         function updateThrowMultiplier() {
             throwMultiplier = baseThrowMultiplier * Math.pow(throwGrowth, level - 1);
@@ -472,11 +474,6 @@
             createPreview(rightPreview, nextSections);
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            setCanvasSize();
-            loadState('survival', 'rectangle');
-            requestAnimationFrame(() => setCanvasSize());
-        });
         window.addEventListener('resize', setCanvasSize);
 
         function updateDisplay() {
@@ -600,7 +597,8 @@
                 startingLives,
                 previousSections: previousSections ? { ...previousSections } : null,
                 currentSections: currentSections ? { ...currentSections } : null,
-                nextSections: nextSections ? { ...nextSections } : null
+                nextSections: nextSections ? { ...nextSections } : null,
+                isGameStarted
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -622,6 +620,8 @@
             countdownOpacity = state.countdownOpacity;
             circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
             startingLives = state.startingLives !== undefined ? state.startingLives : (mode === 'survival' ? 3 : Infinity);
+
+            isGameStarted = state.isGameStarted || false;
 
             if (mode !== 'survival' || map !== 'rectangle') {
                 previousSections = null;
@@ -919,6 +919,8 @@
             });
             bulletHoles = bulletHoles.filter(h => h.opacity > 0);
 
+            if (!circle.hasBeenTouched || !isGameStarted) return;
+
             if (isPaused) {
                 if (circle.isDragging) {
                     circle.dx = 0;
@@ -930,7 +932,7 @@
             const currentTime = Date.now();
 
             if (!circle.isDragging) {
-                circle.dy += gravity;
+                circle.dy += gravity * (isCountingDown ? 0 : 1);
                 circle.x += circle.dx;
                 circle.y += circle.dy;
                 circle.dx *= friction;
@@ -1024,7 +1026,6 @@
                     }
                 }
             }
-
         }
 
         function startCountdown(isResuming = false) {
@@ -1038,6 +1039,7 @@
                 wallHitsDisplay.style.textShadow = '0 0 5px #fff';
                 isTrackingHits = true;
                 countdownOpacity = 1;
+                isGameStarted = true;
             } else {
                 isCountingDown = true;
             }
@@ -1732,6 +1734,10 @@
         updateDisplay();
         drawScene();
         animate();
+
+        setCanvasSize();
+        loadState('survival', 'rectangle');
+        requestAnimationFrame(() => setCanvasSize());
     </script>
 </body>
 </html>
