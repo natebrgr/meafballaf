@@ -243,11 +243,6 @@
         canvas.flash-red {
             animation: flashRed 0.5s ease;
         }
-        #leftPreview, #rightPreview {
-            position: absolute;
-            z-index: 1;
-            overflow: hidden;
-        }
     </style>
 </head>
 <body>
@@ -265,8 +260,6 @@
     <button id="mapButton">MAP</button>
     <canvas id="canvas"></canvas>
     <button id="playButton">PAUSE</button>
-    <div id="leftPreview"></div>
-    <div id="rightPreview"></div>
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -282,8 +275,6 @@
         const modeButton = document.getElementById('modeButton');
         const mapButton = document.getElementById('mapButton');
         const playButton = document.getElementById('playButton');
-        const leftPreview = document.getElementById('leftPreview');
-        const rightPreview = document.getElementById('rightPreview');
         const borderWidth = 2;
         const defaultRadius = 30;
         const initialRadius = 60;
@@ -353,43 +344,31 @@
         let buttonActivated = { play: false, mode: false, map: false };
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3, isGameStarted: false },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity, isGameStarted: false },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3, isGameStarted: false },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity, isGameStarted: false }
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
+            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity },
+            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity }
         };
 
-        let previousSections = null;
-        let currentSections = null;
-        let nextSections = null;
+        let greenSection = null;
+        let redSection = null;
 
         let bulletHoles = [];
-
-        let isGameStarted = false;
 
         function updateThrowMultiplier() {
             throwMultiplier = baseThrowMultiplier * Math.pow(throwGrowth, level - 1);
         }
 
-        function generateSections() {
-            const sections = [0, 1, 2];
-            const greenIndex = Math.floor(Math.random() * sections.length);
-            const green = sections.splice(greenIndex, 1)[0];
-            const redIndex = Math.floor(Math.random() * sections.length);
-            const red = sections.splice(redIndex, 1)[0];
-            return { green, red };
-        }
-
-        function updateSections(onLevelUp = false) {
-            if (currentMode !== 'survival' || currentMap !== 'rectangle') return;
-            if (onLevelUp) {
-                previousSections = { ...currentSections };
-                currentSections = { ...nextSections };
-                nextSections = generateSections();
+        function assignSections() {
+            if (currentMode === 'survival' && currentMap === 'rectangle') {
+                const sections = [0, 1, 2];
+                const greenIndex = Math.floor(Math.random() * sections.length);
+                greenSection = sections.splice(greenIndex, 1)[0];
+                const redIndex = Math.floor(Math.random() * sections.length);
+                redSection = sections.splice(redIndex, 1)[0];
             } else {
-                previousSections = null;
-                currentSections = generateSections();
-                nextSections = generateSections();
+                greenSection = null;
+                redSection = null;
             }
         }
 
@@ -400,17 +379,16 @@
             const buttonHeight = modeButton.offsetHeight || 36;
             const canvasShrink = 10;
             const snugGap = 5;
-            const sideOffset = 30;
 
             const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
             const pixelRatio = window.devicePixelRatio || 1;
-            canvas.style.width = `${window.innerWidth - 60}px`;
+            canvas.style.width = `${window.innerWidth * 0.9}px`;
             canvas.style.height = `${availableHeight - 2 * borderWidth}px`;
-            canvas.width = (window.innerWidth - 60) * pixelRatio;
+            canvas.width = window.innerWidth * 0.9 * pixelRatio;
             canvas.height = (availableHeight - 2 * borderWidth) * pixelRatio;
             ctx.scale(pixelRatio, pixelRatio);
 
-            const canvasLeft = sideOffset;
+            const canvasLeft = (window.innerWidth - (window.innerWidth * 0.9)) / 2;
             const canvasTop = wallHitsBottom + snugGap;
             canvas.style.top = `${canvasTop}px`;
             canvas.style.left = `${canvasLeft}px`;
@@ -423,57 +401,23 @@
             modeButton.style.left = `${canvasLeft}px`;
 
             mapButton.style.top = `${buttonTop}px`;
-            mapButton.style.right = `${sideOffset}px`;
+            mapButton.style.right = `${canvasLeft}px`;
 
             playButton.style.top = `${buttonTop}px`;
 
-            livesCount.style.left = `0px`;
-            livesChange.style.left = `${60 + 10}px`; // Right of livesCount
-            hiScoreCount.style.right = `0px`;
-            levelChange.style.left = `${(window.innerWidth - 120) / 2 + 120 + 10}px`; // Right of levelContainer
+            livesCount.style.left = `${canvasLeft}px`;
+            livesChange.style.left = `${canvasLeft + 60 + 10}px`; // Right of livesCount
+            hiScoreCount.style.right = `${canvasLeft}px`;
+            levelChange.style.left = `${canvasLeft + (window.innerWidth * 0.9 - 120) / 2 + 120 + 10}px`; // Right of levelContainer
 
-            leftPreview.style.left = `0px`;
-            leftPreview.style.width = `${sideOffset}px`;
-            leftPreview.style.top = `${canvasTop}px`;
-            leftPreview.style.height = canvas.style.height;
-
-            rightPreview.style.left = `${window.innerWidth - sideOffset}px`;
-            rightPreview.style.width = `${sideOffset}px`;
-            rightPreview.style.top = `${canvasTop}px`;
-            rightPreview.style.height = canvas.style.height;
-
-            updatePreviews();
             constrainCircle();
         }
 
-        function updatePreviews() {
-            leftPreview.innerHTML = '';
-            rightPreview.innerHTML = '';
-            if (currentMode !== 'survival' || currentMap !== 'rectangle') return;
-
-            const previewHeight = parseFloat(canvas.style.height) / 3;
-
-            const createPreview = (container, sections) => {
-                if (!sections) return;
-                [0, 1, 2].forEach(sec => {
-                    const div = document.createElement('div');
-                    div.style.height = `${previewHeight}px`;
-                    div.style.width = '100%';
-                    if (sec === sections.green) {
-                        div.style.background = 'rgb(11, 74, 28)';
-                    } else if (sec === sections.red) {
-                        div.style.background = 'rgb(130, 33, 33)';
-                    } else {
-                        div.style.background = '#000000';
-                    }
-                    container.appendChild(div);
-                });
-            };
-
-            createPreview(leftPreview, previousSections);
-            createPreview(rightPreview, nextSections);
-        }
-
+        document.addEventListener('DOMContentLoaded', () => {
+            setCanvasSize();
+            assignSections();
+            requestAnimationFrame(() => setCanvasSize());
+        });
         window.addEventListener('resize', setCanvasSize);
 
         function updateDisplay() {
@@ -595,10 +539,8 @@
                 countdownOpacity,
                 wasDraggingWhenPaused: circle.wasDraggingWhenPaused,
                 startingLives,
-                previousSections: previousSections ? { ...previousSections } : null,
-                currentSections: currentSections ? { ...currentSections } : null,
-                nextSections: nextSections ? { ...nextSections } : null,
-                isGameStarted
+                greenSection,
+                redSection
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -620,17 +562,11 @@
             countdownOpacity = state.countdownOpacity;
             circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
             startingLives = state.startingLives !== undefined ? state.startingLives : (mode === 'survival' ? 3 : Infinity);
+            greenSection = state.greenSection !== undefined ? state.greenSection : null;
+            redSection = state.redSection !== undefined ? state.redSection : null;
 
-            isGameStarted = state.isGameStarted || false;
-
-            if (mode !== 'survival' || map !== 'rectangle') {
-                previousSections = null;
-                currentSections = null;
-                nextSections = null;
-            } else {
-                previousSections = state.previousSections ? { ...state.previousSections } : null;
-                currentSections = state.currentSections || generateSections();
-                nextSections = state.nextSections || generateSections();
+            if (!greenSection && !redSection && mode === 'survival' && map === 'rectangle') {
+                assignSections();
             }
 
             if (state.circle.x !== undefined) {
@@ -676,7 +612,6 @@
             updateThrowMultiplier();
             updateDisplay();
             drawScene();
-            updatePreviews();
         }
 
         function getCircleColor(counterColor) {
@@ -712,13 +647,13 @@
             const pixelRatio = window.devicePixelRatio || 1;
 
             if (currentMode === 'survival' && currentMap === 'rectangle') {
-                if (currentSections && currentSections.green !== null) {
+                if (greenSection !== null) {
                     ctx.fillStyle = 'rgb(11, 74, 28)';
-                    ctx.fillRect(0, currentSections.green * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.fillRect(0, greenSection * sectionHeight, canvasWidth, sectionHeight);
                 }
-                if (currentSections && currentSections.red !== null) {
+                if (redSection !== null) {
                     ctx.fillStyle = 'rgb(130, 33, 33)';
-                    ctx.fillRect(0, currentSections.red * sectionHeight, canvasWidth, sectionHeight);
+                    ctx.fillRect(0, redSection * sectionHeight, canvasWidth, sectionHeight);
                 }
 
                 ctx.font = 'bold 40px Impact, sans-serif';
@@ -729,18 +664,18 @@
 
                 const greenLives = startingLives <= 3 ? startingLives + 1 : (lives > 2 ? lives + 1 : 4);
                 const redLives = startingLives <= 3 ? Math.max(startingLives - 1, 1) : (lives > 2 ? Math.max(lives - 1, 1) : 2);
-                const blackSection = [0, 1, 2].find(s => s !== currentSections.green && s !== currentSections.red);
+                const blackSection = [0, 1, 2].find(s => s !== greenSection && s !== redSection);
                 const blackLives = startingLives <= 3 ? startingLives : (lives > 2 ? lives : 3);
 
-                if (currentSections.green !== null) {
+                if (greenSection !== null) {
                     ctx.fillStyle = 'rgb(11, 74, 28)';
-                    ctx.fillText(`+${greenLives - lives}`, 40, currentSections.green * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`+${greenLives - lives}`, canvasWidth - 40, currentSections.green * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`+${greenLives - lives}`, 40, greenSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`+${greenLives - lives}`, canvasWidth - 40, greenSection * sectionHeight + sectionHeight / 2);
                 }
-                if (currentSections.red !== null) {
+                if (redSection !== null) {
                     ctx.fillStyle = 'rgb(130, 33, 33)';
-                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, 40, currentSections.red * sectionHeight + sectionHeight / 2);
-                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, canvasWidth - 40, currentSections.red * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, 40, redSection * sectionHeight + sectionHeight / 2);
+                    ctx.fillText(`${redLives - lives >= 0 ? '+' : ''}${redLives - lives}`, canvasWidth - 40, redSection * sectionHeight + sectionHeight / 2);
                 }
                 if (blackSection !== null) {
                     ctx.fillStyle = '#000';
@@ -913,14 +848,6 @@
         }
 
         function updatePhysics() {
-            const now = Date.now();
-            bulletHoles.forEach(h => {
-                h.opacity = Math.max(0, 1 - (now - h.startTime) / 2000);
-            });
-            bulletHoles = bulletHoles.filter(h => h.opacity > 0);
-
-            if (!circle.hasBeenTouched || !isGameStarted) return;
-
             if (isPaused) {
                 if (circle.isDragging) {
                     circle.dx = 0;
@@ -932,7 +859,7 @@
             const currentTime = Date.now();
 
             if (!circle.isDragging) {
-                circle.dy += gravity * (isCountingDown ? 0 : 1);
+                circle.dy += gravity;
                 circle.x += circle.dx;
                 circle.y += circle.dy;
                 circle.dx *= friction;
@@ -1026,6 +953,13 @@
                     }
                 }
             }
+
+            // Update bullet holes opacity
+            const now = Date.now();
+            bulletHoles.forEach(h => {
+                h.opacity = Math.max(0, 1 - (now - h.startTime) / 2000);
+            });
+            bulletHoles = bulletHoles.filter(h => h.opacity > 0);
         }
 
         function startCountdown(isResuming = false) {
@@ -1039,7 +973,6 @@
                 wallHitsDisplay.style.textShadow = '0 0 5px #fff';
                 isTrackingHits = true;
                 countdownOpacity = 1;
-                isGameStarted = true;
             } else {
                 isCountingDown = true;
             }
@@ -1138,8 +1071,8 @@
                         const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                         const sectionHeight = canvasHeight / 3;
                         const section = Math.floor(originalY / sectionHeight);
-                        if (section === currentSections.green) bgColor = 'rgb(11, 74, 28)';
-                        else if (section === currentSections.red) bgColor = 'rgb(130, 33, 33)';
+                        if (section === greenSection) bgColor = 'rgb(11, 74, 28)';
+                        else if (section === redSection) bgColor = 'rgb(130, 33, 33)';
                         else bgColor = '#000000';
                     }
                     if (bgColor === '#000000') bgColor = 'rgba(200, 200, 200, 0.5)';
@@ -1155,10 +1088,10 @@
                         else if (startingLives > 3 && lives > 2) baseLives = lives;
                         else baseLives = startingLives;
 
-                        if (circleSection === currentSections.green) {
+                        if (circleSection === greenSection) {
                             lives = baseLives + 1;
                             flashColor = 'flash-green';
-                        } else if (circleSection === currentSections.red) {
+                        } else if (circleSection === redSection) {
                             lives = Math.max(baseLives - 1, 1);
                             flashColor = 'flash-red';
                         } else {
@@ -1176,10 +1109,9 @@
                         canvas.classList.add(flashColor);
                     }
                     startingLives = lives;
-                    updateSections(true);
+                    assignSections();
                     saveState();
                     updateDisplay();
-                    updatePreviews();
                     startCountdown();
                 }
                 circle.x = pos.x;
@@ -1195,8 +1127,8 @@
                     const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                     const sectionHeight = canvasHeight / 3;
                     const section = Math.floor(originalY / sectionHeight);
-                    if (section === currentSections.green) bgColor = 'rgb(11, 74, 28)';
-                    else if (section === currentSections.red) bgColor = 'rgb(130, 33, 33)';
+                    if (section === greenSection) bgColor = 'rgb(11, 74, 28)';
+                    else if (section === redSection) bgColor = 'rgb(130, 33, 33)';
                     else bgColor = '#000000';
                 }
                 if (bgColor === '#000000') bgColor = 'rgba(200, 200, 200, 0.5)';
@@ -1221,10 +1153,10 @@
                     else if (startingLives > 3 && lives > 2) baseLives = lives;
                     else baseLives = startingLives;
 
-                    if (circleSection === currentSections.green) {
+                    if (circleSection === greenSection) {
                         lives = baseLives + 1;
                         flashColor = 'flash-green';
-                    } else if (circleSection === currentSections.red) {
+                    } else if (circleSection === redSection) {
                         lives = Math.max(baseLives - 1, 1);
                         flashColor = 'flash-red';
                     } else {
@@ -1242,10 +1174,9 @@
                     canvas.classList.add(flashColor);
                 }
                 startingLives = lives;
-                updateSections(true);
+                assignSections();
                 saveState();
                 updateDisplay();
-                updatePreviews();
                 startCountdown();
             } else if (wallHits > level && currentMode === 'survival') {
                 lives--;
@@ -1254,14 +1185,10 @@
                     updateThrowMultiplier();
                     lives = 3;
                     startingLives = 3;
-                    previousSections = null;
-                    currentSections = generateSections();
-                    nextSections = generateSections();
                 }
                 wallHits = 0;
                 saveState();
                 updateDisplay();
-                updatePreviews();
                 startCountdown();
             } else if (wallHits < level && currentMode === 'survival') {
                 lives--;
@@ -1270,14 +1197,10 @@
                     updateThrowMultiplier();
                     lives = 3;
                     startingLives = 3;
-                    previousSections = null;
-                    currentSections = generateSections();
-                    nextSections = generateSections();
                 }
                 wallHits = 0;
                 saveState();
                 updateDisplay();
-                updatePreviews();
                 startCountdown();
             } else {
                 wallHits = 0;
@@ -1730,14 +1653,13 @@
             requestAnimationFrame(animate);
         }
 
+        circle.x = window.innerWidth * 0.45;
+        circle.y = window.innerHeight * 0.5;
+
         updateThrowMultiplier();
         updateDisplay();
         drawScene();
         animate();
-
-        setCanvasSize();
-        loadState('survival', 'rectangle');
-        requestAnimationFrame(() => setCanvasSize());
     </script>
 </body>
 </html>
