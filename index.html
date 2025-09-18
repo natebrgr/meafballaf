@@ -345,10 +345,10 @@
         let buttonActivated = { play: false, mode: false, map: false };
 
         const gameStates = {
-            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3, lastWonReplay: [] },
-            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity, lastWonReplay: [] },
-            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3, lastWonReplay: [] },
-            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity, lastWonReplay: [] }
+            'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
+            'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity },
+            'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
+            'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity }
         };
 
         let greenSection = null;
@@ -360,13 +360,6 @@
         let previousLandedSection = null;
 
         let bulletHoles = [];
-
-        let recording = [];
-        let isRecording = false;
-        let lastWonReplay = [];
-        let isReplaying = false;
-        let replayIndex = 0;
-        let savedState = null;
 
         function getRandomSections() {
             const sections = [0, 1, 2];
@@ -413,13 +406,14 @@
 
             const availableHeight = window.innerHeight - wallHitsBottom - canvasShrink - buttonHeight - snugGap;
             const pixelRatio = window.devicePixelRatio || 1;
-            canvas.style.width = `${window.innerWidth * 0.9}px`;
+            const canvasStyleWidth = window.innerWidth * 0.9;
+            canvas.style.width = `${canvasStyleWidth}px`;
             canvas.style.height = `${availableHeight - 2 * borderWidth}px`;
-            canvas.width = window.innerWidth * 0.9 * pixelRatio;
+            canvas.width = canvasStyleWidth * pixelRatio;
             canvas.height = (availableHeight - 2 * borderWidth) * pixelRatio;
             ctx.scale(pixelRatio, pixelRatio);
 
-            const canvasLeft = (window.innerWidth - (window.innerWidth * 0.9)) / 2;
+            const canvasLeft = (window.innerWidth - canvasStyleWidth) / 2;
             const canvasTop = wallHitsBottom + snugGap;
             canvas.style.top = `${canvasTop}px`;
             canvas.style.left = `${canvasLeft}px`;
@@ -528,13 +522,14 @@
         function constrainCircle() {
             const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
             const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+            const playableWidth = canvasWidth - 2 * sideStripWidth;
             if (currentMap === 'rectangle') {
                 circle.x = Math.max(sideStripWidth + circle.radius, Math.min(canvasWidth - sideStripWidth - circle.radius, circle.x));
                 circle.y = Math.max(circle.radius, Math.min(canvasHeight - circle.radius, circle.y));
             } else {
                 const centerX = canvasWidth / 2;
                 const centerY = canvasHeight / 2;
-                const maxRadius = Math.min(canvasWidth, canvasHeight) / 2 - borderWidth;
+                const maxRadius = Math.min(playableWidth, canvasHeight) / 2 - borderWidth;
                 const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                 if (distFromCenter + circle.radius > maxRadius) {
                     const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
@@ -579,21 +574,7 @@
                 previousRedSection,
                 nextGreenSection,
                 nextRedSection,
-                previousLandedSection,
-                lastWonReplay: lastWonReplay.map(frame => ({
-                    circle: {...frame.circle},
-                    trail: frame.trail.map(t => ({...t})),
-                    wallHits: frame.wallHits,
-                    level: frame.level,
-                    lives: frame.lives,
-                    hiScore: frame.hiScore,
-                    startingLives: frame.startingLives,
-                    isCountingDown: frame.isCountingDown,
-                    countdown: frame.countdown,
-                    countdownOpacity: frame.countdownOpacity,
-                    greenSection: frame.greenSection,
-                    redSection: frame.redSection
-                }))
+                previousLandedSection
             };
             if (isCountingDown) {
                 clearInterval(countdownInterval);
@@ -615,6 +596,7 @@
             countdownOpacity = state.countdownOpacity;
             circle.wasDraggingWhenPaused = state.wasDraggingWhenPaused;
             startingLives = state.startingLives !== undefined ? state.startingLives : (mode === 'survival' ? 3 : Infinity);
+
             greenSection = state.greenSection !== undefined ? state.greenSection : null;
             redSection = state.redSection !== undefined ? state.redSection : null;
             previousGreenSection = state.previousGreenSection !== undefined ? state.previousGreenSection : null;
@@ -622,20 +604,6 @@
             nextGreenSection = state.nextGreenSection !== undefined ? state.nextGreenSection : null;
             nextRedSection = state.nextRedSection !== undefined ? state.nextRedSection : null;
             previousLandedSection = state.previousLandedSection !== undefined ? state.previousLandedSection : null;
-            lastWonReplay = state.lastWonReplay ? state.lastWonReplay.map(frame => ({
-                circle: {...frame.circle},
-                trail: frame.trail.map(t => ({...t})),
-                wallHits: frame.wallHits,
-                level: frame.level,
-                lives: frame.lives,
-                hiScore: frame.hiScore,
-                startingLives: frame.startingLives,
-                isCountingDown: frame.isCountingDown,
-                countdown: frame.countdown,
-                countdownOpacity: frame.countdownOpacity,
-                greenSection: frame.greenSection,
-                redSection: frame.redSection
-            })) : [];
 
             if (mode === 'survival' && map === 'rectangle') {
                 if (greenSection === null) {
@@ -804,7 +772,7 @@
                 ctx.strokeRect(sideStripWidth, 0, playableWidth, canvasHeight);
             } else {
                 ctx.beginPath();
-                ctx.arc(canvasWidth / 2, canvasHeight / 2, Math.min(canvasWidth, canvasHeight) / 2 - borderWidth, 0, Math.PI * 2);
+                ctx.arc(canvasWidth / 2, canvasHeight / 2, Math.min(playableWidth, canvasHeight) / 2 - borderWidth, 0, Math.PI * 2);
                 ctx.stroke();
             }
 
@@ -881,7 +849,7 @@
             if (currentMap === 'rectangle') {
                 ctx.save();
                 ctx.beginPath();
-                ctx.rect(sideStripWidth + borderWidth, borderWidth, playableWidth - 2 * borderWidth, canvasHeight - 2 * borderWidth);
+                ctx.rect(sideStripWidth + borderWidth, borderWidth, playableWidth - borderWidth * 2, canvasHeight - borderWidth * 2);
                 ctx.clip();
             }
 
@@ -979,6 +947,10 @@
                 return;
             }
 
+            const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+            const playableWidth = canvasWidth - 2 * sideStripWidth;
+
             const currentTime = Date.now();
 
             if (!circle.isDragging) {
@@ -1000,15 +972,15 @@
                 let walls;
                 if (currentMap === 'rectangle') {
                     walls = [
-                        { name: 'right', edge: canvas.width / (window.devicePixelRatio || 1) - sideStripWidth, pos: circle.x + circle.radius, velocity: circle.dx, isContact: circle.x + circle.radius >= canvas.width / (window.devicePixelRatio || 1) - sideStripWidth },
+                        { name: 'right', edge: canvasWidth - sideStripWidth, pos: circle.x + circle.radius, velocity: circle.dx, isContact: circle.x + circle.radius >= canvasWidth - sideStripWidth },
                         { name: 'left', edge: sideStripWidth, pos: circle.x - circle.radius, velocity: circle.dx, isContact: circle.x - circle.radius <= sideStripWidth },
-                        { name: 'bottom', edge: canvas.height / (window.devicePixelRatio || 1), pos: circle.y + circle.radius, velocity: circle.dy, isContact: circle.y + circle.radius >= canvas.height / (window.devicePixelRatio || 1) },
+                        { name: 'bottom', edge: canvasHeight, pos: circle.y + circle.radius, velocity: circle.dy, isContact: circle.y + circle.radius >= canvasHeight },
                         { name: 'top', edge: 0, pos: circle.y - circle.radius, velocity: circle.dy, isContact: circle.y - circle.radius <= 0 }
                     ];
                 } else {
-                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
-                    const radius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth;
+                    const centerX = canvasWidth / 2;
+                    const centerY = canvasHeight / 2;
+                    const radius = Math.min(playableWidth, canvasHeight) / 2 - borderWidth;
                     const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                     const isContact = distFromCenter + circle.radius >= radius;
                     walls = [{ name: 'boundary', edge: radius, pos: distFromCenter + circle.radius, velocity: 0, isContact }];
@@ -1047,24 +1019,24 @@
                 });
 
                 if (currentMap === 'rectangle') {
-                    if (circle.x + circle.radius > canvas.width / (window.devicePixelRatio || 1) - sideStripWidth) {
-                        circle.x = (canvas.width / (window.devicePixelRatio || 1) - sideStripWidth) - circle.radius;
+                    if (circle.x + circle.radius > canvasWidth - sideStripWidth) {
+                        circle.x = (canvasWidth - sideStripWidth) - circle.radius;
                         circle.dx = -circle.dx * bounciness;
                     } else if (circle.x - circle.radius < sideStripWidth) {
                         circle.x = sideStripWidth + circle.radius;
                         circle.dx = -circle.dx * bounciness;
                     }
-                    if (circle.y + circle.radius > canvas.height / (window.devicePixelRatio || 1)) {
-                        circle.y = (canvas.height / (window.devicePixelRatio || 1)) - circle.radius;
+                    if (circle.y + circle.radius > canvasHeight) {
+                        circle.y = canvasHeight - circle.radius;
                         circle.dy = -circle.dy * bounciness;
                     } else if (circle.y - circle.radius < 0) {
                         circle.y = circle.radius;
                         circle.dy = -circle.dy * bounciness;
                     }
                 } else {
-                    const centerX = (canvas.width / (window.devicePixelRatio || 1)) / 2;
-                    const centerY = (canvas.height / (window.devicePixelRatio || 1)) / 2;
-                    const radius = Math.min(canvas.width, canvas.height) / (window.devicePixelRatio || 1) / 2 - borderWidth;
+                    const centerX = canvasWidth / 2;
+                    const centerY = canvasHeight / 2;
+                    const radius = Math.min(playableWidth, canvasHeight) / 2 - borderWidth;
                     const distFromCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
                     if (distFromCenter + circle.radius >= radius) {
                         const angle = Math.atan2(circle.y - centerY, circle.x - centerX);
@@ -1096,8 +1068,6 @@
                 wallHitsDisplay.style.textShadow = '0 0 5px #fff';
                 isTrackingHits = true;
                 countdownOpacity = 1;
-                recording = [];
-                isRecording = true;
             } else {
                 isCountingDown = true;
             }
@@ -1242,9 +1212,6 @@
                     greenSection = nextGreenSection;
                     redSection = nextRedSection;
                     assignNextSections();
-                    lastWonReplay = recording.slice();
-                    isRecording = false;
-                    recording = [];
                     saveState();
                     updateDisplay();
                     startCountdown();
@@ -1315,9 +1282,6 @@
                 greenSection = nextGreenSection;
                 redSection = nextRedSection;
                 assignNextSections();
-                lastWonReplay = recording.slice();
-                isRecording = false;
-                recording = [];
                 saveState();
                 updateDisplay();
                 startCountdown();
@@ -1335,8 +1299,6 @@
                     assignNextSections();
                 }
                 wallHits = 0;
-                isRecording = false;
-                recording = [];
                 saveState();
                 updateDisplay();
                 startCountdown();
@@ -1354,8 +1316,6 @@
                     assignNextSections();
                 }
                 wallHits = 0;
-                isRecording = false;
-                recording = [];
                 saveState();
                 updateDisplay();
                 startCountdown();
@@ -1424,6 +1384,7 @@
         function drag(e) {
             const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
             const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+            const playableWidth = canvasWidth - 2 * sideStripWidth;
             if (circle.isDragging && !circle.isResizing) {
                 const pos = getMousePos(e, circle.dragTouchId);
 
@@ -1433,7 +1394,7 @@
                 } else {
                     const centerX = canvasWidth / 2;
                     const centerY = canvasHeight / 2;
-                    const maxRadius = Math.min(canvasWidth, canvasHeight) / 2 - borderWidth - circle.radius;
+                    const maxRadius = Math.min(playableWidth, canvasHeight) / 2 - borderWidth - circle.radius;
                     const dx = pos.x - centerX;
                     const dy = pos.y - centerY;
                     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -1485,7 +1446,7 @@
                     const centerX = canvasWidth / 2;
                     const centerY = canvasHeight / 2;
                     const distToCenter = Math.sqrt((circle.x - centerX) ** 2 + (circle.y - centerY) ** 2);
-                    maxAllowedRadius = Math.min(canvasWidth, canvasHeight) / 2 - borderWidth - distToCenter;
+                    maxAllowedRadius = Math.min(playableWidth, canvasHeight) / 2 - borderWidth - distToCenter;
                 }
 
                 circle.radius = Math.min(newRadius, maxAllowedRadius);
@@ -1652,7 +1613,7 @@
             Object.keys(holdTimers).forEach(key => {
                 if (holdTimers[key]) {
                     clearTimeout(holdTimers[key]);
-                    holdTimers[key = null;
+                    holdTimers[key] = null;
                     if (key === 'play') {
                         playButton.classList.remove('glow-green', 'glow-red');
                         playButton.classList.add('recede');
@@ -1704,68 +1665,6 @@
             circle.resizeTouchId = null;
             constrainCircle();
             if (isPaused) saveState();
-            drawScene();
-        }
-
-        function saveCurrentState() {
-            savedState = {
-                circle: {
-                    x: circle.x,
-                    y: circle.y,
-                    dx: circle.dx,
-                    dy: circle.dy,
-                    radius: circle.radius,
-                    hasBeenTouched: circle.hasBeenTouched
-                },
-                trail: trail.map(t => ({x: t.x, y: t.y, opacity: t.opacity})),
-                wallHits: wallHits,
-                level: level,
-                lives: lives,
-                hiScore: hiScore,
-                startingLives: startingLives,
-                isCountingDown: isCountingDown,
-                countdown: countdown,
-                countdownOpacity: countdownOpacity,
-                greenSection: greenSection,
-                redSection: redSection,
-                previousGreenSection: previousGreenSection,
-                previousRedSection: previousRedSection,
-                nextGreenSection: nextGreenSection,
-                nextRedSection: nextRedSection,
-                previousLandedSection: previousLandedSection,
-                isPaused: isPaused,
-                isTrackingHits: isTrackingHits
-            };
-        }
-
-        function restoreSavedState() {
-            if (!savedState) return;
-            circle.x = savedState.circle.x;
-            circle.y = savedState.circle.y;
-            circle.dx = savedState.circle.dx;
-            circle.dy = savedState.circle.dy;
-            circle.radius = savedState.circle.radius;
-            circle.hasBeenTouched = savedState.circle.hasBeenTouched;
-            trail = savedState.trail.map(t => ({x: t.x, y: t.y, opacity: t.opacity}));
-            wallHits = savedState.wallHits;
-            level = savedState.level;
-            lives = savedState.lives;
-            hiScore = savedState.hiScore;
-            startingLives = savedState.startingLives;
-            isCountingDown = savedState.isCountingDown;
-            countdown = savedState.countdown;
-            countdownOpacity = savedState.countdownOpacity;
-            greenSection = savedState.greenSection;
-            redSection = savedState.redSection;
-            previousGreenSection = savedState.previousGreenSection;
-            previousRedSection = savedState.previousRedSection;
-            nextGreenSection = savedState.nextGreenSection;
-            nextRedSection = savedState.nextRedSection;
-            previousLandedSection = savedState.previousLandedSection;
-            isPaused = savedState.isPaused;
-            isTrackingHits = savedState.isTrackingHits;
-            savedState = null;
-            updateDisplay();
             drawScene();
         }
 
@@ -1829,18 +1728,6 @@
         });
 
         canvas.addEventListener('mousedown', (e) => {
-            const pos = getMousePos(e);
-            if (isReplaying) {
-                isReplaying = false;
-                restoreSavedState();
-                return;
-            }
-            if (isPaused && pos.x < sideStripWidth && lastWonReplay.length > 0) {
-                saveCurrentState();
-                isReplaying = true;
-                replayIndex = 0;
-                return;
-            }
             handleCanvasTap(e);
             startDragging(e);
         });
@@ -1848,20 +1735,6 @@
         canvas.addEventListener('mouseup', stopDragging);
 
         canvas.addEventListener('touchstart', (e) => {
-            const pos = getMousePos(e, e.touches[0].identifier);
-            if (isReplaying) {
-                isReplaying = false;
-                restoreSavedState();
-                e.preventDefault();
-                return;
-            }
-            if (isPaused && pos.x < sideStripWidth && lastWonReplay.length > 0) {
-                saveCurrentState();
-                isReplaying = true;
-                replayIndex = 0;
-                e.preventDefault();
-                return;
-            }
             handleCanvasTap(e);
             startDragging(e);
             startResizing(e);
@@ -1897,58 +1770,8 @@
         });
 
         function animate() {
-            if (isReplaying) {
-                if (replayIndex < lastWonReplay.length) {
-                    const s = lastWonReplay[replayIndex];
-                    circle.x = s.circle.x;
-                    circle.y = s.circle.y;
-                    circle.dx = s.circle.dx;
-                    circle.dy = s.circle.dy;
-                    circle.radius = s.circle.radius;
-                    trail = s.trail.map(t => ({x: t.x, y: t.y, opacity: t.opacity}));
-                    wallHits = s.wallHits;
-                    level = s.level;
-                    lives = s.lives;
-                    hiScore = s.hiScore;
-                    startingLives = s.startingLives;
-                    isCountingDown = s.isCountingDown;
-                    countdown = s.countdown;
-                    countdownOpacity = s.countdownOpacity;
-                    greenSection = s.greenSection;
-                    redSection = s.redSection;
-                    updateDisplay();
-                    drawScene();
-                    replayIndex++;
-                } else {
-                    isReplaying = false;
-                    restoreSavedState();
-                }
-            } else {
-                updatePhysics();
-                if (isRecording && !isPaused) {
-                    recording.push({
-                        circle: {
-                            x: circle.x,
-                            y: circle.y,
-                            dx: circle.dx,
-                            dy: circle.dy,
-                            radius: circle.radius
-                        },
-                        trail: trail.map(t => ({x: t.x, y: t.y, opacity: t.opacity})),
-                        wallHits: wallHits,
-                        level: level,
-                        lives: lives,
-                        hiScore: hiScore,
-                        startingLives: startingLives,
-                        isCountingDown: isCountingDown,
-                        countdown: countdown,
-                        countdownOpacity: countdownOpacity,
-                        greenSection: greenSection,
-                        redSection: redSection
-                    });
-                }
-                drawScene();
-            }
+            updatePhysics();
+            drawScene();
             requestAnimationFrame(animate);
         }
 
