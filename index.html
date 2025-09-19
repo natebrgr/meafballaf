@@ -88,7 +88,7 @@
             color: #ffffff;
             text-shadow: 0 0 10px #000;
         }
-        #livesCount, #hiScoreCount, #coinCount, #potentialCount {
+        #livesCount, #hiScoreCount {
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
             font-size: 2.5em;
@@ -102,6 +102,15 @@
             align-items: center;
             border: 2px solid #e0e0e0;
             border-radius: 5px;
+            top: 40px;
+        }
+        #coinCount, #potentialCount {
+            color: #e0e0e0;
+            text-shadow: 0 0 5px #fff;
+            font-size: 1.5em;
+            position: absolute;
+            z-index: 2;
+            font-family: 'Impact', sans-serif;
         }
         #livesCount.flash-green {
             animation: flashGreen 0.5s ease;
@@ -475,17 +484,15 @@
         playButton.style.top = `${buttonTop}px`;
 
         livesCount.style.left = `${canvasLeft}px`;
-        livesCount.style.top = `40px`;
-        livesChange.style.left = `${canvasLeft + 60 + 10}px`;
+        livesChange.style.left = `${canvasLeft + 60 + 10}px`; // Right of livesCount
         hiScoreCount.style.right = `${canvasLeft}px`;
-        hiScoreCount.style.top = `40px`;
-        levelChange.style.left = `${canvasLeft + (window.innerWidth * 0.9 - 120) / 2 + 120 + 10}px`;
+        levelChange.style.left = `${canvasLeft + (window.innerWidth * 0.9 - 120) / 2 + 120 + 10}px`; // Right of levelContainer
         potentialCount.style.left = `${canvasLeft}px`;
         potentialCount.style.top = `10px`;
         coinCount.style.right = `${canvasLeft}px`;
         coinCount.style.top = `10px`;
-        coinChange.style.left = `${window.innerWidth - (canvasLeft + 60 + 10)}px`;
-        coinChange.style.top = `25px`;
+        coinChange.style.right = `${canvasLeft - 50}px`; // Adjust to be next to coinCount
+        coinChange.style.top = `10px`;
 
         constrainCircle();
     }
@@ -596,7 +603,7 @@
         wallHitsDisplay.textContent = `${wallHits}`;
 
         if (currentMode === 'survival' && gameActive) {
-            potentialCount.style.display = 'flex';
+            potentialCount.style.display = 'block';
         } else {
             potentialCount.style.display = 'none';
         }
@@ -1286,6 +1293,10 @@
             gameActive = false;
             sliderContainer.style.display = 'block';
             canvas.style.pointerEvents = 'none';
+        } else {
+            gameActive = true;
+            sliderContainer.style.display = 'none';
+            canvas.style.pointerEvents = 'auto';
         }
         potential = 0;
         saveState();
@@ -1306,6 +1317,7 @@
         if (currentMode === 'survival' && !gameActive) return;
         const pos = getMousePos(e);
         const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+        const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
         if (pos.x < sideStripWidth || pos.x > canvasWidth - sideStripWidth) return;
         const centerX = canvasWidth / 2;
         const centerY = canvasHeight / 2;
@@ -1349,7 +1361,6 @@
                 // Add bullet hole for winning during countdown
                 let bgColor = '#000000';
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
-                    const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                     const sectionHeight = canvasHeight / 3;
                     const section = Math.floor(originalY / sectionHeight);
                     if (section === greenSection) bgColor = 'rgb(11, 74, 28)';
@@ -1360,7 +1371,6 @@
                 bulletHoles.push({ x: originalX, y: originalY, startTime: Date.now(), bgColor, opacity: 1 });
 
                 if (currentMode === 'survival' && currentMap === 'rectangle') {
-                    const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                     const sectionHeight = canvasHeight / 3;
                     const circleSection = Math.floor(originalY / sectionHeight); // Use original position
 
@@ -1412,7 +1422,6 @@
         if (!isCountingDown && circle.hasBeenTouched) {
             let bgColor = '#000000';
             if (currentMode === 'survival' && currentMap === 'rectangle') {
-                const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                 const sectionHeight = canvasHeight / 3;
                 const section = Math.floor(originalY / sectionHeight);
                 if (section === greenSection) bgColor = 'rgb(11, 74, 28)';
@@ -1436,7 +1445,6 @@
             let flashColor = null;
 
             if (currentMode === 'survival' && currentMap === 'rectangle') {
-                const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                 const sectionHeight = canvasHeight / 3;
                 const circleSection = Math.floor(originalY / sectionHeight); // Use original position
 
@@ -1514,6 +1522,7 @@
         if (currentMode === 'survival' && !gameActive) return;
         const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
         const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+        const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
         if (pos.x < sideStripWidth || pos.x > canvasWidth - sideStripWidth) return;
         const centerX = canvasWidth / 2;
         const centerY = canvasHeight / 2;
