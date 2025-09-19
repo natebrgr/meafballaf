@@ -88,7 +88,7 @@
             color: #ffffff;
             text-shadow: 0 0 10px #000;
         }
-        #livesCount, #hiScoreCount {
+        #livesCount, #hiScoreCount, #coinCount, #potentialCount {
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
             font-size: 2.5em;
@@ -102,7 +102,6 @@
             align-items: center;
             border: 2px solid #e0e0e0;
             border-radius: 5px;
-            top: 40px;
         }
         #livesCount.flash-green {
             animation: flashGreen 0.5s ease;
@@ -110,7 +109,7 @@
         #livesCount.flash-red {
             animation: flashRed 0.5s ease;
         }
-        #hiScoreCount.flash-green {
+        #hiScoreCount.flash-green, #coinCount.flash-green {
             animation: flashGreen 0.5s ease;
         }
         #modeButton, #mapButton {
@@ -157,7 +156,7 @@
         #playButton.recede, #modeButton.recede, #mapButton.recede {
             animation: recedeGlow 0.2s linear forwards;
         }
-        #livesChange, #levelChange {
+        #livesChange, #levelChange, #coinChange {
             position: absolute;
             z-index: 3;
             font-family: 'Impact', sans-serif;
@@ -171,7 +170,7 @@
         #levelChange {
             left: calc(50% + 60px + 10px); /* Right of levelContainer (120px wide, centered) */
         }
-        #livesChange.plus, #levelChange.plus {
+        #livesChange.plus, #levelChange.plus, #coinChange.plus {
             color: rgb(11, 74, 28); /* Matching green from #levelNumber */
             animation: changePlus 1.25s ease forwards;
         }
@@ -243,6 +242,25 @@
         canvas.flash-red {
             animation: flashRed 0.5s ease;
         }
+        #sliderContainer {
+            position: absolute;
+            z-index: 10;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        #levelSlider {
+            width: 200px;
+        }
+        #sliderLabels {
+            display: flex;
+            justify-content: space-between;
+            width: 200px;
+            color: #e0e0e0;
+        }
     </style>
 </head>
 <body>
@@ -256,10 +274,21 @@
     <div id="livesCount">3</div>
     <div id="livesChange"></div>
     <div id="hiScoreCount">0</div>
+    <div id="coinCount">0</div>
+    <div id="coinChange"></div>
+    <div id="potentialCount">0</div>
     <button id="modeButton">MODE</button>
     <button id="mapButton">MAP</button>
     <canvas id="canvas"></canvas>
     <button id="playButton">PAUSE</button>
+    <div id="sliderContainer">
+        <input type="range" id="levelSlider" min="10" max="100" value="10">
+        <div id="sliderLabels">
+            <span>10</span>
+            <span>100+</span>
+        </div>
+        <button id="commitButton">COMMIT</button>
+    </div>
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -271,10 +300,16 @@
         const livesCount = document.getElementById('livesCount');
         const livesChange = document.getElementById('livesChange');
         const hiScoreCount = document.getElementById('hiScoreCount');
+        const coinCount = document.getElementById('coinCount');
+        const coinChange = document.getElementById('coinChange');
+        const potentialCount = document.getElementById('potentialCount');
         const titleDisplay = document.getElementById('title');
         const modeButton = document.getElementById('modeButton');
         const mapButton = document.getElementById('mapButton');
         const playButton = document.getElementById('playButton');
+        const sliderContainer = document.getElementById('sliderContainer');
+        const levelSlider = document.getElementById('levelSlider');
+        const commitButton = document.getElementById('commitButton');
         const borderWidth = 2;
         const defaultRadius = 30;
         const initialRadius = 60;
@@ -327,15 +362,24 @@
     let isTrackingHits = false;
     let lives = 3;
     let hiScore = 0;
+    let coins = 0;
+    let potential = 0;
     let isPaused = false;
 
     let previousLives = lives;
     let previousLevel = level;
     let previousHiScore = hiScore;
+    let previousCoins = coins;
     let startingLives = lives;
 
     let currentMode = 'survival';
     let currentMap = 'rectangle';
+
+    let gameActive = false;
+    let chosenTarget = 0;
+    let cashOutAvailable = false;
+    let cashOutTimer = null;
+    let cashOutTouchId = null;
 
     const trail = [];
     const maxTrailLength = 20;
@@ -346,9 +390,9 @@
 
     const gameStates = {
         'survival-rectangle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
-        'endurance-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity },
+        'freebie-rectangle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity },
         'survival-circle': { level: 1, lives: 3, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: 3 },
-        'endurance-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity }
+        'freebie-circle': { level: 1, lives: Infinity, hiScore: 0, circle: {}, trail: [], wallHits: 0, isTrackingHits: false, isPaused: false, isCountingDown: false, countdown: 3, countdownOpacity: 0, wasDraggingWhenPaused: false, startingLives: Infinity }
     };
 
     let greenSection = null;
@@ -431,9 +475,17 @@
         playButton.style.top = `${buttonTop}px`;
 
         livesCount.style.left = `${canvasLeft}px`;
-        livesChange.style.left = `${canvasLeft + 60 + 10}px`; // Right of livesCount
+        livesCount.style.top = `40px`;
+        livesChange.style.left = `${canvasLeft + 60 + 10}px`;
         hiScoreCount.style.right = `${canvasLeft}px`;
-        levelChange.style.left = `${canvasLeft + (window.innerWidth * 0.9 - 120) / 2 + 120 + 10}px`; // Right of levelContainer
+        hiScoreCount.style.top = `40px`;
+        levelChange.style.left = `${canvasLeft + (window.innerWidth * 0.9 - 120) / 2 + 120 + 10}px`;
+        potentialCount.style.left = `${canvasLeft}px`;
+        potentialCount.style.top = `10px`;
+        coinCount.style.right = `${canvasLeft}px`;
+        coinCount.style.top = `10px`;
+        coinChange.style.left = `${window.innerWidth - (canvasLeft + 60 + 10)}px`;
+        coinChange.style.top = `25px`;
 
         constrainCircle();
     }
@@ -443,6 +495,15 @@
         assignCurrentSections();
         assignNextSections();
         requestAnimationFrame(() => setCanvasSize());
+        if (currentMode === 'survival') {
+            gameActive = false;
+            sliderContainer.style.display = 'block';
+            canvas.style.pointerEvents = 'none';
+        } else {
+            gameActive = true;
+            sliderContainer.style.display = 'none';
+            canvas.style.pointerEvents = 'auto';
+        }
     });
     window.addEventListener('resize', setCanvasSize);
 
@@ -506,10 +567,26 @@
             previousHiScore = hiScore;
         }
 
+        if (coins !== previousCoins) {
+            const coinDiff = coins - previousCoins;
+            if (coinDiff > 0) {
+                coinCount.classList.remove('flash-green');
+                void coinCount.offsetHeight;
+                coinCount.classList.add('flash-green');
+                coinChange.textContent = `+${coinDiff}`;
+                coinChange.classList.remove('plus');
+                void coinChange.offsetHeight;
+                coinChange.classList.add('plus');
+            }
+            previousCoins = coins;
+        }
+
         levelNumber.textContent = `${level}`;
         livesCount.textContent = lives === Infinity ? '∞' : lives;
         hiScoreCount.textContent = hiScore;
-        titleDisplay.textContent = currentMode === 'survival' ? 'SURVIVAL MODE' : 'ENDURANCE MODE';
+        coinCount.textContent = coins;
+        potentialCount.textContent = potential;
+        titleDisplay.textContent = currentMode === 'survival' ? 'SURVIVAL MODE' : 'FREEBIE MODE';
         setCanvasSize();
 
         playButton.textContent = isPaused ? 'RESUME' : 'PAUSE';
@@ -517,6 +594,12 @@
         countdownDisplay.textContent = countdown;
 
         wallHitsDisplay.textContent = `${wallHits}`;
+
+        if (currentMode === 'survival' && gameActive) {
+            potentialCount.style.display = 'flex';
+        } else {
+            potentialCount.style.display = 'none';
+        }
     }
 
     function constrainCircle() {
@@ -661,6 +744,18 @@
         [playButton, modeButton, mapButton].forEach(btn => {
             btn.classList.remove('glow-green', 'glow-red', 'glow-white', 'recede');
         });
+
+        if (currentMode === 'survival') {
+            gameActive = false;
+            sliderContainer.style.display = 'block';
+            canvas.style.pointerEvents = 'none';
+        } else {
+            gameActive = true;
+            sliderContainer.style.display = 'none';
+            canvas.style.pointerEvents = 'auto';
+        }
+        cashOutAvailable = false;
+        potential = 0;
 
         updateThrowMultiplier();
         updateDisplay();
@@ -933,6 +1028,48 @@
 
         ctx.shadowBlur = 0;
 
+        if (cashOutAvailable && currentMode === 'survival') {
+            const cashRadius = 20;
+            const centerX = canvasWidth / 2;
+            const centerY = canvasHeight / 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, cashRadius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.7)';
+            ctx.fill();
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 2 * pixelRatio;
+            ctx.stroke();
+
+            const text = "CASH OUT";
+            const fontSize = 18;
+            const textRadius = cashRadius + 40;
+            const totalLetters = text.length * 4;
+            const anglePerLetter = (2 * Math.PI) / totalLetters;
+
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 5 * pixelRatio;
+
+            const startAngles = [-Math.PI / 2, 0, Math.PI / 2, Math.PI];
+            for (let instance = 0; instance < 4; instance++) {
+                const startAngle = startAngles[instance];
+                for (let i = 0; i < text.length; i++) {
+                    const angle = startAngle + (i * anglePerLetter);
+                    const x = centerX + textRadius * Math.cos(angle);
+                    const y = centerY + textRadius * Math.sin(angle);
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(angle + Math.PI / 2);
+                    ctx.fillText(text[i], 0, 0);
+                    ctx.restore();
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
+
         if (currentMap === 'rectangle') {
             ctx.restore();
         }
@@ -1126,11 +1263,54 @@
         };
     }
 
+    function endGame(resetToSlider = true) {
+        level = 1;
+        updateThrowMultiplier();
+        lives = 3;
+        startingLives = 3;
+        wallHits = 0;
+        isTrackingHits = false;
+        circle.x = (canvas.width / (window.devicePixelRatio || 1)) / 2;
+        circle.y = (canvas.height / (window.devicePixelRatio || 1)) / 2;
+        circle.dx = 0;
+        circle.dy = 0;
+        circle.hasBeenTouched = false;
+        trail.length = 0;
+        cashOutAvailable = false;
+        previousGreenSection = null;
+        previousRedSection = null;
+        previousLandedSection = null;
+        assignCurrentSections();
+        assignNextSections();
+        if (resetToSlider) {
+            gameActive = false;
+            sliderContainer.style.display = 'block';
+            canvas.style.pointerEvents = 'none';
+        }
+        potential = 0;
+        saveState();
+        updateDisplay();
+        drawScene();
+    }
+
+    function performCashOut() {
+        if (currentMode !== 'survival' || !cashOutAvailable) return;
+        const beaten = level - 1;
+        const gain = beaten * lives;
+        coins += gain;
+        endGame(true);
+    }
+
     function handleCanvasTap(e) {
         if (isPaused) return;
+        if (currentMode === 'survival' && !gameActive) return;
         const pos = getMousePos(e);
         const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
         if (pos.x < sideStripWidth || pos.x > canvasWidth - sideStripWidth) return;
+        const centerX = canvasWidth / 2;
+        const centerY = canvasHeight / 2;
+        const dist = Math.hypot(pos.x - centerX, pos.y - centerY);
+        if (cashOutAvailable && dist <= 50) return;
         e.preventDefault();
 
         const originalX = circle.x;
@@ -1159,6 +1339,10 @@
                 }
                 const completedLevel = level;
                 level++;
+                if (currentMode === 'survival' && completedLevel >= chosenTarget) {
+                    cashOutAvailable = true;
+                }
+                potential = (level - 1) * lives;
                 updateThrowMultiplier();
                 let flashColor = null;
 
@@ -1194,9 +1378,11 @@
                     } else {
                         lives = baseLives;
                     }
+                    potential = (level - 1) * lives;
                     previousLandedSection = circleSection;
                 } else if (currentMode === 'survival') {
                     lives = 3;
+                    potential = (level - 1) * lives;
                 }
 
                 if (completedLevel > hiScore) hiScore = completedLevel;
@@ -1242,6 +1428,10 @@
             isTrackingHits = false;
             const completedLevel = level;
             level++;
+            if (currentMode === 'survival' && completedLevel >= chosenTarget) {
+                cashOutAvailable = true;
+            }
+            potential = (level - 1) * lives;
             updateThrowMultiplier();
             let flashColor = null;
 
@@ -1264,9 +1454,11 @@
                 } else {
                     lives = baseLives;
                 }
+                potential = (level - 1) * lives;
                 previousLandedSection = circleSection;
             } else if (currentMode === 'survival') {
                 lives = 3;
+                potential = (level - 1) * lives;
             }
 
             if (completedLevel > hiScore) hiScore = completedLevel;
@@ -1287,38 +1479,26 @@
             startCountdown();
         } else if (wallHits > level && currentMode === 'survival') {
             lives--;
+            potential = (level - 1) * lives;
             if (lives <= 0) {
-                level = 1;
-                updateThrowMultiplier();
-                lives = 3;
-                startingLives = 3;
-                previousGreenSection = null;
-                previousRedSection = null;
-                previousLandedSection = null;
-                assignCurrentSections();
-                assignNextSections();
+                endGame(true);
+            } else {
+                wallHits = 0;
+                saveState();
+                updateDisplay();
+                startCountdown();
             }
-            wallHits = 0;
-            saveState();
-            updateDisplay();
-            startCountdown();
         } else if (wallHits < level && currentMode === 'survival') {
             lives--;
+            potential = (level - 1) * lives;
             if (lives <= 0) {
-                level = 1;
-                updateThrowMultiplier();
-                lives = 3;
-                startingLives = 3;
-                previousGreenSection = null;
-                previousRedSection = null;
-                previousLandedSection = null;
-                assignCurrentSections();
-                assignNextSections();
+                endGame(true);
+            } else {
+                wallHits = 0;
+                saveState();
+                updateDisplay();
+                startCountdown();
             }
-            wallHits = 0;
-            saveState();
-            updateDisplay();
-            startCountdown();
         } else {
             wallHits = 0;
             startCountdown();
@@ -1331,9 +1511,14 @@
 
     function startDragging(e) {
         if (isPaused && !circle.wasDraggingWhenPaused) return;
+        if (currentMode === 'survival' && !gameActive) return;
         const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
         const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
         if (pos.x < sideStripWidth || pos.x > canvasWidth - sideStripWidth) return;
+        const centerX = canvasWidth / 2;
+        const centerY = canvasHeight / 2;
+        const dist = Math.hypot(pos.x - centerX, pos.y - centerY);
+        if (cashOutAvailable && dist <= 50) return;
         e.preventDefault();
         circle.isDragging = true;
         circle.dragTouchId = e.touches ? e.touches[0].identifier : null;
@@ -1503,7 +1688,7 @@
                         if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
                         isPaused = true;
                         saveState();
-                        currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+                        currentMode = currentMode === 'survival' ? 'freebie' : 'survival';
                         circle.hasBeenTouched = false;
                         loadState(currentMode, currentMap);
                         updateDisplay();
@@ -1552,6 +1737,18 @@
             if (buttonActivated.map && target !== mapButton) buttonActivated.map = false;
         }
 
+        if (cashOutTimer) {
+            const cashPos = getMousePos(e, cashOutTouchId);
+            const centerX = canvasWidth / 2;
+            const centerY = canvasHeight / 2;
+            const cashDist = Math.hypot(cashPos.x - centerX, cashPos.y - centerY);
+            if (cashDist > 50) {
+                clearTimeout(cashOutTimer);
+                cashOutTimer = null;
+                cashOutTouchId = null;
+            }
+        }
+
         if (isPaused) saveState();
         drawScene();
     }
@@ -1589,7 +1786,7 @@
             if (!isPaused) circle.wasDraggingWhenPaused = circle.isDragging;
             isPaused = true;
             saveState();
-            currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+            currentMode = currentMode === 'survival' ? 'freebie' : 'survival';
             circle.hasBeenTouched = false;
             loadState(currentMode, currentMap);
             updateDisplay();
@@ -1668,13 +1865,68 @@
         drawScene();
     }
 
+    function handleCashOutStart(e) {
+        if (!cashOutAvailable || currentMode !== 'survival' || isPaused) return;
+        const touches = e.touches || [e];
+        const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+        const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+        const centerX = canvasWidth / 2;
+        const centerY = canvasHeight / 2;
+        for (let i = 0; i < touches.length; i++) {
+            const touch = touches[i];
+            const pos = getMousePos(e, touch.identifier);
+            const dist = Math.hypot(pos.x - centerX, pos.y - centerY);
+            if (dist <= 50) {
+                cashOutTouchId = touch.identifier || 'mouse';
+                cashOutTimer = setTimeout(() => {
+                    performCashOut();
+                    cashOutTimer = null;
+                    cashOutTouchId = null;
+                }, 1000);
+                break;
+            }
+        }
+    }
+
+    function handleCashOutMove(e) {
+        if (!cashOutTimer) return;
+        const pos = getMousePos(e, cashOutTouchId === 'mouse' ? null : cashOutTouchId);
+        const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+        const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+        const centerX = canvasWidth / 2;
+        const centerY = canvasHeight / 2;
+        const dist = Math.hypot(pos.x - centerX, pos.y - centerY);
+        if (dist > 50) {
+            clearTimeout(cashOutTimer);
+            cashOutTimer = null;
+            cashOutTouchId = null;
+        }
+    }
+
+    function handleCashOutEnd(e) {
+        if (!cashOutTouchId) return;
+        const changedTouches = e.changedTouches || [e];
+        let matched = false;
+        for (let i = 0; i < changedTouches.length; i++) {
+            if (changedTouches[i].identifier === cashOutTouchId || cashOutTouchId === 'mouse') {
+                matched = true;
+                break;
+            }
+        }
+        if (matched) {
+            clearTimeout(cashOutTimer);
+            cashOutTimer = null;
+            cashOutTouchId = null;
+        }
+    }
+
     modeButton.addEventListener('click', () => {
         if (!isPaused) {
             circle.wasDraggingWhenPaused = circle.isDragging;
             isPaused = true;
         }
         saveState();
-        currentMode = currentMode === 'survival' ? 'endurance' : 'survival';
+        currentMode = currentMode === 'survival' ? 'freebie' : 'survival';
         circle.hasBeenTouched = false;
         loadState(currentMode, currentMap);
         updateDisplay();
@@ -1727,28 +1979,57 @@
         drawScene();
     });
 
+    commitButton.addEventListener('click', () => {
+        if (currentMode !== 'survival') return;
+        chosenTarget = parseInt(levelSlider.value);
+        gameActive = true;
+        sliderContainer.style.display = 'none';
+        canvas.style.pointerEvents = 'auto';
+        cashOutAvailable = false;
+        potential = 0;
+        circle.hasBeenTouched = false;
+        updateDisplay();
+        drawScene();
+    });
+
     canvas.addEventListener('mousedown', (e) => {
         handleCanvasTap(e);
         startDragging(e);
+        handleCashOutStart(e);
     });
-    canvas.addEventListener('mousemove', drag);
-    canvas.addEventListener('mouseup', stopDragging);
+    canvas.addEventListener('mousemove', (e) => {
+        drag(e);
+        handleCashOutMove(e);
+    });
+    canvas.addEventListener('mouseup', (e) => {
+        stopDragging(e);
+        handleCashOutEnd(e);
+    });
 
     canvas.addEventListener('touchstart', (e) => {
         handleCanvasTap(e);
         startDragging(e);
         startResizing(e);
+        handleCashOutStart(e);
     });
-    canvas.addEventListener('touchmove', drag);
+    canvas.addEventListener('touchmove', (e) => {
+        drag(e);
+        handleCashOutMove(e);
+    });
     canvas.addEventListener('touchend', (e) => {
         stopDragging(e);
         stopResizing(e);
+        handleCashOutEnd(e);
     });
 
-    document.addEventListener('mouseup', stopDragging);
+    document.addEventListener('mouseup', (e) => {
+        stopDragging(e);
+        handleCashOutEnd(e);
+    });
     document.addEventListener('touchend', (e) => {
         stopDragging(e);
         stopResizing(e);
+        handleCashOutEnd(e);
     });
 
     modeButton.addEventListener('touchstart', (e) => {
@@ -1784,4 +2065,3 @@
     animate();
 </script></body>
 </html>
-
