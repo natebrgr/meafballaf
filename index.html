@@ -115,11 +115,12 @@
         #livesLabel, #hiScoreLabel {
             color: #e0e0e0;
             text-shadow: 0 0 5px #fff;
-            font-size: 1em;
+            font-size: 0.7em;
             position: absolute;
             z-index: 2;
             width: 60px;
             text-align: center;
+            white-space: nowrap;
         }
         #livesCount.flash-green {
             animation: flashGreen 0.5s ease;
@@ -129,6 +130,29 @@
         }
         #hiScoreCount.flash-green, #coinCount.flash-green {
             animation: flashGreen 0.5s ease;
+        }
+        #potentialIcon {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: rgba(255, 215, 0, 0.7);
+            box-shadow: 0 0 5px #FFD700;
+            z-index: 2;
+        }
+        #coinIcon {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.7);
+            box-shadow: 0 0 5px #00FFFF;
+            z-index: 2;
+            color: #ffffff;
+            font-size: 12px;
+            line-height: 15px;
+            text-align: center;
+            font-weight: bold;
         }
         #modeButton, #mapButton {
             position: absolute;
@@ -260,25 +284,6 @@
         canvas.flash-red {
             animation: flashRed 0.5s ease;
         }
-        #sliderContainer {
-            position: absolute;
-            z-index: 10;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-        }
-        #levelSlider {
-            width: 200px;
-        }
-        #sliderLabels {
-            display: flex;
-            justify-content: space-between;
-            width: 200px;
-            color: #e0e0e0;
-        }
     </style>
 </head>
 <body>
@@ -297,18 +302,12 @@
     <div id="coinCount">0</div>
     <div id="coinChange"></div>
     <div id="potentialCount">0</div>
+    <div id="potentialIcon"></div>
+    <div id="coinIcon">$</div>
     <button id="modeButton">MODE</button>
     <button id="mapButton">MAP</button>
     <canvas id="canvas"></canvas>
     <button id="playButton">PAUSE</button>
-    <div id="sliderContainer">
-        <input type="range" id="levelSlider" min="10" max="100" value="10">
-        <div id="sliderLabels">
-            <span>10</span>
-            <span>100+</span>
-        </div>
-        <button id="commitButton">COMMIT</button>
-    </div>
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -325,20 +324,19 @@
         const coinCount = document.getElementById('coinCount');
         const coinChange = document.getElementById('coinChange');
         const potentialCount = document.getElementById('potentialCount');
+        const potentialIcon = document.getElementById('potentialIcon');
+        const coinIcon = document.getElementById('coinIcon');
         const titleDisplay = document.getElementById('title');
         const modeButton = document.getElementById('modeButton');
         const mapButton = document.getElementById('mapButton');
         const playButton = document.getElementById('playButton');
-        const sliderContainer = document.getElementById('sliderContainer');
-        const levelSlider = document.getElementById('levelSlider');
-        const commitButton = document.getElementById('commitButton');
         const borderWidth = 2;
         const defaultRadius = 30;
         const initialRadius = 60;
         const resizeHoldThreshold = 200;
         const sideStripWidth = 30;
         const holdThreshold = 1000;
-        const cashRadius = 20;
+        const cashRadius = 35;
         const diamondRadius = 20;
         const circle = {
             x: 0,
@@ -400,16 +398,13 @@
     let currentMode = 'survival';
     let currentMap = 'rectangle';
 
-    let gameActive = false;
-    let cashOutInterval = 1;
+    let gameActive = true;
+    let currentIncrement = 2;
     let nextCashOutLevel = 2;
     let cashOutAvailable = false;
     let showDiamond = false;
-    let overlapGold = false;
-    let overlapGoldStart = 0;
     let overlapDiamond = false;
     let overlapDiamondStart = 0;
-    let cashOutTouchId = null;
 
     const trail = [];
     const maxTrailLength = 20;
@@ -508,11 +503,11 @@
         playButton.style.top = `${buttonTop}px`;
 
         livesLabel.style.left = `${canvasLeft}px`;
-        livesLabel.style.top = `40px`;
+        livesLabel.style.top = `57px`;
         livesCount.style.left = `${canvasLeft}px`;
         livesChange.style.left = `${canvasLeft + 60 + 10}px`;
         hiScoreLabel.style.right = `${canvasLeft}px`;
-        hiScoreLabel.style.top = `40px`;
+        hiScoreLabel.style.top = `57px`;
         hiScoreCount.style.right = `${canvasLeft}px`;
         levelChange.style.left = `${canvasLeft + (window.innerWidth * 0.9 - 120) / 2 + 120 + 10}px`;
         potentialCount.style.left = `${canvasLeft}px`;
@@ -521,6 +516,14 @@
         coinCount.style.top = `10px`;
         coinChange.style.right = `${canvasLeft - 50}px`; // Adjust to be next to coinCount
         coinChange.style.top = `10px`;
+
+        const potentialRect = potentialCount.getBoundingClientRect();
+        potentialIcon.style.left = `${potentialRect.left + potentialRect.width + 5}px`;
+        potentialIcon.style.top = `10px`;
+
+        const coinRect = coinCount.getBoundingClientRect();
+        coinIcon.style.left = `${coinRect.left - 20}px`;
+        coinIcon.style.top = `10px`;
 
         diamondX = canvas.width / (2 * pixelRatio);
         diamondY = canvas.height / pixelRatio - 100;
@@ -533,15 +536,8 @@
         assignCurrentSections();
         assignNextSections();
         requestAnimationFrame(() => setCanvasSize());
-        if (currentMode === 'survival') {
-            gameActive = true;
-            sliderContainer.style.display = 'none';
-            canvas.style.pointerEvents = 'auto';
-        } else {
-            gameActive = true;
-            sliderContainer.style.display = 'none';
-            canvas.style.pointerEvents = 'auto';
-        }
+        gameActive = true;
+        canvas.style.pointerEvents = 'auto';
     });
     window.addEventListener('resize', setCanvasSize);
 
@@ -635,8 +631,10 @@
 
         if (currentMode === 'survival' && gameActive) {
             potentialCount.style.display = 'block';
+            potentialIcon.style.display = 'block';
         } else {
             potentialCount.style.display = 'none';
+            potentialIcon.style.display = 'none';
         }
     }
 
@@ -783,21 +781,12 @@
             btn.classList.remove('glow-green', 'glow-red', 'glow-white', 'recede');
         });
 
-        if (currentMode === 'survival') {
-            gameActive = true;
-            sliderContainer.style.display = 'none';
-            canvas.style.pointerEvents = 'auto';
-        } else {
-            gameActive = true;
-            sliderContainer.style.display = 'none';
-            canvas.style.pointerEvents = 'auto';
-        }
-        cashOutInterval = 1;
+        gameActive = true;
+        canvas.style.pointerEvents = 'auto';
+        currentIncrement = 2;
         nextCashOutLevel = 2;
         cashOutAvailable = false;
         showDiamond = false;
-        overlapGold = false;
-        overlapGoldStart = 0;
         overlapDiamond = false;
         overlapDiamondStart = 0;
 
@@ -1083,9 +1072,9 @@
             ctx.lineWidth = 2 * pixelRatio;
             ctx.stroke();
 
-            const text = 'C A S H   O U T ';
+            const text = 'C A S H   O U T  ';
             const fontSize = 18;
-            const textRadius = cashRadius + 30;
+            const textRadius = 45;
             const totalLetters = text.length * 4;
             const anglePerLetter = (2 * Math.PI) / totalLetters;
 
@@ -1339,7 +1328,7 @@
         circle.hasBeenTouched = false;
         trail.length = 0;
         cashOutAvailable = false;
-        cashOutInterval = 1;
+        currentIncrement = 2;
         nextCashOutLevel = 2;
         showDiamond = false;
         previousGreenSection = null;
@@ -1347,15 +1336,8 @@
         previousLandedSection = null;
         assignCurrentSections();
         assignNextSections();
-        if (currentMode === 'survival') {
-            gameActive = true;
-            sliderContainer.style.display = 'none';
-            canvas.style.pointerEvents = 'auto';
-        } else {
-            gameActive = true;
-            sliderContainer.style.display = 'none';
-            canvas.style.pointerEvents = 'auto';
-        }
+        gameActive = true;
+        canvas.style.pointerEvents = 'auto';
         potential = 0;
         saveState();
         updateDisplay();
@@ -1371,12 +1353,35 @@
     }
 
     function handleCanvasTap(e) {
+        if (isPaused) {
+            const pos = getMousePos(e);
+            const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+            const centerX = canvasWidth / 2;
+            const centerY = canvasHeight / 2;
+            const distGold = Math.hypot(pos.x - centerX, pos.y - centerY);
+            if (cashOutAvailable && distGold <= 50) {
+                showDiamond = !showDiamond;
+                drawScene();
+                return;
+            }
+            const distDiamond = Math.hypot(pos.x - diamondX, pos.y - diamondY);
+            if (showDiamond && distDiamond <= 50) {
+                performCashOut();
+                return;
+            }
+        }
         if (isPaused) return;
-        if (currentMode === 'survival' && !gameActive) return;
         const pos = getMousePos(e);
         const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
         const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
         if (pos.x < sideStripWidth || pos.x > canvasWidth - sideStripWidth) return;
+        const centerX = canvasWidth / 2;
+        const centerY = canvasHeight / 2;
+        const distGold = Math.hypot(pos.x - centerX, pos.y - centerY);
+        if (cashOutAvailable && distGold <= 50) return;
+        const distDiamond = Math.hypot(pos.x - diamondX, pos.y - diamondY);
+        if (showDiamond && distDiamond <= 50) return;
         e.preventDefault();
 
         const originalX = circle.x;
@@ -1463,8 +1468,8 @@
                 if (currentMode === 'survival') {
                     if (cashOutAvailable) {
                         cashOutAvailable = false;
-                        cashOutInterval = completedLevel;
-                        nextCashOutLevel = level + cashOutInterval - 1;
+                        nextCashOutLevel = level + currentIncrement;
+                        currentIncrement += 1;
                     }
                     if (level === nextCashOutLevel) {
                         cashOutAvailable = true;
@@ -1545,8 +1550,8 @@
             if (currentMode === 'survival') {
                 if (cashOutAvailable) {
                     cashOutAvailable = false;
-                    cashOutInterval = completedLevel;
-                    nextCashOutLevel = level + cashOutInterval - 1;
+                    nextCashOutLevel = level + currentIncrement;
+                    currentIncrement += 1;
                 }
                 if (level === nextCashOutLevel) {
                     cashOutAvailable = true;
@@ -1589,7 +1594,6 @@
 
     function startDragging(e) {
         if (isPaused && !circle.wasDraggingWhenPaused) return;
-        if (currentMode === 'survival' && !gameActive) return;
         const pos = getMousePos(e, e.touches ? e.touches[0].identifier : null);
         const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
         if (pos.x < sideStripWidth || pos.x > canvasWidth - sideStripWidth) return;
@@ -1815,19 +1819,8 @@
             const centerX = canvasWidth / 2;
             const centerY = canvasHeight / 2;
             const distGold = Math.hypot(circle.x - centerX, circle.y - centerY);
-            const overlapGoldNow = distGold < circle.radius + cashRadius;
-            if (overlapGoldNow) {
-                if (!overlapGold) {
-                    overlapGoldStart = now;
-                    overlapGold = true;
-                }
-                if (now - overlapGoldStart >= holdThreshold) {
-                    showDiamond = true;
-                    overlapGoldStart = now + holdThreshold; // prevent immediate re-trigger
-                }
-            } else {
-                overlapGold = false;
-                overlapGoldStart = 0;
+            if (distGold < circle.radius + cashRadius) {
+                showDiamond = true;
             }
 
             if (showDiamond) {
@@ -1840,11 +1833,10 @@
                     }
                     if (now - overlapDiamondStart >= holdThreshold) {
                         performCashOut();
-                        overlapDiamondStart = now + holdThreshold;
+                        overlapDiamondStart = now + holdThreshold; // prevent immediate re-trigger
                     }
                 } else {
                     overlapDiamond = false;
-                    overlapDiamondStart = 0;
                 }
             }
         }
@@ -1905,6 +1897,10 @@
             startCountdown();
         }
 
+        if (overlapDiamond) {
+            performCashOut();
+        }
+        showDiamond = false;
         circle.isDragging = false;
         circle.dragTouchId = null;
         Object.keys(holdTimers).forEach(key => {
@@ -1921,7 +1917,6 @@
             }
         });
         buttonActivated = { play: false, mode: false, map: false };
-        showDiamond = false;
         if (!circle.isDragging && isPaused) saveState();
         drawScene();
 
