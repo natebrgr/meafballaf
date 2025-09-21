@@ -149,7 +149,6 @@
             box-shadow: 0 0 5px #00FFFF;
             z-index: 2;
             color: #ffffff;
-            font-size: 1.5em;
             line-height: 1.5em;
             text-align: center;
             font-weight: bold;
@@ -520,7 +519,7 @@
         potentialIcon.style.top = `${potentialRect.top}px`;
 
         const coinRect = coinCount.getBoundingClientRect();
-        coinIcon.style.left = `${coinRect.left - 20}px`;
+        coinIcon.style.left = `${coinRect.left - (coinRect.height + 5)}px`;
         coinIcon.style.top = `${coinRect.top}px`;
 
         diamondX = canvas.width / (2 * pixelRatio);
@@ -1372,12 +1371,6 @@
         const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
         const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
         if (pos.x < sideStripWidth || pos.x > canvasWidth - sideStripWidth) return;
-        const centerX = canvasWidth / 2;
-        const centerY = canvasHeight / 2;
-        const distGold = Math.hypot(pos.x - centerX, pos.y - centerY);
-        if (cashOutAvailable && distGold <= 50) return;
-        const distDiamond = Math.hypot(pos.x - diamondX, pos.y - diamondY);
-        if (showDiamond && distDiamond <= 50) return;
         e.preventDefault();
 
         const originalX = circle.x;
