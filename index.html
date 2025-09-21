@@ -133,8 +133,8 @@
         }
         #potentialIcon {
             position: absolute;
-            width: 15px;
-            height: 15px;
+            width: 1.5em;
+            height: 1.5em;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.7);
             box-shadow: 0 0 5px #FFD700;
@@ -142,15 +142,15 @@
         }
         #coinIcon {
             position: absolute;
-            width: 15px;
-            height: 15px;
+            width: 1.5em;
+            height: 1.5em;
             border-radius: 50%;
             background: rgba(0, 255, 255, 0.7);
             box-shadow: 0 0 5px #00FFFF;
             z-index: 2;
             color: #ffffff;
-            font-size: 12px;
-            line-height: 15px;
+            font-size: 1.5em;
+            line-height: 1.5em;
             text-align: center;
             font-weight: bold;
         }
@@ -337,7 +337,7 @@
         const sideStripWidth = 30;
         const holdThreshold = 1000;
         const cashRadius = 35;
-        const diamondRadius = 20;
+        const diamondRadius = 35;
         const circle = {
             x: 0,
             y: 0,
@@ -403,8 +403,6 @@
     let nextCashOutLevel = 2;
     let cashOutAvailable = false;
     let showDiamond = false;
-    let overlapDiamond = false;
-    let overlapDiamondStart = 0;
 
     const trail = [];
     const maxTrailLength = 20;
@@ -519,11 +517,11 @@
 
         const potentialRect = potentialCount.getBoundingClientRect();
         potentialIcon.style.left = `${potentialRect.left + potentialRect.width + 5}px`;
-        potentialIcon.style.top = `10px`;
+        potentialIcon.style.top = `${potentialRect.top}px`;
 
         const coinRect = coinCount.getBoundingClientRect();
         coinIcon.style.left = `${coinRect.left - 20}px`;
-        coinIcon.style.top = `10px`;
+        coinIcon.style.top = `${coinRect.top}px`;
 
         diamondX = canvas.width / (2 * pixelRatio);
         diamondY = canvas.height / pixelRatio - 100;
@@ -787,8 +785,6 @@
         nextCashOutLevel = 2;
         cashOutAvailable = false;
         showDiamond = false;
-        overlapDiamond = false;
-        overlapDiamondStart = 0;
 
         updateThrowMultiplier();
         updateDisplay();
@@ -1361,7 +1357,7 @@
             const centerY = canvasHeight / 2;
             const distGold = Math.hypot(pos.x - centerX, pos.y - centerY);
             if (cashOutAvailable && distGold <= 50) {
-                showDiamond = !showDiamond;
+                showDiamond = true;
                 drawScene();
                 return;
             }
@@ -1815,32 +1811,6 @@
             if (buttonActivated.map && target !== mapButton) buttonActivated.map = false;
         }
 
-        if (circle.isDragging && !circle.isResizing && !isPaused && currentMode === 'survival' && cashOutAvailable) {
-            const centerX = canvasWidth / 2;
-            const centerY = canvasHeight / 2;
-            const distGold = Math.hypot(circle.x - centerX, circle.y - centerY);
-            if (distGold < circle.radius + cashRadius) {
-                showDiamond = true;
-            }
-
-            if (showDiamond) {
-                const distDiamond = Math.hypot(circle.x - diamondX, circle.y - diamondY);
-                const overlapDiamondNow = distDiamond < circle.radius + diamondRadius;
-                if (overlapDiamondNow) {
-                    if (!overlapDiamond) {
-                        overlapDiamondStart = now;
-                        overlapDiamond = true;
-                    }
-                    if (now - overlapDiamondStart >= holdThreshold) {
-                        performCashOut();
-                        overlapDiamondStart = now + holdThreshold; // prevent immediate re-trigger
-                    }
-                } else {
-                    overlapDiamond = false;
-                }
-            }
-        }
-
         if (isPaused) saveState();
         drawScene();
     }
@@ -1897,10 +1867,6 @@
             startCountdown();
         }
 
-        if (overlapDiamond) {
-            performCashOut();
-        }
-        showDiamond = false;
         circle.isDragging = false;
         circle.dragTouchId = null;
         Object.keys(holdTimers).forEach(key => {
