@@ -25,7 +25,7 @@ background-image:radial-gradient(ellipse at 20% 20%,rgba(0,80,120,.15),transpare
 #lvB{left:50%;transform:translateX(-50%);top:60px;width:110px;flex-direction:row;padding:0;overflow:hidden}
 #wH,#lN{flex:1;display:flex;justify-content:center;align-items:center;font-family:Orbitron,sans-serif;font-weight:700;font-size:1.4rem;height:100%}
 #wH{border-right:1px solid rgba(0,240,255,.2);cursor:pointer}#lN{color:var(--green);text-shadow:0 0 10px rgba(0,255,136,.45);cursor:pointer}
-canvas{position:absolute;z-index:5;border-radius:6px}
+canvas{position:absolute;z-index:5;border-radius:6px;display:block;touch-action:none}
 #cd{position:absolute;left:50%;transform:translateX(-50%);font-family:Orbitron,sans-serif;font-weight:800;font-size:4rem;z-index:15;pointer-events:none;color:#fff;text-shadow:0 0 28px rgba(0,240,255,.8);opacity:0}
 .cf{position:absolute;z-index:25;font-family:Orbitron,sans-serif;font-weight:700;font-size:0;pointer-events:none;opacity:0}
 .cf.plus{color:var(--green);animation:fp 1.3s ease forwards}.cf.minus{color:var(--red);animation:fm 1.3s ease forwards}
@@ -177,38 +177,60 @@ function skinC(){return(SKINS.find(s=>s.id===eqS)||SKINS[0]).c}
 function skinF(){return(SKINS.find(s=>s.id===eqS)||SKINS[0]).face||'none'}
 
 function setSize(){
-const vw=window.innerWidth;
-const vh=window.innerHeight;
-const isPhone=vw<=600;
-const top=isPhone?100:118;
-const bot=isPhone?46:52;
-const sw=Math.min(vw*(isPhone?0.96:0.94),900);
-const sh=Math.max(200,vh-top-bot);
-const pr=Math.min(window.devicePixelRatio||1,2);
+const vw=Math.max(document.documentElement.clientWidth||0, window.innerWidth||0);
+const vh=Math.max(document.documentElement.clientHeight||0, window.innerHeight||0);
+const isPhone=vw<=700;
+// Padding from screen edges — canvas & buttons share the same left/right edges
+const padX=isPhone?8:Math.max(12, Math.floor(vw*0.03));
+const top=isPhone?96:118;
+const bot=isPhone?50:56;
+const sw=Math.max(200, Math.min(vw-padX*2, 900));
+const sh=Math.max(220, vh-top-bot);
+const pr=Math.min(window.devicePixelRatio||1, 2);
+const cl=Math.floor((vw-sw)/2);
+const ct=top;
 canvas.style.position='absolute';
+canvas.style.display='block';
 canvas.style.width=sw+'px';
 canvas.style.height=sh+'px';
-canvas.style.left=((vw-sw)/2)+'px';
-canvas.style.top=top+'px';
+canvas.style.left=cl+'px';
+canvas.style.top=ct+'px';
 canvas.style.right='auto';
 canvas.style.bottom='auto';
-canvas.width=Math.max(1,Math.floor(sw*pr));
-canvas.height=Math.max(1,Math.floor(sh*pr));
+canvas.style.margin='0';
+canvas.style.maxWidth='none';
+canvas.width=Math.max(1, Math.floor(sw*pr));
+canvas.height=Math.max(1, Math.floor(sh*pr));
 ctx.setTransform(pr,0,0,pr,0,0);
-const cl=(vw-sw)/2;
+// Bottom buttons: same left edge + width as canvas
 const bb=$('bB');
-if(bb){bb.style.left=cl+'px';bb.style.width=sw+'px';bb.style.bottom='6px';}
+if(bb){
+bb.style.position='absolute';
+bb.style.left=cl+'px';
+bb.style.width=sw+'px';
+bb.style.right='auto';
+bb.style.bottom='6px';
+bb.style.boxSizing='border-box';
+}
+// Top bar: same edges
 const tb=$('topBar');
-if(tb){tb.style.left=cl+'px';tb.style.width=sw+'px';tb.style.top='6px';}
+if(tb){
+tb.style.position='absolute';
+tb.style.left=cl+'px';
+tb.style.width=sw+'px';
+tb.style.right='auto';
+tb.style.top='4px';
+tb.style.boxSizing='border-box';
+}
 const lBox=$('lB'),hBox=$('hB'),lvBox=$('lvB');
-if(lBox){lBox.style.left=cl+'px';lBox.style.right='auto';lBox.style.top='50px';}
-if(hBox){hBox.style.left='auto';hBox.style.right=((vw-(cl+sw)))+'px';hBox.style.top='50px';}
-if(lvBox){lvBox.style.left=(cl+sw/2)+'px';lvBox.style.transform='translateX(-50%)';lvBox.style.top='50px';}
-if(cd){cd.style.top=(top+14)+'px';cd.style.left=(cl+sw/2)+'px';cd.style.transform='translateX(-50%)';}
-if(lCh){lCh.style.left=(cl+50)+'px';lCh.style.top='70px';}
-if(lvCh){lvCh.style.left=(cl+sw/2+44)+'px';lvCh.style.top='70px';}
-if(cCh){cCh.style.left=(cl+sw-48)+'px';cCh.style.right='auto';cCh.style.top='6px';}
-if(hCh){hCh.style.left='auto';hCh.style.right=(vw-(cl+sw)+68)+'px';hCh.style.top='60px';}
+if(lBox){lBox.style.left=cl+'px';lBox.style.right='auto';lBox.style.top='48px';}
+if(hBox){hBox.style.left='auto';hBox.style.right=(vw-(cl+sw))+'px';hBox.style.top='48px';}
+if(lvBox){lvBox.style.left=(cl+sw/2)+'px';lvBox.style.transform='translateX(-50%)';lvBox.style.top='48px';}
+if(cd){cd.style.top=(ct+12)+'px';cd.style.left=(cl+sw/2)+'px';cd.style.transform='translateX(-50%)';}
+if(lCh){lCh.style.left=(cl+48)+'px';lCh.style.top='68px';}
+if(lvCh){lvCh.style.left=(cl+sw/2+42)+'px';lvCh.style.top='68px';}
+if(cCh){cCh.style.left=(cl+sw-44)+'px';cCh.style.right='auto';cCh.style.top='4px';}
+if(hCh){hCh.style.left='auto';hCh.style.right=(vw-(cl+sw)+64)+'px';hCh.style.top='58px';}
 diaX=sw/2;diaY=sh-80;gold.hx=sw/2;gold.hy=sh/2;
 if(!gold.drag){gold.x=gold.hx;gold.y=gold.hy}
 constrain();
@@ -653,6 +675,19 @@ function animate(){try{phys();draw()}catch(err){console.error(err)}requestAnimat
 loadP();loadTut();
 window.addEventListener('resize',setSize);
 
-setTimeout(()=>{setSize();asCur();asNext();const w=canvas.width/(window.devicePixelRatio||1)||400,h=canvas.height/(window.devicePixelRatio||1)||400;circle.x=w/2;circle.y=h/2;hiScore=gHS();prevHS=hiScore;updTM();updDisp();draw();animate();if(!seenTut)setTimeout(startTut,400)},60);
+function boot(){
+setSize();asCur();asNext();
+const w=canvas.width/(window.devicePixelRatio||1)||400,h=canvas.height/(window.devicePixelRatio||1)||400;
+circle.x=w/2;circle.y=h/2;hiScore=gHS();prevHS=hiScore;updTM();updDisp();draw();
+}
+setSize();
+boot();
+animate();
+// Re-run layout after mobile browser UI settles
+setTimeout(()=>{setSize();draw();},100);
+setTimeout(()=>{setSize();draw();},400);
+if(!seenTut)setTimeout(startTut,500);
+window.addEventListener('orientationchange',()=>setTimeout(()=>{setSize();draw();},150));
+
 
 </script></body></html>
