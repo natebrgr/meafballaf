@@ -11,9 +11,9 @@
 body{margin:0;overflow:hidden;height:100vh;font-family:'Exo 2',system-ui,sans-serif;background:var(--bg);color:var(--text);user-select:none;
 background-image:radial-gradient(ellipse at 20% 20%,rgba(0,80,120,.15),transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(80,0,100,.12),transparent 50%)}
 #topBar{position:absolute;top:6px;height:42px;display:flex;align-items:center;justify-content:space-between;padding:0;z-index:30;pointer-events:none;box-sizing:border-box;max-width:100%}
-#title{pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
+#title{pointer-events:none;white-space:nowrap;flex-shrink:0;font-size:1.05rem}
 .sb{cursor:pointer;pointer-events:auto}
-#title{font-family:Orbitron,sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:.1em;background:linear-gradient(90deg,var(--cyan),#ff00aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#title{font-family:Orbitron,sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:.08em;background:linear-gradient(90deg,var(--cyan),#ff00aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .cg{display:flex;gap:10px;pointer-events:auto}
 .cur{display:flex;align-items:center;gap:5px;font-family:Orbitron,sans-serif;font-weight:600;font-size:.95rem;background:var(--panel);border:1px solid rgba(0,240,255,.25);border-radius:16px;padding:4px 10px;pointer-events:auto;cursor:pointer}
 .ci{width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff}
@@ -192,7 +192,7 @@ cd.style.top=(top+16)+'px';
 lCh.style.left=(cl+56)+'px';lCh.style.top='76px';
 lvCh.style.left=(cl+sw/2+48)+'px';lvCh.style.top='76px';
 cCh.style.left=(cl+sw-48)+'px';cCh.style.right='auto';cCh.style.top='6px';
-hCh.style.left='auto';hCh.style.right=(window.innerWidth-(cl+sw))+24+'px';hCh.style.top='76px';
+hCh.style.left='auto';hCh.style.right=(window.innerWidth-(cl+sw)+72)+'px';hCh.style.top='68px';
 diaX=sw/2;diaY=sh-85;gold.hx=sw/2;gold.hy=sh/2;
 if(!gold.drag){gold.x=gold.hx;gold.y=gold.hy}
 constrain();
@@ -575,7 +575,7 @@ bounces:{title:'BOUNCE COUNT',body:`<p>The <strong>left number</strong> is your 
 <p>To level up, that left number must <strong>exactly match</strong> the level number when you submit — either:</p>
 <ul><li>the first touch on the map after the countdown ends, or</li>
 <li>a touch during the countdown while the numbers already match.</li></ul>
-<p>One bounce over or under and you lose a life in Survival (or simply retry in Free mode).</p>`},
+<p>One bounce over or under and you lose a life in Survival.</p>`},
 level:{title:'LEVEL',body:`<p>The level number is the bounce target for this round and also feeds into your potential payout multiplier (last level beaten &times; lives).</p>
 <p>Level starts at <strong>1</strong> and resets to 1 whenever a new Survival game starts (after cash-out or running out of lives).</p>
 <p>In Free mode the level you reach is saved and does not reset.</p>`},
