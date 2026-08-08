@@ -29,10 +29,10 @@ canvas{
 position:fixed;
 left:2.5vw;
 right:2.5vw;
-top:104px;
+top:98px;
 width:auto;
-height:calc(100vh - 164px);
-height:calc(100dvh - 164px);
+height:calc(100vh - 152px);
+height:calc(100dvh - 152px);
 z-index:5;
 border-radius:6px;
 display:block;
@@ -223,7 +223,7 @@ const vw=document.documentElement.clientWidth||window.innerWidth||320;
 const vh=document.documentElement.clientHeight||window.innerHeight||600;
 // Match CSS insets: 2.5vw sides, with a small gap above and below the playfield
 const padX=vw*0.025;
-const top=104, bot=60;
+const top=98, bot=54;
 const sw=Math.max(200, vw-padX*2);
 const sh=Math.max(220, vh-top-bot);
 // Explicitly size canvas so it always matches (canvas ignores top/bottom stretch)
