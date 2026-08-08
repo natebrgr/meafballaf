@@ -10,7 +10,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;overflow:hidden;height:100%;height:100dvh;width:100%;font-family:'Exo 2',system-ui,sans-serif;background:var(--bg);color:var(--text);user-select:none;
 background-image:radial-gradient(ellipse at 20% 20%,rgba(0,80,120,.15),transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(80,0,100,.12),transparent 50%)}
-#topBar{position:absolute;top:6px;height:42px;display:flex;align-items:center;justify-content:space-between;padding:0;z-index:30;pointer-events:none;box-sizing:border-box;max-width:100%}
+/* topBar in canvas block */
 #title{pointer-events:none;white-space:nowrap;flex-shrink:0;font-size:1.05rem}
 .sb{cursor:pointer;pointer-events:auto}
 #title{font-family:Orbitron,sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:.08em;background:linear-gradient(90deg,var(--cyan),#ff00aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
@@ -25,7 +25,12 @@ background-image:radial-gradient(ellipse at 20% 20%,rgba(0,80,120,.15),transpare
 #lvB{left:50%;transform:translateX(-50%);top:60px;width:110px;flex-direction:row;padding:0;overflow:hidden}
 #wH,#lN{flex:1;display:flex;justify-content:center;align-items:center;font-family:Orbitron,sans-serif;font-weight:700;font-size:1.4rem;height:100%}
 #wH{border-right:1px solid rgba(0,240,255,.2);cursor:pointer}#lN{color:var(--green);text-shadow:0 0 10px rgba(0,255,136,.45);cursor:pointer}
-canvas{position:absolute;z-index:5;border-radius:6px;display:block;touch-action:none}
+canvas{position:absolute;z-index:5;border-radius:6px;display:block;touch-action:none;
+left:50%;transform:translateX(-50%);width:96vw;max-width:900px;top:100px;bottom:56px;height:auto}
+#bB{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:96vw;max-width:900px;
+display:flex;justify-content:space-between;z-index:25;box-sizing:border-box;padding:0}
+#topBar{position:absolute;top:4px;left:50%;transform:translateX(-50%);width:96vw;max-width:900px;
+display:flex;align-items:center;justify-content:space-between;z-index:30;pointer-events:none;box-sizing:border-box}
 #cd{position:absolute;left:50%;transform:translateX(-50%);font-family:Orbitron,sans-serif;font-weight:800;font-size:4rem;z-index:15;pointer-events:none;color:#fff;text-shadow:0 0 28px rgba(0,240,255,.8);opacity:0}
 .cf{position:absolute;z-index:25;font-family:Orbitron,sans-serif;font-weight:700;font-size:0;pointer-events:none;opacity:0}
 .cf.plus{color:var(--green);animation:fp 1.3s ease forwards}.cf.minus{color:var(--red);animation:fm 1.3s ease forwards}
@@ -34,7 +39,7 @@ canvas{position:absolute;z-index:5;border-radius:6px;display:block;touch-action:
 .sb.fg{animation:fg .5s ease}.sb.fr{animation:fr .5s ease}
 @keyframes fg{0%,100%{border-color:rgba(0,240,255,.25)}50%{border-color:var(--green);box-shadow:0 0 14px rgba(0,255,136,.4)}}
 @keyframes fr{0%,100%{border-color:rgba(0,240,255,.25)}50%{border-color:var(--red);box-shadow:0 0 14px rgba(255,50,80,.4)}}
-#bB{position:absolute;bottom:3px;display:flex;justify-content:space-between;z-index:25;box-sizing:border-box}
+/* bB in canvas block */
 button{font-family:Orbitron,sans-serif;font-weight:600;font-size:.72rem;letter-spacing:.04em;padding:11px 12px;cursor:pointer;color:var(--text);background:var(--panel);border:1px solid rgba(0,240,255,.35);border-radius:4px;text-transform:uppercase;white-space:nowrap;flex:1 1 0;min-width:0;line-height:1.2;text-align:center;margin:0 4px}
 button:first-child{margin-left:0}button:last-child{margin-right:0}
 button:hover{background:rgba(0,240,255,.12);border-color:var(--cyan)}
@@ -177,60 +182,45 @@ function skinC(){return(SKINS.find(s=>s.id===eqS)||SKINS[0]).c}
 function skinF(){return(SKINS.find(s=>s.id===eqS)||SKINS[0]).face||'none'}
 
 function setSize(){
-const vw=Math.max(document.documentElement.clientWidth||0, window.innerWidth||0);
+const vw=Math.max(document.documentElement.clientWidth||0, window.innerWidth||0, window.screen ? window.screen.width : 0);
 const vh=Math.max(document.documentElement.clientHeight||0, window.innerHeight||0);
 const isPhone=vw<=700;
-// Padding from screen edges — canvas & buttons share the same left/right edges
-const padX=isPhone?8:Math.max(12, Math.floor(vw*0.03));
+const padX=Math.max(8, Math.round(vw*0.02));
 const top=isPhone?96:118;
-const bot=isPhone?50:56;
+const bot=isPhone?52:58;
+// Shared width for canvas + buttons + top bar
 const sw=Math.max(200, Math.min(vw-padX*2, 900));
 const sh=Math.max(220, vh-top-bot);
-const pr=Math.min(window.devicePixelRatio||1, 2);
-const cl=Math.floor((vw-sw)/2);
+const cl=Math.round((vw-sw)/2);
 const ct=top;
-canvas.style.position='absolute';
-canvas.style.display='block';
-canvas.style.width=sw+'px';
-canvas.style.height=sh+'px';
-canvas.style.left=cl+'px';
-canvas.style.top=ct+'px';
-canvas.style.right='auto';
-canvas.style.bottom='auto';
-canvas.style.margin='0';
-canvas.style.maxWidth='none';
-canvas.width=Math.max(1, Math.floor(sw*pr));
-canvas.height=Math.max(1, Math.floor(sh*pr));
+const pr=Math.min(window.devicePixelRatio||1, 2);
+// Apply identical geometry to canvas, buttons, top bar
+function place(el, extra){
+if(!el)return;
+el.style.position='absolute';
+el.style.left=cl+'px';
+el.style.width=sw+'px';
+el.style.right='auto';
+el.style.transform='none';
+el.style.maxWidth='none';
+el.style.boxSizing='border-box';
+if(extra)for(const k in extra)el.style[k]=extra[k];
+}
+place(canvas,{top:ct+'px',height:sh+'px',bottom:'auto',margin:'0',display:'block'});
+canvas.width=Math.max(1,Math.floor(sw*pr));
+canvas.height=Math.max(1,Math.floor(sh*pr));
 ctx.setTransform(pr,0,0,pr,0,0);
-// Bottom buttons: same left edge + width as canvas
-const bb=$('bB');
-if(bb){
-bb.style.position='absolute';
-bb.style.left=cl+'px';
-bb.style.width=sw+'px';
-bb.style.right='auto';
-bb.style.bottom='6px';
-bb.style.boxSizing='border-box';
-}
-// Top bar: same edges
-const tb=$('topBar');
-if(tb){
-tb.style.position='absolute';
-tb.style.left=cl+'px';
-tb.style.width=sw+'px';
-tb.style.right='auto';
-tb.style.top='4px';
-tb.style.boxSizing='border-box';
-}
+place($('bB'),{bottom:'6px',top:'auto',height:'auto'});
+place($('topBar'),{top:'4px',height:'42px'});
 const lBox=$('lB'),hBox=$('hB'),lvBox=$('lvB');
-if(lBox){lBox.style.left=cl+'px';lBox.style.right='auto';lBox.style.top='48px';}
-if(hBox){hBox.style.left='auto';hBox.style.right=(vw-(cl+sw))+'px';hBox.style.top='48px';}
-if(lvBox){lvBox.style.left=(cl+sw/2)+'px';lvBox.style.transform='translateX(-50%)';lvBox.style.top='48px';}
+if(lBox){lBox.style.left=cl+'px';lBox.style.right='auto';lBox.style.top='48px';lBox.style.transform='none';}
+if(hBox){hBox.style.left='auto';hBox.style.right=(Math.max(0,vw-(cl+sw)))+'px';hBox.style.top='48px';hBox.style.transform='none';}
+if(lvBox){lvBox.style.left=(cl+sw/2)+'px';lvBox.style.right='auto';lvBox.style.transform='translateX(-50%)';lvBox.style.top='48px';}
 if(cd){cd.style.top=(ct+12)+'px';cd.style.left=(cl+sw/2)+'px';cd.style.transform='translateX(-50%)';}
 if(lCh){lCh.style.left=(cl+48)+'px';lCh.style.top='68px';}
 if(lvCh){lvCh.style.left=(cl+sw/2+42)+'px';lvCh.style.top='68px';}
 if(cCh){cCh.style.left=(cl+sw-44)+'px';cCh.style.right='auto';cCh.style.top='4px';}
-if(hCh){hCh.style.left='auto';hCh.style.right=(vw-(cl+sw)+64)+'px';hCh.style.top='58px';}
+if(hCh){hCh.style.left='auto';hCh.style.right=(Math.max(0,vw-(cl+sw))+64)+'px';hCh.style.top='58px';}
 diaX=sw/2;diaY=sh-80;gold.hx=sw/2;gold.hy=sh/2;
 if(!gold.drag){gold.x=gold.hx;gold.y=gold.hy}
 constrain();
@@ -684,10 +674,14 @@ setSize();
 boot();
 animate();
 // Re-run layout after mobile browser UI settles
+requestAnimationFrame(()=>requestAnimationFrame(()=>{setSize();draw();}));
 setTimeout(()=>{setSize();draw();},100);
 setTimeout(()=>{setSize();draw();},400);
 if(!seenTut)setTimeout(startTut,500);
 window.addEventListener('orientationchange',()=>setTimeout(()=>{setSize();draw();},150));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){setSize();draw();}});
+window.addEventListener('pageshow',()=>{setSize();draw();});
+
 
 
 </script></body></html>
