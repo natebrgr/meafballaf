@@ -28,10 +28,8 @@ background-image:radial-gradient(ellipse at 20% 20%,rgba(0,80,120,.15),transpare
 canvas{
 position:fixed;
 left:2.5vw;
-right:2.5vw;
 top:98px;
-width:auto;
-height:calc(100vh - 152px);
+width:95vw;
 height:calc(100dvh - 152px);
 z-index:5;
 border-radius:6px;
@@ -155,6 +153,7 @@ const lCh=$('lCh'),lvCh=$('lvCh'),cCh=$('cCh'),hCh=$('hCh'),hO=$('hO'),hCl=$('hC
 const tO=$('tO'),tS=$('tS'),tT=$('tT'),tB=$('tB'),tN=$('tN'),tSk=$('tSk'),tP=$('tP'),tNA=$('tNA');
 
 const BW=2,DEF_R=28,INIT_R=55,RH_THR=200,SSW=28,HOLD_THR=900,CASH_R=38,DIA_R=36;
+let PLAY_W=400,PLAY_H=400,DRAW_DPR=1;
 const circle={x:0,y:0,radius:INIT_R,dx:0,dy:0,isDragging:false,dragTouchId:null,wasDraggingWhenPaused:false,lastX:0,lastY:0,lastTime:0,
 wc:{left:{t:0,c:false},right:{t:0,c:false},top:{t:0,c:false},bottom:{t:0,c:false},boundary:{t:0,c:false}},
 resizeTouchId:null,isResizing:false,resizeStartX:0,resizeStartY:0,initR:INIT_R,rsTime:0,rsTimer:null,hasBeenTouched:false};
@@ -219,45 +218,59 @@ function skinC(){return(SKINS.find(s=>s.id===eqS)||SKINS[0]).c}
 function skinF(){return(SKINS.find(s=>s.id===eqS)||SKINS[0]).face||'none'}
 
 function setSize(){
-const vw=document.documentElement.clientWidth||window.innerWidth||320;
-const vh=document.documentElement.clientHeight||window.innerHeight||600;
-// Match CSS insets: 2.5vw sides, 98px top, 54px bottom
-const padX=vw*0.025;
-const top=98, bot=54;
-const sw=Math.max(200, vw-padX*2);
-const sh=Math.max(220, vh-top-bot);
-// Explicitly size canvas so it always matches (canvas ignores top/bottom stretch)
-canvas.style.left=padX+'px';
-canvas.style.right=padX+'px';
-canvas.style.width=sw+'px';
-canvas.style.top=top+'px';
-canvas.style.height=sh+'px';
-canvas.style.bottom='auto';
-const pr=Math.min(window.devicePixelRatio||1,2);
-const bw=Math.max(1,Math.floor(sw*pr));
-const bh=Math.max(1,Math.floor(sh*pr));
-if(canvas.width!==bw||canvas.height!==bh){
-canvas.width=bw;
-canvas.height=bh;
-}
-ctx.setTransform(pr,0,0,pr,0,0);
-// Buttons + top bar share the same horizontal edges
-const bb=$('bB'),tb=$('topBar');
-if(bb){bb.style.left=padX+'px';bb.style.right=padX+'px';bb.style.width=sw+'px';}
-if(tb){tb.style.left=padX+'px';tb.style.right=padX+'px';tb.style.width=sw+'px';}
-const cl=padX;
-const lBox=$('lB'),hBox=$('hB'),lvBox=$('lvB');
-if(lBox){lBox.style.left=cl+'px';lBox.style.right='auto';}
-if(hBox){hBox.style.right=padX+'px';hBox.style.left='auto';}
-if(lvBox){lvBox.style.left=(cl+sw/2)+'px';lvBox.style.transform='translateX(-50%)';}
-if(cd){cd.style.left=(cl+sw/2)+'px';cd.style.top=(top+12)+'px';cd.style.transform='translateX(-50%)';}
-if(lCh){lCh.style.left=(cl+48)+'px';}
-if(lvCh){lvCh.style.left=(cl+sw/2+42)+'px';}
-if(cCh){cCh.style.left=(cl+sw-44)+'px';cCh.style.right='auto';}
-if(hCh){hCh.style.right=(padX+64)+'px';hCh.style.left='auto';}
-diaX=sw/2;diaY=Math.max(40,sh-80);gold.hx=sw/2;gold.hy=sh/2;
-if(!gold.drag){gold.x=gold.hx;gold.y=gold.hy}
-constrain();
+ const vw=document.documentElement.clientWidth||window.innerWidth||320;
+ const vh=document.documentElement.clientHeight||window.innerHeight||600;
+ const padX=vw*0.025;
+ const top=98;
+ const sw=Math.max(200,vw-padX*2);
+
+ // The canvas is the ENTIRE playing area between the upper controls and
+ // the top edge of the bottom button bar.  Keep this as the single source
+ // of truth for every game coordinate.
+ const bb=$('bB'),tb=$('topBar');
+ if(bb){bb.style.left=padX+'px';bb.style.right=padX+'px';bb.style.width=sw+'px';}
+ if(tb){tb.style.left=padX+'px';tb.style.right=padX+'px';tb.style.width=sw+'px';}
+
+ const buttonTop=bb ? bb.getBoundingClientRect().top : vh-54;
+ const sh=Math.max(220,buttonTop-top);
+ const bottom=Math.max(0,vh-(top+sh));
+
+ canvas.style.left=padX+'px';
+ canvas.style.top=top+'px';
+ canvas.style.width=sw+'px';
+ canvas.style.height=sh+'px';
+ canvas.style.right='auto';
+ canvas.style.bottom='auto';
+
+ // ONE coordinate system: all game coordinates are CSS pixels.
+ // The backing store is higher resolution only; the context transform
+ // handles DPR exactly once.
+ DRAW_DPR=Math.min(window.devicePixelRatio||1,2);
+ const bw=Math.max(1,Math.round(sw*DRAW_DPR));
+ const bh=Math.max(1,Math.round(sh*DRAW_DPR));
+ if(canvas.width!==bw)canvas.width=bw;
+ if(canvas.height!==bh)canvas.height=bh;
+ ctx.setTransform(DRAW_DPR,0,0,DRAW_DPR,0,0);
+
+ const cl=padX;
+ const lBox=$('lB'),hBox=$('hB'),lvBox=$('lvB');
+ if(lBox){lBox.style.left=cl+'px';lBox.style.right='auto';}
+ if(hBox){hBox.style.right=padX+'px';hBox.style.left='auto';}
+ if(lvBox){lvBox.style.left=(cl+sw/2)+'px';lvBox.style.transform='translateX(-50%)';}
+ if(cd){cd.style.left=(cl+sw/2)+'px';cd.style.top=(top+12)+'px';cd.style.transform='translateX(-50%)';}
+ if(lCh){lCh.style.left=(cl+48)+'px';}
+ if(lvCh){lvCh.style.left=(cl+sw/2+42)+'px';}
+ if(cCh){cCh.style.left=(cl+sw-44)+'px';cCh.style.right='auto';}
+ if(hCh){hCh.style.right=(padX+64)+'px';hCh.style.left='auto';}
+
+ PLAY_W=sw;
+ PLAY_H=sh;
+ diaX=PLAY_W/2;
+ diaY=Math.max(40,PLAY_H-80);
+ gold.hx=PLAY_W/2;
+ gold.hy=PLAY_H/2;
+ if(!gold.drag){gold.x=gold.hx;gold.y=gold.hy}
+ constrain();
 }
 
 function animF(el,cls,txt){el.textContent=txt;el.classList.remove('plus','minus');void el.offsetHeight;el.classList.add(cls)}
@@ -280,7 +293,7 @@ pD.style.display=(mode==='survival'&&active)?'flex':'none';
 }
 
 function constrain(){
-const w=canvas.width/(window.devicePixelRatio||1),h=canvas.height/(window.devicePixelRatio||1),pw=w-2*SSW;
+const w=PLAY_W,h=PLAY_H,pw=w-2*SSW;
 if(map==='rectangle'){circle.x=Math.max(SSW+circle.radius,Math.min(w-SSW-circle.radius,circle.x));circle.y=Math.max(circle.radius,Math.min(h-circle.radius,circle.y))}
 else{const cx=w/2,cy=h/2,mr=Math.min(pw,h)/2-BW,d=Math.hypot(circle.x-cx,circle.y-cy);
 if(d+circle.radius>mr){const a=Math.atan2(circle.y-cy,circle.x-cx);circle.x=cx+Math.cos(a)*(mr-circle.radius);circle.y=cy+Math.sin(a)*(mr-circle.radius)}}
@@ -303,7 +316,7 @@ gSec=st.gSec??null;rSec=st.rSec??null;pgSec=st.pgSec??null;prSec=st.prSec??null;
 if(md==='survival'&&mp==='rectangle'){if(gSec===null)asCur();if(ngSec===null)asNext()}
 else{gSec=rSec=pgSec=prSec=ngSec=nrSec=pLand=null}
 if(st.circle&&st.circle.x!==undefined){Object.assign(circle,{x:st.circle.x,y:st.circle.y,radius:st.circle.radius||INIT_R,dx:st.circle.dx,dy:st.circle.dy,isDragging:false,dragTouchId:null,lastX:st.circle.lastX,lastY:st.circle.lastY,lastTime:st.circle.lastTime||Date.now(),hasBeenTouched:st.circle.hasBeenTouched||false})}
-else{const w=canvas.width/(window.devicePixelRatio||1)||400,h=canvas.height/(window.devicePixelRatio||1)||400;circle.x=w/2;circle.y=h/2;circle.radius=INIT_R;circle.dx=circle.dy=0;circle.hasBeenTouched=false}
+else{const w=PLAY_W||400,h=PLAY_H||400;circle.x=w/2;circle.y=h/2;circle.radius=INIT_R;circle.dx=circle.dy=0;circle.hasBeenTouched=false}
 constrain();trail.length=0;if(st.trail&&st.trail.length)trail.push(...st.trail);
 mode=md;map=mp;btnAct={play:false,mode:false,map:false,store:false,help:false};holdT={play:null,mode:null,map:null,store:null,help:null};
 [pB,mB,mpB,sB,hBtn].forEach(b=>b.classList.remove('gG','gR','gW','rc'));
@@ -354,8 +367,8 @@ for(let inst=0;inst<4;inst++)for(let i=0;i<text.length;i++){const a=starts[inst]
 }
 
 function draw(){
-const w=canvas.width/(window.devicePixelRatio||1),h=canvas.height/(window.devicePixelRatio||1),pw=w-2*SSW,sH=h/3;
-ctx.clearRect(0,0,canvas.width,canvas.height);drawBg(w,h);
+const w=PLAY_W,h=PLAY_H,pw=w-2*SSW,sH=h/3;
+ctx.clearRect(0,0,PLAY_W,PLAY_H);drawBg(w,h);
 
 if(mode==='survival'&&map==='rectangle'){
 if(gSec!==null){ctx.fillStyle='rgba(0,180,90,0.35)';ctx.fillRect(SSW,gSec*sH,pw,sH)}
@@ -447,7 +460,7 @@ if(gold.phase==='fling'){gold.y+=gold.fVy;gold.fVy-=1.4;gold.x+=gold.fVx;gold.fV
 if(mergeA<=0){mergeA=0;gold.phase=null;doCash()}}
 if(gold.wob){gold.wT+=0.09;const damp=Math.exp(-gold.wT*2.2),amp=gold.wA*damp;gold.x=gold.hx+Math.cos(gold.wT*14)*amp*gold.wDx;gold.y=gold.hy+Math.cos(gold.wT*14)*amp*gold.wDy;if(damp<0.02){gold.wob=false;gold.x=gold.hx;gold.y=gold.hy}}
 if(isPaused){if(circle.isDragging){circle.dx=0;circle.dy=0}return}
-const w=canvas.width/(window.devicePixelRatio||1),h=canvas.height/(window.devicePixelRatio||1),pw=w-2*SSW,now=Date.now();
+const w=PLAY_W,h=PLAY_H,pw=w-2*SSW,now=Date.now();
 if(!circle.isDragging){
 circle.dy+=GRAV;circle.x+=circle.dx;circle.y+=circle.dy;circle.dx*=FRIC;circle.dy*=FRIC;
 const vel=Math.hypot(circle.dx,circle.dy),tl=Math.min(22,Math.floor(vel/9));
@@ -469,11 +482,11 @@ cd.style.opacity=cdOp;cd.textContent=cdVal;if(cdInt)clearInterval(cdInt);
 cdInt=setInterval(()=>{cdVal--;if(cdVal>0)cd.textContent=cdVal;else{cdOp=0;cd.style.opacity=0;clearInterval(cdInt);cdInt=null;isCD=false;updDisp()}},1000)}
 
 function endGame(){level=1;updTM();lives=3;startL=3;wallHits=0;isTrack=false;isPaused=false;isCD=false;cdVal=3;cdOp=0;if(cdInt){clearInterval(cdInt);cdInt=null}cd.style.opacity=0;cd.textContent='';
-const w=canvas.width/(window.devicePixelRatio||1),h=canvas.height/(window.devicePixelRatio||1);circle.x=w/2;circle.y=h/2;circle.dx=circle.dy=0;circle.hasBeenTouched=false;circle.wasDraggingWhenPaused=false;trail.length=0;
+const w=PLAY_W,h=PLAY_H;circle.x=w/2;circle.y=h/2;circle.dx=circle.dy=0;circle.hasBeenTouched=false;circle.wasDraggingWhenPaused=false;trail.length=0;
 cashAvail=false;curInc=2;nextCO=2;resetGold();mergeA=0;mergeP=[];pgSec=prSec=pLand=null;asCur();asNext();active=true;canvas.style.pointerEvents='auto';potential=0;saveSt();updDisp();draw()}
 
 function startMerge(){mergeA=1;gold.drag=false;gold.tid=null;gold.wob=false;gold.phase='fling';
-const w=canvas.width/(window.devicePixelRatio||1),h=canvas.height/(window.devicePixelRatio||1);gold.x=w/2;gold.y=h/2+20;gold.fVx=(Math.random()-0.5)*2;gold.fVy=-22;mergeP=[];
+const w=PLAY_W,h=PLAY_H;gold.x=w/2;gold.y=h/2+20;gold.fVx=(Math.random()-0.5)*2;gold.fVy=-22;mergeP=[];
 for(let i=0;i<55;i++){const a=Math.random()*Math.PI*2,s=2+Math.random()*10;mergeP.push({x:w/2,y:h/2,vx:Math.cos(a)*s,vy:Math.sin(a)*s,size:2+Math.random()*5,life:0.9+Math.random()*0.35,color:Math.random()>0.45?'#ffd700':'#00e5ff'})}}
 function doCash(){const gain=Math.max(0,(level-1)*(lives===Infinity?0:lives));if(gain>0)coins+=gain;spawnP(gold.x||diaX,gold.y||diaY,24,'#00e5ff');cashAvail=false;endGame()}
 function springBack(rx,ry){const dx=rx-gold.hx,dy=ry-gold.hy,dist=Math.hypot(dx,dy)||1;gold.wDx=dx/dist;gold.wDy=dy/dist;gold.wA=Math.min(28,8+dist*0.22);gold.wT=0;gold.wob=true;gold.drag=false;gold.tid=null}
@@ -524,7 +537,7 @@ circle.initR=circle.radius;circle.rsTime=Date.now();rightResize=true;
 circle.isResizing=false; // wait for vertical movement before resizing; short click = drop
 }
 function applyResize(pos){
-const w=canvas.width/(window.devicePixelRatio||1),h=canvas.height/(window.devicePixelRatio||1),pw=w-2*SSW;
+const w=PLAY_W,h=PLAY_H,pw=w-2*SSW;
 let newR;
 if(circle.resizeTouchId==='mouse-right'){
 // Mouse: vertical drag — move up to grow, down to shrink
@@ -560,7 +573,7 @@ if(!didResize&&circle.isDragging){dropBall();draw()}
 
 function handleTap(e){
 if(isPaused)return;
-const pos=getPos(e);const w=canvas.width/(window.devicePixelRatio||1),h=canvas.height/(window.devicePixelRatio||1);
+const pos=getPos(e);const w=PLAY_W,h=PLAY_H;
 if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
 const ox=circle.x,oy=circle.y;if(circle.isDragging)return;
 if(!circle.hasBeenTouched){circle.hasBeenTouched=true;startCD();circle.x=pos.x;circle.y=pos.y;constrain();return}
@@ -577,13 +590,13 @@ function startDrag(e){
 const pos=getPos(e,e.touches?e.touches[0].identifier:null);const tid=e.touches?e.touches[0].identifier:null;
 if(isPaused&&cashAvail&&mode==='survival'&&mergeA<=0){if(Math.hypot(pos.x-gold.x,pos.y-gold.y)<=gold.r+12){e.preventDefault();gold.drag=true;gold.tid=tid;gold.ox=pos.x-gold.x;gold.oy=pos.y-gold.y;draw();return}}
 if(isPaused&&!circle.wasDraggingWhenPaused)return;
-const w=canvas.width/(window.devicePixelRatio||1);if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
+const w=PLAY_W;if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
 circle.isDragging=true;circle.dragTouchId=tid;circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0;circle.x=pos.x;circle.y=pos.y;constrain();
 if(!isPaused)trail.length=0;btnAct={play:false,mode:false,map:false,store:false,help:false};draw();
 }
 
 function drag(e){
-const w=canvas.width/(window.devicePixelRatio||1),h=canvas.height/(window.devicePixelRatio||1),pw=w-2*SSW,now=Date.now();
+const w=PLAY_W,h=PLAY_H,pw=w-2*SSW,now=Date.now();
 if(circle.resizeTouchId!==null||rightResize){
 const pos=getPos(e,circle.resizeTouchId==='mouse-right'?null:circle.resizeTouchId);
 if(circle.resizeTouchId==='mouse-right'||rightResize){
@@ -701,7 +714,7 @@ window.addEventListener('resize',setSize);
 
 function boot(){
 setSize();asCur();asNext();
-const w=canvas.width/(window.devicePixelRatio||1)||400,h=canvas.height/(window.devicePixelRatio||1)||400;
+const w=PLAY_W||400,h=PLAY_H||400;
 circle.x=w/2;circle.y=h/2;hiScore=gHS();prevHS=hiScore;updTM();updDisp();draw();
 }
 setSize();
