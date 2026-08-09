@@ -198,7 +198,7 @@ let btnAct={play:false,mode:false,map:false,store:false,help:false};
 let gSec=null,rSec=null,pgSec=null,prSec=null,ngSec=null,nrSec=null,pLand=null;
 let holes=[],diaX=0,diaY=0,particles=[];
 const gold={x:0,y:0,hx:0,hy:0,r:38,drag:false,tid:null,ox:0,oy:0,wob:false,wT:0,wA:0,wDx:0,wDy:0,phase:null,fVx:0,fVy:0};
-let mergeA=0,mergeP=[],arrP=0,rightResize=false,viewW=320,viewH=480,prevPot=-1;
+let mergeA=0,mergeP=[],arrP=0,rightResize=false,viewW=320,viewH=480,prevPot=-1,postGame=false;
 
 const SKINS=[
 {id:'default',n:'Classic',p:0,c:{f:'rgba(255,255,255,0.65)',s:'#ffffff',g:'#ffffff'},face:'none'},
@@ -569,9 +569,19 @@ function startCD(res){if(!res){isCD=true;cdVal=3;wallHits=0;wH.textContent='0';w
 cd.style.opacity=cdOp;cd.textContent=cdVal;if(cdInt)clearInterval(cdInt);
 cdInt=setInterval(()=>{cdVal--;if(cdVal>0)cd.textContent=cdVal;else{cdOp=0;cd.style.opacity=0;clearInterval(cdInt);cdInt=null;isCD=false;updDisp()}},1000)}
 
-function endGame(){level=1;updTM();lives=3;startL=3;wallHits=0;isTrack=false;isPaused=false;isCD=false;cdVal=3;cdOp=0;if(cdInt){clearInterval(cdInt);cdInt=null}cd.style.opacity=0;cd.textContent='';
-const w=viewW,h=viewH;circle.x=w/2;circle.y=h/2;circle.dx=circle.dy=0;circle.hasBeenTouched=false;circle.wasDraggingWhenPaused=false;trail.length=0;
-cashAvail=false;curInc=2;nextCO=2;resetGold();mergeA=0;mergeP=[];pgSec=prSec=pLand=null;asCur();asNext();active=true;canvas.style.pointerEvents='auto';potential=0;saveSt();updDisp();draw()}
+function endGame(){
+level=1;updTM();lives=3;startL=3;wallHits=0;isTrack=false;isPaused=false;isCD=false;cdVal=3;cdOp=0;
+if(cdInt){clearInterval(cdInt);cdInt=null}cd.style.opacity=0;cd.textContent='';
+const w=viewW,h=viewH;
+// Drop from center — death tap must NOT start the next run
+circle.x=w/2;circle.y=h*0.2;circle.dx=0;circle.dy=0;
+circle.hasBeenTouched=false;circle.isDragging=false;circle.dragTouchId=null;
+circle.wasDraggingWhenPaused=false;trail.length=0;
+cashAvail=false;curInc=2;nextCO=2;resetGold();mergeA=0;mergeP=[];
+pgSec=prSec=pLand=null;asCur();asNext();
+active=true;postGame=true; // waiting for a fresh tap to start
+canvas.style.pointerEvents='auto';potential=0;prevPot=-1;saveSt();updDisp();draw();
+}
 
 function startMerge(){mergeA=1;gold.drag=false;gold.tid=null;gold.wob=false;gold.phase='fling';
 const w=viewW,h=viewH;gold.x=w/2;gold.y=h/2+20;gold.fVx=(Math.random()-0.5)*2;gold.fVy=-22;mergeP=[];
@@ -664,17 +674,21 @@ if(isPaused)return;
 const pos=getPos(e);const w=viewW,h=viewH;
 if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
 const ox=circle.x,oy=circle.y;if(circle.isDragging)return;
-if(!circle.hasBeenTouched){circle.hasBeenTouched=true;startCD();circle.x=pos.x;circle.y=pos.y;constrain();return}
+if(!circle.hasBeenTouched||postGame){postGame=false;circle.hasBeenTouched=true;isTrack=false;wallHits=0;startCD();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updDisp();return}
 let bg='rgba(180,180,180,0.4)';if(mode==='survival'&&map==='rectangle'){const sec=Math.floor(oy/(h/3));if(sec===gSec)bg='rgba(0,180,90,0.6)';else if(sec===rSec)bg='rgba(180,30,50,0.6)'}
 holes.push({x:ox,y:oy,st:Date.now(),bg,op:1});
 if(isCD){if(wallHits===level){isTrack=false;if(cdInt){clearInterval(cdInt);cdInt=null;cdOp=0;cd.style.opacity=0;isCD=false}completeLevel(oy,h)}circle.x=pos.x;circle.y=pos.y;constrain();return}
 if(wallHits===level)completeLevel(oy,h);
-else if(mode==='survival'){lives--;potential=(level-1)*lives;if(lives<=0)endGame();else{wallHits=0;saveSt();updDisp();startCD()}}
-else{wallHits=0;startCD()}
+else if(mode==='survival'){
+lives--;potential=(level-1)*lives;
+if(lives<=0){endGame();return;} // death tap ends run only — does not start next
+wallHits=0;saveSt();updDisp();startCD();
+}else{wallHits=0;startCD()}
 circle.x=pos.x;circle.y=pos.y;constrain();
 }
 
 function startDrag(e){
+if(postGame)return; // don't grab the ball on the death tap
 const pos=getPos(e,e.touches?e.touches[0].identifier:null);const tid=e.touches?e.touches[0].identifier:null;
 if(isPaused&&cashAvail&&mode==='survival'&&mergeA<=0){if(Math.hypot(pos.x-gold.x,pos.y-gold.y)<=gold.r+12){e.preventDefault();gold.drag=true;gold.tid=tid;gold.ox=pos.x-gold.x;gold.oy=pos.y-gold.y;draw();return}}
 if(isPaused&&!circle.wasDraggingWhenPaused)return;
