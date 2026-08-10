@@ -101,7 +101,7 @@ button.gG{animation:aG .8s linear forwards}button.gR{animation:aR .8s linear for
 .tc h2{font-family:Orbitron,sans-serif;font-size:1.05rem;margin:0 0 8px;color:var(--cyan)}
 .tc p{margin:0 0 14px;color:#c8d8f0;line-height:1.5;font-size:.9rem}
 .si{font-size:.68rem;color:var(--dim);margin-bottom:10px;letter-spacing:.1em}
-.tbr{display:flex;align-items:center;gap:6px;margin-bottom:6px}.tt{flex:1;min-width:0}
+.tbr{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px}.si-row .si{margin-bottom:0;flex:0 1 auto}.tt{width:100%;min-width:0;text-align:left}
 .ta{flex-shrink:0;width:38px;height:38px;padding:0;font-size:1.5rem;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(0,240,255,.08);border:1px solid rgba(0,240,255,.35);color:var(--cyan);margin:0}
 .ta:disabled{opacity:.25}
 .hn{display:flex;gap:10px;margin-top:14px;justify-content:center}
@@ -156,7 +156,7 @@ text-shadow:0 0 5px #000,0 1px 2px #000;
 #subHint.hi-over{color:#cc2944;text-shadow:0 0 6px rgba(0,0,0,.9),0 0 4px rgba(200,40,60,.4)}
 #subHint.hi-under{color:#a8b4c8;text-shadow:0 0 5px #000,0 1px 2px #000}
 
-#sO .s-sticky{position:sticky;top:0;z-index:5;background:rgba(8,10,18,.97);backdrop-filter:blur(12px);
+#sO .s-sticky{position:sticky;top:0;margin-bottom:10px;z-index:5;background:rgba(8,10,18,.97);backdrop-filter:blur(12px);
 /* Full-bleed within .ov without clipping (matches .ov horizontal padding 14px) */
 margin-left:-14px;margin-right:-14px;width:calc(100% + 28px);max-width:none;
 padding:12px 16px 12px;box-sizing:border-box;
@@ -171,6 +171,37 @@ font-family:Orbitron;color:var(--cyan);text-align:center}
 
 #bB #hBtn,button#hBtn{color:#00ff88!important;border-color:rgba(0,255,136,.55)!important}
 #bB #hBtn:hover,button#hBtn:hover{color:#66ffb3!important;border-color:#00ff88!important;box-shadow:0 0 12px rgba(0,255,136,.35)!important}
+
+#pauseHint{position:fixed;left:50%;transform:translate(-50%,-50%);z-index:15;pointer-events:none;
+font-family:Orbitron,sans-serif;font-weight:700;font-size:.7rem;letter-spacing:.08em;
+text-align:center;opacity:0;visibility:hidden;color:#e8f0ff;white-space:nowrap;
+text-shadow:0 0 6px #000,0 1px 3px #000}
+#pauseHint.show{opacity:0.85;visibility:visible}
+
+#sO.ov{padding-top:0}
+#sO .s-sticky{top:0;margin-top:0;padding-top:14px}
+
+#sO .s-sticky{margin-bottom:16px!important}
+#sO .s-sticky + *{margin-top:4px}
+
+/* Tutorial callouts for bounce count / goal */
+.tutCall{position:fixed;z-index:125;display:none;flex-direction:column;align-items:center;gap:2px;pointer-events:none;
+font-family:Orbitron,sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.04em;
+color:#00e5ff;text-shadow:0 0 8px rgba(0,229,255,.5),0 1px 3px #000;white-space:nowrap}
+.tutCall.show{display:flex}
+.tutCallArr{font-size:1rem;line-height:1;color:#00e5ff;text-shadow:0 0 10px rgba(0,229,255,.7);margin-bottom:2px}
+.tutCallTxt{margin-top:2px}
+#lvB.tutHL{pointer-events:none!important;box-shadow:0 0 0 2px #00e5ff,0 0 16px rgba(0,229,255,.45)!important;border-color:#00e5ff!important;z-index:126;position:relative}
+#wH.tutHL,#lN.tutHL{pointer-events:none!important;color:#fff!important;text-shadow:0 0 12px rgba(0,229,255,.9),0 0 4px #fff!important;
+animation:tutPulse 1.2s ease-in-out infinite}
+@keyframes tutPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+#wH.tutHL{box-shadow:inset 0 0 12px rgba(0,229,255,.25)}
+#lN.tutHL{box-shadow:inset 0 0 12px rgba(0,255,136,.2)}
+
+body.ui-locked #bB,body.ui-locked #topBar,body.ui-locked #lB,body.ui-locked #hB,body.ui-locked #lvB,
+body.ui-locked #currency,body.ui-locked .cur,body.ui-locked canvas{
+pointer-events:none!important;
+}
 </style>
 </head>
 <body>
@@ -180,8 +211,10 @@ font-family:Orbitron;color:var(--cyan);text-align:center}
 </div></div>
 <div class="sb" id="lB"><div class="sl">LIVES</div><div class="sv" id="lC">3</div></div>
 <div class="sb" id="lvB"><div id="cashBar"><div id="cashBarFill"></div></div><div id="wH">0</div><div id="lN">1</div></div>
+<div id="bcCall" class="tutCall tutCallL"><span class="tutCallArr">↑</span><span class="tutCallTxt">bounce count</span></div>
+<div id="bgCall" class="tutCall tutCallR"><span class="tutCallArr">↑</span><span class="tutCallTxt">bounce goal</span></div>
 <div class="sb" id="hB"><div class="sl">HI-SCORE</div><div class="sv" id="hC">0</div></div>
-<div id="subHint">NEXT TOUCH SUBMITS!</div><div id="cd">3</div>
+<div id="pauseHint">GAME IS PAUSED...</div><div id="subHint">NEXT TOUCH SUBMITS!</div><div id="cd">3</div>
 <div class="cf" id="lCh"></div><div class="cf" id="lvCh"></div><div class="cf" id="cCh"></div><div class="cf" id="hCh"></div>
 <canvas id="canvas"></canvas>
 <div id="bB">
@@ -189,7 +222,9 @@ font-family:Orbitron;color:var(--cyan);text-align:center}
 <button id="mpB">MAP</button><button id="hBtn">HELP</button>
 </div>
 <div class="ov" id="sO"><div class="s-sticky"><div class="oh"><div class="ot" style="background:linear-gradient(90deg,var(--gold),#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent">STORE</div><button class="oc" id="sCl">X</button></div>
-<div style="font-family:Orbitron;color:var(--cyan)">$ <span id="sCC">0</span></div></div>
+<div style="font-family:Orbitron;color:var(--cyan)">$ <span id="sCC">0</span></div>
+<div style="font-family:Exo 2,sans-serif;font-size:.72rem;color:rgba(200,210,230,.75);margin-top:6px;padding:0 12px">Items unlock with Survival high scores.</div>
+</div>
 <div style="width:100%;max-width:560px;margin-bottom:20px"><div style="font-family:Orbitron;font-size:.78rem;color:var(--dim);margin-bottom:8px;letter-spacing:.12em">CIRCLE SKINS</div><div class="sg" id="skG"></div></div>
 <div style="width:100%;max-width:560px"><div style="font-family:Orbitron;font-size:.78rem;color:var(--dim);margin-bottom:8px;letter-spacing:.12em">BACKGROUNDS</div><div class="sg" id="bgG"></div></div>
 </div>
@@ -199,8 +234,8 @@ font-family:Orbitron;color:var(--cyan);text-align:center}
 <div class="ov" id="infoO"><div class="oh"><div class="ot" id="infoTitle" style="background:linear-gradient(90deg,var(--gold),#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent">INFO</div><button class="oc" id="infoCl">X</button></div>
 <div class="hc" id="infoBody" style="max-width:440px"></div>
 <div class="hn"><button id="infoCb">GOT IT</button></div></div>
-<div id="tO"><div class="tc"><div class="si" id="tS">STEP 1 / 5</div>
-<div class="tbr"><button class="ta" id="tP">&#8249;</button><div class="tt"><h2 id="tT"></h2><p id="tB"></p></div><button class="ta" id="tNA">&#8250;</button></div>
+<div id="tO"><div class="tc"><div class="tbr si-row"><button class="ta" id="tP">&#8249;</button><div class="si" id="tS">STEP 1 / 5</div><button class="ta" id="tNA">&#8250;</button></div>
+<div class="tt"><h2 id="tT"></h2><p id="tB"></p></div>
 <div class="hn"><button id="tSk">SKIP</button><button id="tN">NEXT</button></div></div></div>
 <script type="text/javascript">
 
@@ -218,7 +253,7 @@ wc:{left:{t:0,c:false},right:{t:0,c:false},top:{t:0,c:false},bottom:{t:0,c:false
 resizeTouchId:null,isResizing:false,resizeStartX:0,resizeStartY:0,initR:INIT_R,rsTime:0,rsTimer:null,hasBeenTouched:false};
 const GRAV=0.48,FRIC=0.982,BOUNCE=0.88;
 const TGT=1,TG=1.01,BASE_TM=TGT/Math.pow(TG,199);let throwMul=BASE_TM;
-let isCD=false,cdVal=3,cdInt=null,cdOp=0,wallHits=0,level=1,isTrack=false;
+let isCD=false,cdVal=3,cdInt=null,cdOp=0,cdRemain=1000,cdTickAt=0,wallHits=0,level=1,isTrack=false;
 let lives=3,hiScore=0,coins=0,potential=0,isPaused=false;
 const hiScores={'survival-rectangle':0,'freebie-rectangle':0,'survival-circle':0,'freebie-circle':0};
 let prevL=lives,prevLv=level,prevHS=hiScore,prevC=coins,startL=lives,suppress=false;
@@ -228,7 +263,8 @@ let btnAct={play:false,mode:false,map:false,store:false,help:false};
 let gSec=null,rSec=null,pgSec=null,prSec=null,ngSec=null,nrSec=null,pLand=null;
 let holes=[],diaX=0,diaY=0,particles=[];
 const gold={x:0,y:0,hx:0,hy:0,r:38,drag:false,tid:null,ox:0,oy:0,wob:false,wT:0,wA:0,wDx:0,wDy:0,phase:null,fVx:0,fVy:0};
-let mergeA=0,mergeP=[],arrP=0,rightResize=false,viewW=320,viewH=480,prevPot=-1,postGame=false;
+let mergeA=0,mergeP=[],arrP=0,rightResize=false,viewW=320,viewH=480,prevPot=-1,postGame=false,uiLocked=false;
+const HS_REQS=[15,29,42,54,65,75,84,92,99,105,110,114,117,119,121,123,125,127,129,131,133,135,137,139,141,143,145,147,149,151];
 
 const SKINS=[
 {id:'default',n:'Classic',p:0,c:{f:'rgba(255,255,255,0.65)',s:'#ffffff',g:'#ffffff'},face:'none'},
@@ -262,6 +298,7 @@ try{localStorage.setItem('megaBounceSave',JSON.stringify({coins,hiScores,ownedS:
 function loadP(){try{const d=JSON.parse(localStorage.getItem('megaBounceSave')||'{}');coins=d.coins||0;if(d.hiScores)Object.assign(hiScores,d.hiScores);
 if(d.ownedS)ownedS=new Set(d.ownedS);if(d.ownedB)ownedB=new Set(d.ownedB);eqS=d.eqS||'default';eqB=d.eqB||'default'}catch(e){}}
 function gHS(){return hiScores[mode+'-'+map]||0}
+function gSurvHS(){return Math.max(hiScores['survival-rectangle']||0,hiScores['survival-circle']||0)}
 function sHS(v){const k=mode+'-'+map;hiScores[k]=Math.max(hiScores[k]||0,v);hiScore=hiScores[k]}
 
 const GS={};
@@ -328,25 +365,34 @@ diaX=viewW/2;diaY=Math.max(40,viewH-80);
 gold.hx=viewW/2;gold.hy=viewH/2;
 if(!gold.drag){gold.x=gold.hx;gold.y=gold.hy}
 const shEl=$('subHint');
-if(shEl){shEl.style.left=(cl+viewW/2)+'px';shEl.style.top=(top+Math.min(viewH/3-28,viewH*0.28))+'px';shEl.style.transform='translateX(-50%)';}
+if(shEl){shEl.style.left=(cl+viewW/2)+'px';shEl.style.top=(top+viewH/6)+'px';shEl.style.transform='translate(-50%,-50%)';}
+const phEl=$('pauseHint');
+if(phEl){phEl.style.left=(cl+viewW/2)+'px';phEl.style.top=(top+viewH/6)+'px';phEl.style.transform='translate(-50%,-50%)';}
+if($('tO')&&$('tO').classList.contains('open'))setTutHighlights(true);
 constrain();
 }
 
 function updateHint(){
 const el=$('subHint');if(!el)return;
-// After CD ends (waiting to submit): show. During CD: only while bounce count matches level.
-// Never while paused, post-game, or right after a level-up (isCD restart with wallHits 0).
+const waitingBegin=(postGame||!circle.hasBeenTouched)&&!isPaused;
 const waitingSubmit=!isCD&&isTrack&&circle.hasBeenTouched;
 const matchDuringCD=isCD&&wallHits===level&&wallHits>0;
-const show=!isPaused&&!postGame&&(waitingSubmit||matchDuringCD);
+const showSubmit=!isPaused&&!postGame&&(waitingSubmit||matchDuringCD);
 el.classList.remove('show','hi-match','hi-over','hi-under');
-if(show){
+if(waitingBegin){
+el.textContent='NEXT TOUCH BEGINS';
+el.classList.add('show','hi-under');
+}else if(showSubmit){
+el.textContent='NEXT TOUCH SUBMITS!';
 el.classList.add('show');
 if(wallHits===level)el.classList.add('hi-match');
 else if(wallHits>level)el.classList.add('hi-over');
 else el.classList.add('hi-under');
 }
+const ph=$('pauseHint');
+if(ph){if(isPaused)ph.classList.add('show');else ph.classList.remove('show');}
 }
+
 function placeFloat(el, anchor, side){
 // side: 'left' | 'right' — place beside the anchor number box
 if(!el||!anchor)return;
@@ -404,15 +450,15 @@ if(d+circle.radius>mr){const a=Math.atan2(circle.y-cy,circle.x-cx);circle.x=cx+M
 
 function saveSt(){
 const k=mode+'-'+map;sHS(hiScore);
-GS[k]={level,lives,wallHits,isTrack,isPaused,isCD,cdVal,cdOp,wasDrag:circle.wasDraggingWhenPaused,startL,cashAvail,nextCO,curInc,
+GS[k]={level,lives,wallHits,isTrack,isPaused,isCD,cdVal,cdOp,cdRemain,wasDrag:circle.wasDraggingWhenPaused,startL,cashAvail,nextCO,curInc,
 circle:{x:circle.x,y:circle.y,radius:circle.radius,dx:circle.dx,dy:circle.dy,lastX:circle.lastX,lastY:circle.lastY,lastTime:circle.lastTime,hasBeenTouched:circle.hasBeenTouched},
 trail:[...trail],gSec,rSec,pgSec,prSec,ngSec,nrSec,pLand};
-if(isCD){clearInterval(cdInt);cdInt=null}saveP();
+saveP();
 }
 
 function loadSt(md,mp){
 const k=md+'-'+mp,st=GS[k];suppress=true;
-level=st.level;lives=st.lives;hiScore=gHS();wallHits=st.wallHits;isTrack=st.isTrack;isPaused=st.isPaused;isCD=st.isCD;cdVal=st.cdVal;cdOp=st.cdOp;
+level=st.level;lives=st.lives;hiScore=gHS();wallHits=st.wallHits;isTrack=st.isTrack;isPaused=st.isPaused;isCD=st.isCD;cdVal=st.cdVal;cdOp=st.cdOp;cdRemain=(st.cdRemain!=null?st.cdRemain:1000);
 circle.wasDraggingWhenPaused=st.wasDrag;startL=st.startL!==undefined?st.startL:(md==='survival'?3:Infinity);
 prevL=lives;prevLv=level;prevHS=hiScore;prevC=coins;
 gSec=st.gSec??null;rSec=st.rSec??null;pgSec=st.pgSec??null;prSec=st.prSec??null;ngSec=st.ngSec??null;nrSec=st.nrSec??null;pLand=st.pLand??null;
@@ -615,13 +661,61 @@ holes.forEach(bh=>{bh.op=Math.max(0,1-(now-bh.st)/2000)});holes=holes.filter(bh=
 particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.life-=0.025});particles=particles.filter(p=>p.life>0);
 }
 
-function startCD(res){if(!res){isCD=true;cdVal=3;wallHits=0;wH.textContent='0';wH.style.color='#e8f0ff';wH.style.textShadow='none';isTrack=true;cdOp=1}else isCD=true;
-cd.style.opacity=cdOp;cd.textContent=cdVal;if(cdInt)clearInterval(cdInt);
-cdInt=setInterval(()=>{cdVal--;if(cdVal>0)cd.textContent=cdVal;else{cdOp=0;cd.style.opacity=0;clearInterval(cdInt);cdInt=null;isCD=false;updDisp()}},1000)}
+function clearCDTimer(){if(cdInt){clearTimeout(cdInt);cdInt=null}}
+function scheduleCD(){
+clearCDTimer();
+if(!isCD||isPaused)return;
+cdTickAt=Date.now();
+const wait=Math.max(16,cdRemain);
+cdInt=setTimeout(function cdTick(){
+// Ignore stale ticks if paused or countdown already cleared
+if(!isCD||isPaused){cdInt=null;return}
+cdVal--;
+if(cdVal>0){
+cd.textContent=cdVal;
+cdRemain=1000;
+cdTickAt=Date.now();
+cdInt=setTimeout(cdTick,1000);
+}else{
+cdOp=0;cd.style.opacity=0;cdInt=null;isCD=false;cdRemain=1000;
+updDisp();updateHint();
+}
+},wait);
+}
+function pauseCD(){
+if(!isCD)return;
+// Always freeze remaining time on the CURRENT second, even if timer id was lost
+if(cdTickAt){
+const elapsed=Date.now()-cdTickAt;
+cdRemain=Math.max(16,cdRemain-elapsed);
+}
+cdTickAt=0;
+clearCDTimer();
+}
+function resumeCD(){
+if(!isCD)return;
+if(isPaused)return;
+// Continue the same second with whatever fraction is left
+if(!(cdRemain>0))cdRemain=1000;
+scheduleCD();
+}
+function startCD(res){
+if(!res){
+isCD=true;cdVal=3;wallHits=0;wH.textContent='0';
+wH.style.color='#e8f0ff';wH.style.textShadow='none';
+isTrack=true;cdOp=1;cdRemain=1000;
+}else{
+isCD=true;
+// resuming an existing countdown — keep cdVal and cdRemain as-is
+}
+cd.style.opacity=cdOp;cd.textContent=String(cdVal);
+clearCDTimer();
+if(!isPaused)scheduleCD();
+}
 
 function endGame(){
 level=1;updTM();lives=3;startL=3;wallHits=0;isTrack=false;isPaused=false;isCD=false;cdVal=3;cdOp=0;
-if(cdInt){clearInterval(cdInt);cdInt=null}cd.style.opacity=0;cd.textContent='';
+clearCDTimer();cdRemain=1000;cd.style.opacity=0;cd.textContent='';
 const w=viewW,h=viewH;
 // Drop from center — death tap must NOT start the next run
 circle.x=w/2;circle.y=h*0.2;circle.dx=0;circle.dy=0;
@@ -630,6 +724,7 @@ circle.wasDraggingWhenPaused=false;trail.length=0;
 cashAvail=false;curInc=14;nextCO=16;resetGold();mergeA=0;mergeP=[];
 pgSec=prSec=pLand=null;asCur();asNext();
 active=true;postGame=true; // waiting for a fresh tap to start
+updateHint();
 canvas.style.pointerEvents='auto';potential=0;prevPot=-1;saveSt();updDisp();draw();
 }
 
@@ -676,7 +771,9 @@ circle.rsTimer=setTimeout(()=>{if(circle.resizeTouchId!==null)circle.isResizing=
 }
 }
 function startMouseResize(e){
-if(!circle.isDragging||circle.isResizing||(isPaused&&!circle.wasDraggingWhenPaused))return;
+// Allow while paused if ball was held when paused (holding state)
+const held=circle.isDragging||(isPaused&&circle.wasDraggingWhenPaused);
+if(!held||circle.isResizing)return;
 if(e.button!==2)return;
 e.preventDefault();
 const pos=getPos(e,null);
@@ -715,19 +812,21 @@ if(e&&e.changedTouches){let m=false;for(let i=0;i<e.changedTouches.length;i++)if
 const didResize=circle.isResizing;
 if(circle.rsTimer){clearTimeout(circle.rsTimer);circle.rsTimer=null}
 circle.isResizing=false;circle.resizeTouchId=null;rightResize=false;
-// Short click/tap without resizing = drop; if we actually resized, keep current grasp (left still held)
-if(!didResize&&circle.isDragging){dropBall();draw()}
+// Short click/tap without resizing = drop — but NEVER while paused (keep holding state)
+if(!didResize&&circle.isDragging&&!isPaused){dropBall();draw()}
 }
 
 function handleTap(e){
+if(uiLocked)return;
 if(isPaused)return;
 const pos=getPos(e);const w=viewW,h=viewH;
 if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
 const ox=circle.x,oy=circle.y;if(circle.isDragging)return;
-if(!circle.hasBeenTouched||postGame){postGame=false;circle.hasBeenTouched=true;isTrack=false;wallHits=0;startCD();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updDisp();return}
+if(!circle.hasBeenTouched||postGame){postGame=false,uiLocked=false;
+const HS_REQS=[15,29,42,54,65,75,84,92,99,105,110,114,117,119,121,123,125,127,129,131,133,135,137,139,141,143,145,147,149,151];circle.hasBeenTouched=true;isTrack=false;wallHits=0;startCD();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updDisp();return}
 let bg='rgba(180,180,180,0.4)';if(mode==='survival'&&map==='rectangle'){const sec=Math.floor(oy/(h/3));if(sec===gSec)bg='rgba(0,180,90,0.6)';else if(sec===rSec)bg='rgba(180,30,50,0.6)'}
 holes.push({x:ox,y:oy,st:Date.now(),bg,op:1});
-if(isCD){if(wallHits===level){isTrack=false;if(cdInt){clearInterval(cdInt);cdInt=null;cdOp=0;cd.style.opacity=0;isCD=false}completeLevel(oy,h);updateHint();circle.x=pos.x;circle.y=pos.y;constrain();return}circle.x=pos.x;circle.y=pos.y;constrain();updateHint();return}
+if(isCD){if(wallHits===level){isTrack=false;if(cdInt){clearCDTimer();cdOp=0;cd.style.opacity=0;isCD=false}completeLevel(oy,h);updateHint();circle.x=pos.x;circle.y=pos.y;constrain();return}circle.x=pos.x;circle.y=pos.y;constrain();updateHint();return}
 if(wallHits===level)completeLevel(oy,h);
 else if(mode==='survival'){
 lives--;potential=(level-1)*lives;
@@ -738,6 +837,7 @@ circle.x=pos.x;circle.y=pos.y;constrain();updateHint();
 }
 
 function startDrag(e){
+if(uiLocked)return;
 if(postGame)return; // don't grab the ball on the death tap
 const pos=getPos(e,e.touches?e.touches[0].identifier:null);const tid=e.touches?e.touches[0].identifier:null;
 if(isPaused&&cashAvail&&mode==='survival'&&mergeA<=0){if(Math.hypot(pos.x-gold.x,pos.y-gold.y)<=gold.r+12){e.preventDefault();gold.drag=true;gold.tid=tid;gold.ox=pos.x-gold.x;gold.oy=pos.y-gold.y;draw();return}}
@@ -766,11 +866,11 @@ const scr=getScr(e,circle.dragTouchId);const target=document.elementFromPoint(sc
 const chk=(btn,key,fn)=>{if(target===btn){if(!holdT[key]&&!btnAct[key]){btn.classList.remove('gG','gR','gW','rc');if(key==='play')btn.classList.add(isPaused?'gG':'gR');else btn.classList.add('gW');
 holdT[key]=setTimeout(()=>{if(circle.isDragging&&document.elementFromPoint(scr.x,scr.y)===btn){btn.classList.remove('gG','gR','gW');btn.classList.add('rc');fn();btnAct[key]=true}holdT[key]=null},HOLD_THR)}}
 else{if(holdT[key]){clearTimeout(holdT[key]);holdT[key]=null;btn.classList.remove('gG','gR','gW');btn.classList.add('rc')}if(btnAct[key]&&target!==btn)btnAct[key]=false}};
-chk(pB,'play',()=>{if(isPaused){isPaused=false;resetGold();circle.lastX=getPos(e,circle.dragTouchId).x;circle.lastY=getPos(e,circle.dragTouchId).y;circle.lastTime=Date.now();circle.dx=circle.dy=0;if(GS[mode+'-'+map].isCD)startCD(true)}else{circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;saveSt();updateHint()}updDisp();draw()});
-chk(mB,'mode',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;saveSt();mode=mode==='survival'?'freebie':'survival';circle.hasBeenTouched=false;loadSt(mode,map)});
-chk(mpB,'map',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;saveSt();map=map==='rectangle'?'circle':'rectangle';circle.hasBeenTouched=false;loadSt(mode,map)});
-chk(sB,'store',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;saveSt();openStore()});
-chk(hBtn,'help',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;saveSt();openHelp()});
+chk(pB,'play',()=>{if(isPaused){isPaused=false;resumeCD();resetGold();circle.lastX=getPos(e,circle.dragTouchId).x;circle.lastY=getPos(e,circle.dragTouchId).y;circle.lastTime=Date.now();circle.dx=circle.dy=0;/* CD already resumed via resumeCD */}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updateHint()}updDisp();draw()});
+chk(mB,'mode',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();mode=mode==='survival'?'freebie':'survival';circle.hasBeenTouched=false;loadSt(mode,map)});
+chk(mpB,'map',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();map=map==='rectangle'?'circle':'rectangle';circle.hasBeenTouched=false;loadSt(mode,map)});
+chk(sB,'store',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();openStore()});
+chk(hBtn,'help',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();openHelp()});
 if(isPaused)saveSt();draw();
 }
 
@@ -784,8 +884,8 @@ const over=scr.x>=rect.left&&scr.x<=rect.right&&scr.y>=rect.top&&scr.y<=rect.bot
 if(target===pB&&!btnAct.play)pB.click();
 else if(target===mB&&!btnAct.mode)mB.click();
 else if(target===mpB&&!btnAct.map)mpB.click();
-else if(target===sB&&!btnAct.store){if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;saveSt();openStore()}
-else if(target===hBtn&&!btnAct.help){if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;saveSt();openHelp()}
+else if(target===sB&&!btnAct.store){if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();openStore()}
+else if(target===hBtn&&!btnAct.help){if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();openHelp()}
 else if(over&&!circle.hasBeenTouched){circle.hasBeenTouched=true;startCD()}
 circle.isDragging=false;circle.dragTouchId=null;
 Object.keys(holdT).forEach(k=>{if(holdT[k]){clearTimeout(holdT[k]);holdT[k]=null;const btn=k==='play'?pB:k==='mode'?mB:k==='map'?mpB:k==='store'?sB:hBtn;if(btn){btn.classList.remove('gG','gR','gW');btn.classList.add('rc')}}});
@@ -793,20 +893,64 @@ btnAct={play:false,mode:false,map:false,store:false,help:false};if(isPaused)save
 }
 
 
-function openStore(){isPaused=true;saveSt();renderStore();sO.classList.add('open');updDisp()}
+function openStore(){pauseCD();isPaused=true;saveSt();renderStore();sO.classList.add('open');updDisp()}
 function closeStore(){sO.classList.remove('open');updDisp();draw()}
-function renderStore(){sCC.textContent=coins;skG.innerHTML='';bgG.innerHTML='';
-SKINS.forEach(sk=>{const owned=ownedS.has(sk.id),eq=eqS===sk.id;const card=document.createElement('div');card.className='sc'+(owned?'':'')+(eq?' eq':'');
-card.innerHTML=`<div class="pv" style="background:${sk.c.f};border:3px solid ${sk.c.s};box-shadow:0 0 12px ${sk.c.g}"><\/div><div class="cn">${sk.n}<\/div><div class="cp">${owned?(eq?'EQUIPPED':'OWNED'):sk.p+' $'}<\/div><button class="cb ${eq?'eqd':owned?'eqp':(coins>=sk.p?'buy':'lk')}">${eq?'EQUIPPED':owned?'EQUIP':(coins>=sk.p?'BUY':'LOCKED')}<\/button>`;
-card.querySelector('button').onclick=e=>{e.stopPropagation();if(!owned){if(coins>=sk.p){coins-=sk.p;ownedS.add(sk.id);eqS=sk.id;saveP();renderStore();updDisp()}}else{eqS=sk.id;saveP();renderStore()}};skG.appendChild(card)});
-BGS.forEach(bg=>{const owned=ownedB.has(bg.id),eq=eqB===bg.id;const card=document.createElement('div');card.className='sc'+(eq?' eq':'');
-let ps='background:#0a0c14';if(bg.t==='grid')ps='background:#0a1520';else if(bg.t==='stars')ps='background:#050510';else if(bg.t==='aurora')ps='background:linear-gradient(135deg,#003040,#1a0040)';else if(bg.t==='lava')ps='background:linear-gradient(#2a0800,#1a0400)';else if(bg.t==='ocean')ps='background:linear-gradient(#001830,#003050)';else if(bg.t==='nebula')ps='background:radial-gradient(circle at 30% 40%,#4a1880,#0a1020 70%)';else if(bg.t==='singularity')ps='background:radial-gradient(circle,#000 15%,#140028 45%,#000810)';
-card.innerHTML=`<div class="pv bg" style="${ps}"><\/div><div class="cn">${bg.n}<\/div><div class="cp">${owned?(eq?'EQUIPPED':'OWNED'):bg.p+' $'}<\/div><button class="cb ${eq?'eqd':owned?'eqp':(coins>=bg.p?'buy':'lk')}">${eq?'EQUIPPED':owned?'EQUIP':(coins>=bg.p?'BUY':'LOCKED')}<\/button>`;
-card.querySelector('button').onclick=e=>{e.stopPropagation();if(!owned){if(coins>=bg.p){coins-=bg.p;ownedB.add(bg.id);eqB=bg.id;saveP();renderStore();updDisp();draw()}}else{eqB=bg.id;saveP();renderStore();draw()}};bgG.appendChild(card)})}
+function renderStore(){
+sCC.textContent=coins;skG.innerHTML='';bgG.innerHTML='';
+const survHS=gSurvHS();
+// Assign HS requirements by price (free items = 0; others in price order)
+const priced=[...SKINS.filter(s=>s.p>0).map(s=>({t:'s',o:s})),...BGS.filter(b=>b.p>0).map(b=>({t:'b',o:b}))]
+
+priced.sort((a,b)=>a.o.p-b.o.p||a.o.n.localeCompare(b.o.n));
+const reqMap={};
+priced.forEach((it,i)=>{reqMap[it.t+':'+it.o.id]=HS_REQS[Math.min(i,HS_REQS.length-1)]});
+SKINS.forEach(sk=>{
+const owned=ownedS.has(sk.id),eq=eqS===sk.id;
+const req=sk.p<=0?0:(reqMap['s:'+sk.id]||15);
+const canHS=survHS>=req,can$=coins>=sk.p,canBuy=!owned&&canHS&&can$;
+const card=document.createElement('div');card.className='sc'+(eq?' eq':'');
+let status,btnCls,btnTxt;
+if(eq){status='EQUIPPED';btnCls='eqd';btnTxt='EQUIPPED'}
+else if(owned){status='OWNED';btnCls='eqp';btnTxt='EQUIP'}
+else if(!canHS){status='HS '+req+' · '+sk.p+' $';btnCls='lk';btnTxt='HS '+req}
+else if(!can$){status=sk.p+' $';btnCls='lk';btnTxt='LOCKED'}
+else{status=sk.p+' $';btnCls='buy';btnTxt='BUY'}
+card.innerHTML=`<div class="pv" style="background:${sk.c.f};border:3px solid ${sk.c.s};box-shadow:0 0 12px ${sk.c.g}"><\/div><div class="cn">${sk.n}<\/div><div class="cp">${status}<\/div><button class="cb ${btnCls}">${btnTxt}<\/button>`;
+card.querySelector('button').onclick=e=>{e.stopPropagation();
+if(!owned){if(canBuy){coins-=sk.p;ownedS.add(sk.id);eqS=sk.id;saveP();renderStore();updDisp()}}
+else{eqS=sk.id;saveP();renderStore()}};
+skG.appendChild(card);
+});
+BGS.forEach(bg=>{
+const owned=ownedB.has(bg.id),eq=eqB===bg.id;
+const req=bg.p<=0?0:(reqMap['b:'+bg.id]||15);
+const canHS=survHS>=req,can$=coins>=bg.p,canBuy=!owned&&canHS&&can$;
+const card=document.createElement('div');card.className='sc'+(eq?' eq':'');
+let ps='background:#0a0c14';
+if(bg.t==='grid')ps='background:#0a1520';
+else if(bg.t==='stars')ps='background:#050510';
+else if(bg.t==='aurora')ps='background:linear-gradient(135deg,#003040,#1a0040)';
+else if(bg.t==='lava')ps='background:linear-gradient(#2a0800,#1a0400)';
+else if(bg.t==='ocean')ps='background:linear-gradient(#001830,#003050)';
+else if(bg.t==='nebula')ps='background:radial-gradient(circle at 30% 40%,#4a1880,#0a1020 70%)';
+else if(bg.t==='singularity')ps='background:radial-gradient(circle,#000 15%,#140028 45%,#000810)';
+let status,btnCls,btnTxt;
+if(eq){status='EQUIPPED';btnCls='eqd';btnTxt='EQUIPPED'}
+else if(owned){status='OWNED';btnCls='eqp';btnTxt='EQUIP'}
+else if(!canHS){status='HS '+req+' · '+bg.p+' $';btnCls='lk';btnTxt='HS '+req}
+else if(!can$){status=bg.p+' $';btnCls='lk';btnTxt='LOCKED'}
+else{status=bg.p+' $';btnCls='buy';btnTxt='BUY'}
+card.innerHTML=`<div class="pv bg" style="${ps}"><\/div><div class="cn">${bg.n}<\/div><div class="cp">${status}<\/div><button class="cb ${btnCls}">${btnTxt}<\/button>`;
+card.querySelector('button').onclick=e=>{e.stopPropagation();
+if(!owned){if(canBuy){coins-=bg.p;ownedB.add(bg.id);eqB=bg.id;saveP();renderStore();updDisp();draw()}}
+else{eqB=bg.id;saveP();renderStore();draw()}};
+bgG.appendChild(card);
+});
+}
 
 hCo.innerHTML="<h3>The Goal<\/h3><p>Stop the ball in its tracks when its bounce count exactly matches the level number. Level 1 needs exactly 1 bounce, level 2 needs exactly 2, and so on. One bounce over or under and you lose a life (Survival). Lives also act as your score multiplier. Level starts at 1 and resets to 1 when a new Survival game starts.<\/p>\n<p>The right number in the center box is the target. The left number is your live bounce count.<\/p>\n<h3>Throwing &amp; Submitting<\/h3>\n<ul><li>Tap anywhere inside the play area to spawn the ball at that spot. It will fall under gravity from there.<\/li>\n<li>If you keep holding after the tap, the ball stays in your grasp until you release or fling it.<\/li>\n<li>The first tap also starts a <strong>3-second countdown<\/strong>. That countdown is the time window you have to stack up bounces; after the countdown, the next touch in the map will submit your bounce count. At higher levels you will often need several throws inside those 3 seconds because gravity slows the ball down.<\/li>\n<li>Bounces keep counting during the countdown and after it ends.<\/li>\n<li>To <strong>submit<\/strong> your current bounce count: after the countdown (or even during it once you have started), tap, hold, or flick anywhere inside the map. That action locks in the result and resets the countdown for either your next try at that level, or the next level if the bounce count matched the level number.<\/li>\n<li>The crosshair in the center of the ball marks the exact position used when you submit.<\/li><\/ul>\n<h3>Survival Mode (MEGA BOUNCE)<\/h3>\n<p>You have limited lives. Each new run starts with <strong>3 lives<\/strong>, and lives reset to 3 when a new game begins (after cash-out or game over). On the Rectangle map the play area is split into three horizontal zones. When you clear a level, the zone the ball is in at the moment you submit changes your lives (the +/- numbers adjust at lower life amounts):<\/p>\n<ul><li><span style=\"color:#00ff88\">Green<\/span> &rarr; gain a life<\/li><li><span style=\"color:#ff3355\">Red<\/span> &rarr; lose a life<\/li><li>Black &rarr; no change<\/li><\/ul>\n<p>The side strips show the previous and upcoming zone colors (left and right sides, respectively). You can see which color you previously landed on (outlined in white), and which colors are next up.<\/p>\n<p><strong>Potential payout<\/strong> = the last level you beat this run &times; your current lives.<\/p>\n<h3>Lives Recovery<\/h3>\n<p>The +/- numbers on the zones adjust at lower lives amounts based on how many lives you started the level with:<\/p>\n<ul><li><strong>Started at 3 or more lives:<\/strong> If you drop below 3, black returns you to 3, green bumps you up to 4, red keeps you at or returns you to 2.<\/li>\n<li><strong>Started at 2 lives:<\/strong> If you drop below 2, black returns you to 2, green bumps you up to 3, red keeps you at 1.<\/li>\n<li><strong>Started at 1 life:<\/strong> Black and red keep you at 1, green bumps you to 2.<\/li><\/ul>\n<h3>Cash Out<\/h3>\n<p>The first cash-out opportunity appears at <strong>level 16<\/strong> (after you have beaten 15 levels). Each time you skip one, the gap to the next shrinks (14 levels, then 13, and so on) until it settles at every 2 levels.<\/p>\n<p>When it is available, the map border and Pause button pulse gold, and the Pause button reads &ldquo;PAUSE/ CASH OUT&rdquo; (on two lines). Cash out now if you want, or keep playing for a later shot. Pause to bring up the gold circle and blue $. Drag the gold circle onto the blue $ and release to cash out: you receive $ equal to (last level beaten &times; current lives) and the run resets.<\/p>\n<h3>Free Mode (FREE BOUNCE)<\/h3>\n<p>Infinite lives. Every successful level awards +1 $. Ideal for practice, and unlimited attempts to beat levels &mdash; the level you reach is saved and never resets.<\/p>\n<h3>Maps<\/h3>\n<ul><li><strong>Rectangle<\/strong> &mdash; four walls plus the colored life zones in Survival.<\/li><li><strong>Circle<\/strong> &mdash; circular boundary, no life zones.<\/li><\/ul>\n<h3>Extra Controls<\/h3>\n<ul>\n<li><strong>Resize (touch):<\/strong> hold the ball with one finger, place a second finger on the map, hold briefly, then drag that finger away to grow the ball or toward it to shrink it.<\/li>\n<li><strong>Resize (mouse):<\/strong> left-click and hold the ball, then right-click and drag <em>up<\/em> to grow or <em>down<\/em> to shrink.<\/li>\n<li><strong>Drop straight down (touch):<\/strong> while holding the ball, tap elsewhere on the map with another finger to release it so it falls straight down from your grasp.<\/li>\n<li><strong>Drop straight down (mouse):<\/strong> while left-click holding the ball, right-click once (without dragging) to drop it straight down.<\/li>\n<li>You can preserve the ball&rsquo;s holding state across pause/resume. While holding the ball, drag onto Pause, Map, Mode, Store, or Help and either wait for the button to glow-activate or simply release on it &mdash; both save the holding state. Resume the same way to continue with the ball still in your grasp. Tapping Resume without holding the ball resumes in a free (non-holding) state.<\/li>\n<\/ul>";
 
-function openHelp(){isPaused=true;saveSt();hO.classList.add('open');updDisp()}
+function openHelp(){pauseCD();isPaused=true;saveSt();hO.classList.add('open');updDisp()}
 function closeHelp(){hO.classList.remove('open');updDisp();draw()}
 
 const TSTEPS=[
@@ -814,21 +958,44 @@ const TSTEPS=[
 {t:'Throwing & the Countdown',b:'Tap to spawn the ball (it falls from there). Hold to keep it in your grasp, then fling to throw. The 3-second countdown is your window to stack up bounces — after it ends, the next touch in the map submits your count. Higher levels often need several throws.'},
 {t:'Submitting',b:'Tap, hold, or flick inside the map to lock in your bounce count. That resets the countdown for another try at the same level, or advances you if you matched. The crosshair marks the exact submit position (and which color zone you hit in Survival).'},
 {t:'Survival & Cash Out',b:'Survival has limited lives and colored zones on the Rectangle map. Cash-out first appears at level 16 (after beating 15 levels). Gaps then shrink (14, 13, …) until every 2 levels. When available the map and Pause button pulse gold — cash out now or keep playing. Pause, drag the gold circle onto the blue $, and release when “LET GO” appears to collect $ and reset the run.'},
-{t:'Modes, Maps & Store',b:'Switch MODE (Survival / Free) and MAP (Rectangle / Circle) anytime — each combo saves its own progress. Free mode never resets your level. Resize the ball with a second finger (or right-drag up/down on mouse while holding). Tap elsewhere (or right-click) while holding to drop it straight down. Spend $ in the Store on skins and backgrounds. Have fun!'}
+{t:'Modes, Maps & Store',b:'Switch MODE (Survival / Free) and MAP (Rectangle / Circle) anytime — each combo saves its own progress. Free mode never resets your level. Resize the ball with a second finger (or right-drag up/down on mouse while holding). Tap elsewhere (or right-click) while holding to drop it straight down. Spend $ in the Store on skins and backgrounds (items unlock with Survival high scores). Have fun!'}
 ];
 let tutI=0,seenTut=false;
 function loadTut(){try{seenTut=localStorage.getItem('megaBounceTutorialSeen')==='1'}catch(e){}}
 function saveTut(){try{localStorage.setItem('megaBounceTutorialSeen','1')}catch(e){}seenTut=true}
-function showTut(){const s=TSTEPS[tutI];tS.textContent=`STEP ${tutI+1} / ${TSTEPS.length}`;tT.textContent=s.t;tB.textContent=s.b;tN.textContent=tutI===TSTEPS.length-1?'START':'NEXT';tP.disabled=tutI===0;tNA.disabled=tutI===TSTEPS.length-1;tO.classList.add('open');isPaused=true}
-function startTut(){tutI=0;showTut()}
-function closeTut(){tO.classList.remove('open');saveTut();isPaused=false;updDisp();draw()}
+function setUiLocked(on){
+uiLocked=!!on;
+document.body.classList.toggle('ui-locked',uiLocked);
+}
+function setTutHighlights(on){
+const lv=$('lvB'),w=$('wH'),ln=$('lN'),bc=$('bcCall'),bg=$('bgCall');
+[lv,w,ln].forEach(el=>{if(el)el.classList.toggle('tutHL',!!on)});
+[bc,bg].forEach(el=>{if(el)el.classList.toggle('show',!!on)});
+if(on&&lv&&bc&&bg){
+const r=lv.getBoundingClientRect();
+const wEl=$('wH'),nEl=$('lN');
+const rw=wEl?wEl.getBoundingClientRect():r;
+const rn=nEl?nEl.getBoundingClientRect():r;
+// Arrows sit just under each number; text sits lower under the arrow
+// Spread outward so the two labels aren't cramped
+bc.style.left=(rw.left+rw.width/2)+'px';
+bc.style.top=(r.bottom+4)+'px';
+bc.style.transform='translateX(-70%)';
+bg.style.left=(rn.left+rn.width/2)+'px';
+bg.style.top=(r.bottom+4)+'px';
+bg.style.transform='translateX(-30%)';
+}
+}
+function showTut(){setTutHighlights(true);const s=TSTEPS[tutI];tS.textContent=`STEP ${tutI+1} / ${TSTEPS.length}`;tT.textContent=s.t;tB.textContent=s.b;tN.textContent=tutI===TSTEPS.length-1?'START':'NEXT';tP.disabled=tutI===0;tNA.disabled=tutI===TSTEPS.length-1;tO.classList.add('open');setTutHighlights(true);isPaused=true}
+function startTut(){setUiLocked(false);tutI=0;showTut()}
+function closeTut(){tO.classList.remove('open');setTutHighlights(false);setUiLocked(false);saveTut();isPaused=false;updDisp();draw()}
 function goNext(){if(tutI<TSTEPS.length-1){tutI++;showTut()}else closeTut()}
 function goPrev(){if(tutI>0){tutI--;showTut()}}
 tN.onclick=goNext;tNA.onclick=goNext;tP.onclick=goPrev;tSk.onclick=closeTut;
 
 mB.onclick=()=>{if(mergeA>0){mergeA=0;doCash();return}if(!isPaused){circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true}saveSt();mode=mode==='survival'?'freebie':'survival';circle.hasBeenTouched=false;loadSt(mode,map)};
 mpB.onclick=()=>{if(mergeA>0){mergeA=0;doCash();return}if(!isPaused){circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true}saveSt();map=map==='rectangle'?'circle':'rectangle';circle.hasBeenTouched=false;loadSt(mode,map)};
-pB.onclick=e=>{if(isPaused){isPaused=false;resetGold();if(circle.isDragging){const pos=getPos(e);circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0}else if(circle.wasDraggingWhenPaused){circle.isDragging=false;circle.dragTouchId=null;constrain();circle.dx=circle.dy=0}circle.wasDraggingWhenPaused=false;if(GS[mode+'-'+map].isCD)startCD(true);updDisp();draw()}else{circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;saveSt();updDisp();draw()}};
+pB.onclick=e=>{if(isPaused){isPaused=false;resumeCD();resetGold();if(circle.isDragging){const pos=getPos(e);circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0}else if(circle.wasDraggingWhenPaused){circle.isDragging=false;circle.dragTouchId=null;constrain();circle.dx=circle.dy=0}circle.wasDraggingWhenPaused=false;updDisp();draw()}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updDisp();draw()}};
 sB.onclick=openStore;sCl.onclick=closeStore;hBtn.onclick=openHelp;hCl.onclick=closeHelp;hCb.onclick=closeHelp;
 
 const INFO={"potential": {"title": "POTENTIAL PAYOUT", "body": "<p>Your <strong>potential payout<\/strong> is the amount of $ you would receive if you cash out right now.<\/p>\n<p><strong>Formula:<\/strong> last level beaten this run &times; current lives<\/p>\n<p>Example: if you just cleared level 5 and have 3 lives, your potential is 5 &times; 3 = <strong>15 $<\/strong>.<\/p>\n<p>When you cash out (pause when the gold glow appears, drag the gold circle onto the blue $ and release), that potential is added to your $ balance and the Survival run resets.<\/p>\n<p>You can also keep playing to try for a higher payout later \u2014 the choice is yours each time cash-out becomes available.<\/p>"}, "lives": {"title": "LIVES", "body": "<p>Lives act as your <strong>score multiplier<\/strong> for the potential payout (last level beaten &times; current lives).<\/p>\n<p>You start each new Survival run with <strong>3 lives<\/strong>, and lives reset to 3 whenever a new game starts (after a cash-out or when you run out of lives).<\/p>\n<p><strong>Recovery on the Rectangle map:<\/strong> when you clear a level, the zone you land in adjusts lives based on how many you started the level with:<\/p>\n<ul><li><strong>Started at 3+:<\/strong> if you drop below 3, black returns you to 3, green to 4, red to 2.<\/li>\n<li><strong>Started at 2:<\/strong> if you drop below 2, black returns you to 2, green to 3, red keeps you at 1.<\/li>\n<li><strong>Started at 1:<\/strong> black and red keep you at 1, green bumps you to 2.<\/li><\/ul>"}, "bounces": {"title": "BOUNCE COUNT", "body": "<p>The <strong>left number<\/strong> is your live bounce count. The <strong>right number<\/strong> is the target for this level.<\/p>\n<p>To level up, that left number must <strong>exactly match<\/strong> the level number when you submit \u2014 either:<\/p>\n<ul><li>the first touch on the map after the countdown ends, or<\/li>\n<li>a touch during the countdown while the numbers already match.<\/li><\/ul>\n<p>One bounce over or under and you lose a life in Survival.<\/p>"}, "level": {"title": "LEVEL", "body": "<p>The level number is the bounce target for this round and also feeds into your potential payout multiplier (last level beaten &times; lives).<\/p>\n<p>Level starts at <strong>1<\/strong> and resets to 1 whenever a new Survival game starts (after cash-out or running out of lives).<\/p>\n<p>In Free mode the level you reach is saved and does not reset.<\/p>"}, "hiscore": {"title": "HI-SCORE", "body": "<p>Your hi-score is the <strong>highest level you have beaten<\/strong>.<\/p>\n<p>Hi-scores are saved <strong>separately for each mode and map combination<\/strong> (Survival Rectangle, Survival Circle, Free Rectangle, Free Circle), so each has its own best.<\/p>"}};
@@ -840,7 +1007,7 @@ pD.onclick=()=>openInfo('potential');
 lB.onclick=()=>openInfo('lives');
 hB.onclick=()=>openInfo('hiscore');
 wH.onclick=e=>{e.stopPropagation();openInfo('bounces')};
-lN.onclick=e=>{e.stopPropagation();openInfo('level')};
+lN.onclick=e=>{e.stopPropagation();if($('tO')&&$('tO').classList.contains('open'))return;openInfo('level')};
 
 
 canvas.addEventListener('mousedown',e=>{
@@ -853,7 +1020,7 @@ if(e.button===2||rightResize||circle.isResizing){stopResizing(e);return}
 stopDrag(e);
 });
 document.addEventListener('mousemove',e=>{if(circle.isDragging||circle.isResizing||gold.drag)drag(e)});
-document.addEventListener('mouseup',e=>{if(e.button===2||rightResize||circle.isResizing){stopResizing(e);if(e.button===2)return;}stopDrag(e)});
+document.addEventListener('mouseup',e=>{if(e.button===2){stopResizing(e);return;}if(rightResize||circle.isResizing)stopResizing(e);if(e.button!==0)return;stopDrag(e)});
 canvas.addEventListener('contextmenu',e=>e.preventDefault()); // allow right-drag resize without menu
 canvas.addEventListener('touchstart',e=>{handleTap(e);startDrag(e);if(e.touches.length>=2)startResizing(e)},{passive:false});
 canvas.addEventListener('touchmove',e=>{e.preventDefault();drag(e)},{passive:false});
@@ -871,7 +1038,7 @@ loadP();loadTut();
 window.addEventListener('resize',setSize);
 
 function boot(){
-setSize();asCur();asNext();
+setSize();updateHint();asCur();asNext();
 const w=viewW||400,h=viewH||400;
 circle.x=w/2;circle.y=h/2;hiScore=gHS();prevHS=hiScore;updTM();updDisp();draw();
 }
@@ -882,7 +1049,8 @@ animate();
 requestAnimationFrame(()=>requestAnimationFrame(()=>{setSize();draw();}));
 setTimeout(()=>{setSize();draw();},100);
 setTimeout(()=>{setSize();draw();},400);
-if(!seenTut)setTimeout(startTut,500);
+if(!seenTut){setUiLocked(true);setTimeout(startTut,500);}
+else{setUiLocked(false);}
 window.addEventListener('orientationchange',()=>setTimeout(()=>{setSize();draw();},150));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){setSize();draw();}});
 window.addEventListener('pageshow',()=>{setSize();draw();});
