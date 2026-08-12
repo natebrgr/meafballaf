@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>MEGA BOUNCE</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Exo+2:wght@400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#050508;--panel:rgba(12,14,22,.88);--cyan:#00f0ff;--gold:#ffd700;--green:#00ff88;--red:#ff3355;--text:#e8f0ff;--dim:#8899bb}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -13,17 +15,17 @@ background-image:radial-gradient(ellipse at 20% 20%,rgba(0,80,120,.15),transpare
 
 #title{pointer-events:none;white-space:nowrap;flex-shrink:0;font-size:1.05rem}
 .sb{cursor:pointer;pointer-events:auto}
-#title{font-family:Orbitron,sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:.08em;background:linear-gradient(90deg,var(--cyan),#ff00aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#title{font-family:'Orbitron',sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:.08em;background:linear-gradient(90deg,var(--cyan),#ff00aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .cg{display:flex;gap:10px;pointer-events:auto}
-.cur{display:flex;align-items:center;gap:5px;font-family:Orbitron,sans-serif;font-weight:600;font-size:.95rem;background:var(--panel);border:1px solid rgba(0,240,255,.25);border-radius:16px;padding:4px 10px;pointer-events:auto;cursor:pointer}
+.cur{display:flex;align-items:center;gap:5px;font-family:'Orbitron',sans-serif;font-weight:600;font-size:.95rem;background:var(--panel);border:1px solid rgba(0,240,255,.25);border-radius:16px;padding:4px 10px;pointer-events:auto;cursor:pointer}
 .ci{width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff}
 #cI{background:linear-gradient(135deg,#00e5ff,#0088ff)}#pI{background:linear-gradient(135deg,#ffd700,#ffaa00)}
 .sb{position:absolute;z-index:20;background:var(--panel);border:1px solid rgba(0,240,255,.25);border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;height:50px}
 .sl{font-size:.48rem;letter-spacing:.12em;color:var(--dim);font-weight:600;text-transform:uppercase}
-.sv{font-family:Orbitron,sans-serif;font-weight:700;font-size:1.25rem;line-height:1}
+.sv{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.25rem;line-height:1}
 #lB{top:48px;left:2.5vw}#hB{top:48px;right:2.5vw}
 #lvB{left:50%;transform:translateX(-50%);top:60px;width:110px;flex-direction:row;padding:0;overflow:hidden}
-#wH,#lN{flex:1;display:flex;justify-content:center;align-items:center;font-family:Orbitron,sans-serif;font-weight:700;font-size:1.4rem;height:100%}
+#wH,#lN{flex:1;display:flex;justify-content:center;align-items:center;font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.4rem;height:100%}
 #wH{border-right:1px solid rgba(0,240,255,.2);cursor:pointer}#lN{color:var(--green);text-shadow:0 0 10px rgba(0,255,136,.45);cursor:pointer}
 canvas{
 position:fixed;
@@ -61,8 +63,8 @@ pointer-events:none;
 box-sizing:border-box;
 transform:none;
 }
-#cd{position:absolute;left:50%;transform:translateX(-50%);font-family:Orbitron,sans-serif;font-weight:800;font-size:4rem;z-index:15;pointer-events:none;color:#fff;text-shadow:0 0 28px rgba(0,240,255,.8);opacity:0}
-.cf{position:fixed;z-index:40;font-family:Orbitron,sans-serif;font-weight:700;font-size:0;pointer-events:none;opacity:0;white-space:nowrap}
+#cd{position:absolute;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-weight:800;font-size:4rem;z-index:15;pointer-events:none;color:#fff;text-shadow:0 0 28px rgba(0,240,255,.8);opacity:0}
+.cf{position:fixed;z-index:40;font-family:'Orbitron',sans-serif;font-weight:700;font-size:0;pointer-events:none;opacity:0;white-space:nowrap}
 .cf.plus{color:var(--green);animation:fp 1.3s ease forwards}.cf.minus{color:var(--red);animation:fm 1.3s ease forwards}
 @keyframes fp{0%{font-size:0;opacity:1}30%{font-size:1.25rem;opacity:1;transform:translateY(-8px) rotate(12deg)}70%{font-size:1.25rem;opacity:1}100%{font-size:0;opacity:0;transform:translateY(-18px)}}
 @keyframes fm{0%{font-size:0;opacity:1}30%{font-size:1.25rem;opacity:1;transform:translateY(-8px) rotate(-12deg)}70%{font-size:1.25rem;opacity:1}100%{font-size:0;opacity:0;transform:translateY(-18px)}}
@@ -70,7 +72,7 @@ transform:none;
 @keyframes fg{0%,100%{border-color:rgba(0,240,255,.25)}50%{border-color:var(--green);box-shadow:0 0 14px rgba(0,255,136,.4)}}
 @keyframes fr{0%,100%{border-color:rgba(0,240,255,.25)}50%{border-color:var(--red);box-shadow:0 0 14px rgba(255,50,80,.4)}}
 
-button{font-family:Orbitron,sans-serif;font-weight:600;font-size:.72rem;letter-spacing:.04em;padding:11px 12px;cursor:pointer;color:var(--text);background:var(--panel);border:1px solid rgba(0,240,255,.35);border-radius:4px;text-transform:uppercase;white-space:nowrap;flex:1 1 0;min-width:0;line-height:1.2;text-align:center;margin:0 4px}
+button{font-family:'Orbitron',sans-serif;font-weight:600;font-size:.72rem;letter-spacing:.04em;padding:11px 12px;cursor:pointer;color:var(--text);background:var(--panel);border:1px solid rgba(0,240,255,.35);border-radius:4px;text-transform:uppercase;white-space:nowrap;flex:1 1 0;min-width:0;line-height:1.2;text-align:center;margin:0 4px}
 button:first-child{margin-left:0}button:last-child{margin-right:0}
 button:hover{background:rgba(0,240,255,.12);border-color:var(--cyan)}
 #pB{background:linear-gradient(135deg,rgba(0,240,255,.15),rgba(0,100,150,.1));white-space:pre-line;line-height:1.15;padding:7px 12px;flex:1.15 1 0}
@@ -82,23 +84,23 @@ button.gG{animation:aG .8s linear forwards}button.gR{animation:aR .8s linear for
 .ov{position:fixed;inset:0;background:rgba(2,4,10,.94);backdrop-filter:blur(12px);z-index:100;display:none;flex-direction:column;align-items:center;padding:18px 14px;overflow-y:auto}
 .ov.open{display:flex}
 .oh{width:100%;max-width:560px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.ot{font-family:Orbitron,sans-serif;font-weight:800;font-size:1.4rem;letter-spacing:.1em}
+.ot{font-family:'Orbitron',sans-serif;font-weight:800;font-size:1.4rem;letter-spacing:.1em}
 .oc{background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;width:36px;height:36px;border-radius:50%;font-size:1.1rem;display:flex;align-items:center;justify-content:center;padding:0;margin:0;flex:none}
 .sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;width:100%;max-width:560px}
 .sc{background:rgba(15,18,30,.9);border:1px solid rgba(0,240,255,.2);border-radius:10px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer}
 .sc.eq{border-color:var(--gold);box-shadow:0 0 12px rgba(255,215,0,.25)}
 .pv{width:58px;height:58px;border-radius:50%}.pv.bg{border-radius:8px;width:100%;height:48px}
-.cn{font-size:.72rem;font-weight:600;text-align:center}.cp{font-family:Orbitron,sans-serif;font-size:.65rem;color:var(--cyan)}
-.cb{width:100%;padding:5px 0;font-size:.62rem;border-radius:5px;border:none;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:600}
+.cn{font-size:.72rem;font-weight:600;text-align:center}.cp{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--cyan)}
+.cb{width:100%;padding:5px 0;font-size:.62rem;border-radius:5px;border:none;cursor:pointer;font-family:'Orbitron',sans-serif;font-weight:600}
 .cb.buy{background:linear-gradient(135deg,#00c8e0,#0088cc);color:#fff}.cb.eqp{background:linear-gradient(135deg,#00cc77,#009955);color:#fff}
 .cb.eqd{background:rgba(255,215,0,.2);color:var(--gold);border:1px solid rgba(255,215,0,.4)}.cb.lk{background:rgba(60,60,80,.5);color:#889;cursor:not-allowed}
 .hc{width:100%;max-width:520px;font-size:.9rem;line-height:1.55;color:#c0d0e8}
-.hc h3{font-family:Orbitron,sans-serif;font-size:.88rem;letter-spacing:.08em;color:var(--cyan);margin:14px 0 6px}
+.hc h3{font-family:'Orbitron',sans-serif;font-size:.88rem;letter-spacing:.08em;color:var(--cyan);margin:14px 0 6px}
 .hc p{margin:0 0 8px}.hc ul{margin:0 0 10px;padding-left:18px}.hc li{margin-bottom:4px}
 #tO{position:fixed;inset:0;background:rgba(2,4,10,.82);z-index:120;display:none;align-items:center;justify-content:center;padding:20px}
 #tO.open{display:flex}
 .tc{background:rgba(12,16,28,.97);border:1px solid rgba(0,240,255,.3);border-radius:14px;padding:20px;max-width:380px;width:100%;text-align:center}
-.tc h2{font-family:Orbitron,sans-serif;font-size:1.05rem;margin:0 0 8px;color:var(--cyan)}
+.tc h2{font-family:'Orbitron',sans-serif;font-size:1.05rem;margin:0 0 8px;color:var(--cyan)}
 .tc p{margin:0 0 14px;color:#c8d8f0;line-height:1.5;font-size:.9rem}
 .si{font-size:.68rem;color:var(--dim);margin-bottom:10px;letter-spacing:.1em}
 .tbr{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px}.si-row .si{margin-bottom:0;flex:0 1 auto}.tt{width:100%;min-width:0;text-align:left}
@@ -147,7 +149,7 @@ button.gG{animation:aG .8s linear forwards}button.gR{animation:aR .8s linear for
 35%,55%{box-shadow:0 0 18px rgba(255,215,0,.85);border-color:#ffd700;color:#ffd700}}
 
 #subHint{position:fixed;left:50%;transform:translateX(-50%);z-index:15;pointer-events:none;
-font-family:Orbitron,sans-serif;font-weight:700;font-size:.65rem;letter-spacing:.06em;
+font-family:'Orbitron',sans-serif;font-weight:700;font-size:.65rem;letter-spacing:.06em;
 text-align:center;opacity:0;visibility:hidden;transition:none;white-space:nowrap;
 text-shadow:0 0 5px #000,0 1px 2px #000;
 }
@@ -173,7 +175,7 @@ font-family:Orbitron;color:var(--cyan);text-align:center}
 #bB #hBtn:hover,button#hBtn:hover{color:#66ffb3!important;border-color:#00ff88!important;box-shadow:0 0 12px rgba(0,255,136,.35)!important}
 
 #pauseHint{position:fixed;left:50%;transform:translate(-50%,-50%);z-index:15;pointer-events:none;
-font-family:Orbitron,sans-serif;font-weight:700;font-size:.7rem;letter-spacing:.08em;
+font-family:'Orbitron',sans-serif;font-weight:700;font-size:.7rem;letter-spacing:.08em;
 text-align:center;opacity:0;visibility:hidden;color:#e8f0ff;white-space:nowrap;
 text-shadow:0 0 6px #000,0 1px 3px #000}
 #pauseHint.show{opacity:0.85;visibility:visible}
@@ -186,7 +188,7 @@ text-shadow:0 0 6px #000,0 1px 3px #000}
 
 /* Tutorial callouts for bounce count / goal */
 .tutCall{position:fixed;z-index:125;display:none;flex-direction:column;align-items:center;gap:2px;pointer-events:none;
-font-family:Orbitron,sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.04em;
+font-family:'Orbitron',sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.04em;
 color:#00e5ff;text-shadow:0 0 8px rgba(0,229,255,.5),0 1px 3px #000;white-space:nowrap}
 .tutCall.show{display:flex}
 .tutCallArr{font-size:1rem;line-height:1;color:#00e5ff;text-shadow:0 0 10px rgba(0,229,255,.7);margin-bottom:2px}
@@ -510,7 +512,7 @@ ctx.restore();
 }
 
 function orbitText(cx,cy,r,text,color,fs){
-const tot=text.length*4,ap=(2*Math.PI)/tot;ctx.font=`bold ${fs}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;
+const tot=text.length*4,ap=(2*Math.PI)/tot;ctx.font=`bold ${fs}px 'Orbitron',sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;
 const starts=[-Math.PI/2,0,Math.PI/2,Math.PI];
 for(let inst=0;inst<4;inst++)for(let i=0;i<text.length;i++){const a=starts[inst]+i*ap;const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);ctx.save();ctx.translate(x,y);ctx.rotate(a+Math.PI/2);ctx.fillText(text[i],0,0);ctx.restore()}
 }
@@ -538,7 +540,7 @@ if(col){ctx.fillStyle=col;ctx.fillRect(SSW,y,pw,sH)}
 }
 }
 // +/- labels travel with the zones
-ctx.font='bold 26px Orbitron,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.font="bold 26px 'Orbitron',sans-serif";ctx.textAlign='center';ctx.textBaseline='middle';
 const dD=(sec,val,col)=>{
 if(sec===null||sec===undefined)return;
 const t=(val-lives>=0?'+':'')+(val-lives);
@@ -594,7 +596,7 @@ if(map==='rectangle'){ctx.save();ctx.beginPath();ctx.rect(SSW+2,2,pw-4,h-4);ctx.
 const holdShow=(!isPaused&&circle.isDragging)||(isPaused&&circle.wasDraggingWhenPaused);
 if(holdShow)orbitText(circle.x,circle.y,circle.radius+55,'HOLDING','#fff',20);
 
-const off=circle.radius+26;ctx.font='bold 24px Orbitron,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+const off=circle.radius+26;ctx.font="bold 24px 'Orbitron',sans-serif";ctx.textAlign='center';ctx.textBaseline='middle';
 let cc='#e8f0ff';if(wallHits===level)cc='#00ff88';else if(wallHits>level)cc='#ff3355';
 ctx.fillStyle=cc;ctx.shadowColor=cc;ctx.shadowBlur=8;
 [[0,-off],[0,off],[-off,0],[off,0]].forEach(([ox,oy])=>ctx.fillText(wallHits,circle.x+ox,circle.y+oy));
@@ -617,7 +619,7 @@ if(gAlpha>0.02){
 ctx.save();
 ctx.shadowBlur=0;ctx.shadowColor='transparent';
 ctx.globalAlpha=gAlpha;
-ctx.font='bold '+Math.floor(gr*0.55)+'px Orbitron,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.font="bold "+Math.floor(gr*0.55)+"px 'Orbitron',sans-serif";ctx.textAlign='center';ctx.textBaseline='middle';
 ctx.fillStyle='rgba(26,18,0,'+gAlpha+')';ctx.fillText(String(potential),gx,gy+1);
 ctx.fillStyle='rgba(255,248,224,'+gAlpha+')';ctx.fillText(String(potential),gx,gy);
 ctx.restore();
@@ -634,7 +636,7 @@ ctx.beginPath();ctx.arc(bx,by,DIA_R,0,Math.PI*2);ctx.fillStyle='rgba(0,190,220,0
 // Crossfade: current $ out, final sum in
 const sum=coins+potential;
 const fontSz=sum>=1000||coins>=1000?18:(sum>=100||coins>=100?22:26);
-ctx.font='bold '+fontSz+'px Orbitron,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.font="bold "+fontSz+"px 'Orbitron',sans-serif";ctx.textAlign='center';ctx.textBaseline='middle';
 if(prox<0.98){
 ctx.globalAlpha=1-prox;
 ctx.fillStyle='#fff';
@@ -1099,15 +1101,32 @@ setSize();updateHint();asCur();asNext();
 const w=viewW||400,h=viewH||400;
 circle.x=w/2;circle.y=h/2;hiScore=gHS();prevHS=hiScore;updTM();updDisp();draw();
 }
+function startGame(){
 setSize();
 boot();
 animate();
-// Re-run layout after mobile browser UI settles
 requestAnimationFrame(()=>requestAnimationFrame(()=>{setSize();draw();}));
 setTimeout(()=>{setSize();draw();},100);
 setTimeout(()=>{setSize();draw();},400);
 if(!seenTut){setUiLocked(true);setTimeout(startTut,500);}
 else{setUiLocked(false);}
+}
+// Wait for web fonts so canvas text matches CSS (GitHub Pages / external browsers)
+(function(){
+let started=false;
+function once(){if(started)return;started=true;startGame()}
+if(document.fonts&&document.fonts.load){
+Promise.all([
+document.fonts.load("400 16px 'Orbitron'"),
+document.fonts.load("600 16px 'Orbitron'"),
+document.fonts.load("700 16px 'Orbitron'"),
+document.fonts.load("800 16px 'Orbitron'"),
+document.fonts.load("400 16px 'Exo 2'"),
+document.fonts.load("600 16px 'Exo 2'")
+]).then(function(){return document.fonts.ready}).then(once).catch(once);
+setTimeout(once,2000);
+}else{once()}
+})();
 window.addEventListener('orientationchange',()=>setTimeout(()=>{setSize();draw();},150));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){setSize();draw();}});
 window.addEventListener('pageshow',()=>{setSize();draw();});
