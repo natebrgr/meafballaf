@@ -263,7 +263,7 @@ let btnAct={play:false,mode:false,map:false,store:false,help:false};
 let gSec=null,rSec=null,pgSec=null,prSec=null,ngSec=null,nrSec=null,pLand=null;
 let holes=[],diaX=0,diaY=0,particles=[];
 const gold={x:0,y:0,hx:0,hy:0,r:38,drag:false,tid:null,ox:0,oy:0,wob:false,wT:0,wA:0,wDx:0,wDy:0,phase:null,fVx:0,fVy:0};
-let mergeA=0,mergeP=[],arrP=0,rightResize=false,viewW=320,viewH=480,prevPot=-1,postGame=false,uiLocked=false;
+let mergeA=0,mergeP=[],arrP=0,rightResize=false,viewW=320,viewH=480,prevPot=-1,postGame=false,uiLocked=false,zoneScroll=0;
 const HS_REQS=[15,29,42,54,65,75,84,92,99,105,110,114,117,119,121,123,125,127,129,131,133,135,137,139,141,143,145,147,149,151];
 
 const SKINS=[
@@ -520,13 +520,38 @@ const w=viewW,h=viewH,pw=w-2*SSW,sH=h/3;
 ctx.clearRect(0,0,canvas.width,canvas.height);drawBg(w,h);
 
 if(mode==='survival'&&map==='rectangle'){
-if(gSec!==null){ctx.fillStyle='rgba(0,180,90,0.35)';ctx.fillRect(SSW,gSec*sH,pw,sH)}
-if(rSec!==null){ctx.fillStyle='rgba(180,30,50,0.35)';ctx.fillRect(SSW,rSec*sH,pw,sH)}
 const gL=startL<=3?startL+1:(lives>2?lives+1:4),rL=startL<=3?Math.max(startL-1,1):(lives>2?Math.max(lives-1,1):2);
 const bS=[0,1,2].find(s=>s!==gSec&&s!==rSec),bL=startL<=3?startL:(lives>2?lives:3);
+const period=3*sH;
+const off=((zoneScroll%period)+period)%period;
+// Repeating life zones — scroll downward when ball presses the top
+ctx.save();
+ctx.beginPath();ctx.rect(SSW,0,pw,h);ctx.clip();
+for(let k=-1;k<=2;k++){
+for(let sec=0;sec<3;sec++){
+const y=k*period+sec*sH+off;
+if(y+sH<0||y>h)continue;
+let col=null;
+if(sec===gSec)col='rgba(0,180,90,0.35)';
+else if(sec===rSec)col='rgba(180,30,50,0.35)';
+if(col){ctx.fillStyle=col;ctx.fillRect(SSW,y,pw,sH)}
+}
+}
+// +/- labels travel with the zones
 ctx.font='bold 26px Orbitron,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-const dD=(sec,val,col)=>{if(sec===null)return;const t=(val-lives>=0?'+':'')+(val-lives);ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=6;ctx.fillText(t,SSW+30,sec*sH+sH/2);ctx.fillText(t,w-SSW-30,sec*sH+sH/2);ctx.shadowBlur=0};
+const dD=(sec,val,col)=>{
+if(sec===null||sec===undefined)return;
+const t=(val-lives>=0?'+':'')+(val-lives);
+for(let k=-1;k<=2;k++){
+const y=k*period+sec*sH+off+sH/2;
+if(y<-20||y>h+20)continue;
+ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=6;
+ctx.fillText(t,SSW+30,y);ctx.fillText(t,w-SSW-30,y);ctx.shadowBlur=0;
+}
+};
 dD(gSec,gL,'#00ff88');dD(rSec,rL,'#ff3355');if(bS!==undefined)dD(bS,bL,'#8899aa');
+ctx.restore();
+// Side strips stay fixed (previous / next level preview)
 if(pgSec!==null){ctx.fillStyle='rgba(0,180,90,0.5)';ctx.fillRect(0,pgSec*sH,SSW,sH)}
 if(prSec!==null){ctx.fillStyle='rgba(180,30,50,0.5)';ctx.fillRect(0,prSec*sH,SSW,sH)}
 if(pLand!==null){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(1,pLand*sH+1,SSW-2,sH-2)}
@@ -643,18 +668,47 @@ if(mergeA>0){mergeA-=0.07;mergeP.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vx*=0.97;p.vy
 if(gold.phase==='fling'){gold.y+=gold.fVy;gold.fVy-=1.4;gold.x+=gold.fVx;gold.fVx*=0.95}
 if(mergeA<=0){mergeA=0;gold.phase=null;doCash()}}
 if(gold.wob){gold.wT+=0.09;const damp=Math.exp(-gold.wT*2.2),amp=gold.wA*damp;gold.x=gold.hx+Math.cos(gold.wT*14)*amp*gold.wDx;gold.y=gold.hy+Math.cos(gold.wT*14)*amp*gold.wDy;if(damp<0.02){gold.wob=false;gold.x=gold.hx;gold.y=gold.hy}}
+if(circle.isDragging){zoneScroll=0}
 if(isPaused){if(circle.isDragging){circle.dx=0;circle.dy=0}return}
 const w=viewW,h=viewH,pw=w-2*SSW,now=Date.now();
 if(!circle.isDragging){
-circle.dy+=GRAV;circle.x+=circle.dx;circle.y+=circle.dy;circle.dx*=FRIC;circle.dy*=FRIC;
+circle.dy+=GRAV;circle.dx*=FRIC;circle.dy*=FRIC;
+circle.x+=circle.dx;
+// Survival rectangle: upward motion at the top border transfers into zone scrolling
+const useScroll=mode==='survival'&&map==='rectangle';
+if(useScroll){
+const topY=circle.radius;
+const newY=circle.y+circle.dy;
+if(zoneScroll>0||newY<=topY){
+// Transfer this frame's vertical delta into scroll (up => zones move down)
+zoneScroll-=circle.dy;
+if(zoneScroll<0){
+// Scroll fully unwound — residual downward motion goes back to the ball
+circle.y=topY-zoneScroll;
+zoneScroll=0;
+}else{
+circle.y=topY; // pin to top while scroll absorbs vertical motion
+}
+}else{
+circle.y=newY;
+}
+}else{
+circle.y+=circle.dy;
+}
 const vel=Math.hypot(circle.dx,circle.dy),tl=Math.min(22,Math.floor(vel/9));
 trail.unshift({x:circle.x,y:circle.y,op:1});while(trail.length>tl)trail.pop();
 for(let i=trail.length-1;i>=0;i--){trail[i].op-=0.09;if(trail[i].op<=0)trail.splice(i,1)}
-let walls;if(map==='rectangle')walls=[{n:'right',c:circle.x+circle.radius>=w-SSW},{n:'left',c:circle.x-circle.radius<=SSW},{n:'bottom',c:circle.y+circle.radius>=h},{n:'top',c:circle.y-circle.radius<=0}];
-else{const cx=w/2,cy=h/2,rad=Math.min(pw,h)/2-BW,d=Math.hypot(circle.x-cx,circle.y-cy);walls=[{n:'boundary',c:d+circle.radius>=rad}]}
+let walls;if(map==='rectangle'){
+walls=[{n:'right',c:circle.x+circle.radius>=w-SSW},{n:'left',c:circle.x-circle.radius<=SSW},{n:'bottom',c:circle.y+circle.radius>=h}];
+// Top only counts as a bounce wall when NOT using scroll transfer (freebie / non-scroll)
+if(!useScroll)walls.push({n:'top',c:circle.y-circle.radius<=0});
+}else{const cx=w/2,cy=h/2,rad=Math.min(pw,h)/2-BW,d=Math.hypot(circle.x-cx,circle.y-cy);walls=[{n:'boundary',c:d+circle.radius>=rad}]}
 walls.forEach(wall=>{const contact=circle.wc[wall.n];if(wall.c){if(!contact.c){contact.c=true;contact.t=now;if(isTrack){wallHits++;wH.textContent=wallHits;updateHint();if(wallHits===level){wH.style.color='#00ff88';wH.style.textShadow='0 0 10px rgba(0,255,136,.6)'}else if(wallHits>level){wH.style.color='#ff3355';wH.style.textShadow='0 0 10px rgba(255,50,80,.5)'}else{wH.style.color='#e8f0ff';wH.style.textShadow='none'};spawnP(circle.x,circle.y,4,skinC().g)}}}else contact.c=false});
 if(map==='rectangle'){if(circle.x+circle.radius>w-SSW){circle.x=w-SSW-circle.radius;circle.dx=-circle.dx*BOUNCE}else if(circle.x-circle.radius<SSW){circle.x=SSW+circle.radius;circle.dx=-circle.dx*BOUNCE}
-if(circle.y+circle.radius>h){circle.y=h-circle.radius;circle.dy=-circle.dy*BOUNCE}else if(circle.y-circle.radius<0){circle.y=circle.radius;circle.dy=-circle.dy*BOUNCE}}
+if(circle.y+circle.radius>h){circle.y=h-circle.radius;circle.dy=-circle.dy*BOUNCE}
+if(!useScroll&&circle.y-circle.radius<0){circle.y=circle.radius;circle.dy=-circle.dy*BOUNCE}
+else if(useScroll&&circle.y-circle.radius<0){circle.y=circle.radius}
+}
 else{const cx=w/2,cy=h/2,rad=Math.min(pw,h)/2-BW,d=Math.hypot(circle.x-cx,circle.y-cy);if(d+circle.radius>=rad){const a=Math.atan2(circle.y-cy,circle.x-cx);circle.x=cx+Math.cos(a)*(rad-circle.radius);circle.y=cy+Math.sin(a)*(rad-circle.radius);const sp=Math.hypot(circle.dx,circle.dy);circle.dx=-Math.cos(a)*sp*BOUNCE;circle.dy=-Math.sin(a)*sp*BOUNCE}}
 }
 holes.forEach(bh=>{bh.op=Math.max(0,1-(now-bh.st)/2000)});holes=holes.filter(bh=>bh.op>0);
@@ -703,7 +757,7 @@ function startCD(res){
 if(!res){
 isCD=true;cdVal=3;wallHits=0;wH.textContent='0';
 wH.style.color='#e8f0ff';wH.style.textShadow='none';
-isTrack=true;cdOp=1;cdRemain=1000;
+isTrack=true;cdOp=1;cdRemain=1000;zoneScroll=0;
 }else{
 isCD=true;
 // resuming an existing countdown — keep cdVal and cdRemain as-is
@@ -714,13 +768,13 @@ if(!isPaused)scheduleCD();
 }
 
 function endGame(){
-level=1;updTM();lives=3;startL=3;wallHits=0;isTrack=false;isPaused=false;isCD=false;cdVal=3;cdOp=0;
+zoneScroll=0;level=1;updTM();lives=3;startL=3;wallHits=0;isTrack=false;isPaused=false;isCD=false;cdVal=3;cdOp=0;
 clearCDTimer();cdRemain=1000;cd.style.opacity=0;cd.textContent='';
 const w=viewW,h=viewH;
 // Drop from center — death tap must NOT start the next run
 circle.x=w/2;circle.y=h*0.2;circle.dx=0;circle.dy=0;
 circle.hasBeenTouched=false;circle.isDragging=false;circle.dragTouchId=null;
-circle.wasDraggingWhenPaused=false;trail.length=0;
+circle.wasDraggingWhenPaused=false;trail.length=0;zoneScroll=0;
 cashAvail=false;curInc=14;nextCO=16;resetGold();mergeA=0;mergeP=[];
 pgSec=prSec=pLand=null;asCur();asNext();
 active=true;postGame=true; // waiting for a fresh tap to start
@@ -741,7 +795,7 @@ return{x:e.clientX||(e.touches&&e.touches[0]&&e.touches[0].clientX)||(e.changedT
 
 function completeLevel(oy,ch){
 const completed=level;level++;if(mode==='freebie')coins+=1;potential=(level-1)*lives;updTM();
-if(mode==='survival'&&map==='rectangle'){const sH=ch/3,sec=Math.floor(oy/sH);let base;if(startL>3&&lives<3)base=3;else if(startL>3&&lives>2)base=lives;else base=startL;
+if(mode==='survival'&&map==='rectangle'){const sH=ch/3;const period=3*sH;const adj=(((oy-zoneScroll)%period)+period)%period;const sec=Math.min(2,Math.floor(adj/sH));let base;if(startL>3&&lives<3)base=3;else if(startL>3&&lives>2)base=lives;else base=startL;
 if(sec===gSec)lives=base+1;else if(sec===rSec)lives=Math.max(base-1,1);else lives=base;potential=(level-1)*lives;pLand=sec}
 else if(mode==='survival'){lives=3;potential=(level-1)*lives}
 if(completed>gHS())sHS(completed);wallHits=0;startL=lives;pgSec=gSec;prSec=rSec;gSec=ngSec;rSec=nrSec;asNext();
@@ -750,7 +804,7 @@ if(mode==='survival'){
 if(cashAvail){cashAvail=false;nextCO=nextCO+curInc;curInc=Math.max(2,curInc-1)}
 if(level===nextCO){cashAvail=true;resetGold()}
 }else{cashAvail=false}
-spawnP(circle.x,circle.y,12,'#fff');saveSt();updDisp();startCD();updateHint();
+zoneScroll=0;spawnP(circle.x,circle.y,12,'#fff');saveSt();updDisp();startCD();updateHint();
 }
 
 
@@ -822,9 +876,12 @@ if(isPaused)return;
 const pos=getPos(e);const w=viewW,h=viewH;
 if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
 const ox=circle.x,oy=circle.y;if(circle.isDragging)return;
-if(!circle.hasBeenTouched||postGame){postGame=false,uiLocked=false;
-const HS_REQS=[15,29,42,54,65,75,84,92,99,105,110,114,117,119,121,123,125,127,129,131,133,135,137,139,141,143,145,147,149,151];circle.hasBeenTouched=true;isTrack=false;wallHits=0;startCD();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updDisp();return}
-let bg='rgba(180,180,180,0.4)';if(mode==='survival'&&map==='rectangle'){const sec=Math.floor(oy/(h/3));if(sec===gSec)bg='rgba(0,180,90,0.6)';else if(sec===rSec)bg='rgba(180,30,50,0.6)'}
+if(!circle.hasBeenTouched||postGame){postGame=false;uiLocked=false;zoneScroll=0;circle.hasBeenTouched=true;isTrack=false;wallHits=0;startCD();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updDisp();return}
+let bg='rgba(180,180,180,0.4)';
+if(mode==='survival'&&map==='rectangle'){
+const sH=h/3,period=3*sH,adj=(((oy-zoneScroll)%period)+period)%period,sec=Math.min(2,Math.floor(adj/sH));
+if(sec===gSec)bg='rgba(0,180,90,0.6)';else if(sec===rSec)bg='rgba(180,30,50,0.6)';
+}
 holes.push({x:ox,y:oy,st:Date.now(),bg,op:1});
 if(isCD){if(wallHits===level){isTrack=false;if(cdInt){clearCDTimer();cdOp=0;cd.style.opacity=0;isCD=false}completeLevel(oy,h);updateHint();circle.x=pos.x;circle.y=pos.y;constrain();return}circle.x=pos.x;circle.y=pos.y;constrain();updateHint();return}
 if(wallHits===level)completeLevel(oy,h);
@@ -832,7 +889,7 @@ else if(mode==='survival'){
 lives--;potential=(level-1)*lives;
 if(lives<=0){endGame();return;} // death tap ends run only — does not start next
 wallHits=0;saveSt();updDisp();startCD();
-}else{wallHits=0;startCD()}
+}else{wallHits=0;zoneScroll=0;startCD()}
 circle.x=pos.x;circle.y=pos.y;constrain();updateHint();
 }
 
@@ -843,7 +900,7 @@ const pos=getPos(e,e.touches?e.touches[0].identifier:null);const tid=e.touches?e
 if(isPaused&&cashAvail&&mode==='survival'&&mergeA<=0){if(Math.hypot(pos.x-gold.x,pos.y-gold.y)<=gold.r+12){e.preventDefault();gold.drag=true;gold.tid=tid;gold.ox=pos.x-gold.x;gold.oy=pos.y-gold.y;draw();return}}
 if(isPaused&&!circle.wasDraggingWhenPaused)return;
 const w=viewW;if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
-circle.isDragging=true;circle.dragTouchId=tid;circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0;circle.x=pos.x;circle.y=pos.y;constrain();
+circle.isDragging=true;circle.dragTouchId=tid;zoneScroll=0;circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0;circle.x=pos.x;circle.y=pos.y;constrain();
 if(!isPaused)trail.length=0;btnAct={play:false,mode:false,map:false,store:false,help:false};draw();
 }
 
