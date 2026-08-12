@@ -674,7 +674,7 @@ if(circle.isDragging){zoneScroll=0}
 if(isPaused){if(circle.isDragging){circle.dx=0;circle.dy=0}return}
 const w=viewW,h=viewH,pw=w-2*SSW,now=Date.now();
 if(!circle.isDragging){
-circle.dy+=GRAV;circle.dx*=FRIC;circle.dy*=FRIC;
+circle.dy+=GRAV; // no air drag — vacuum; speed only changes via gravity and wall bounce
 circle.x+=circle.dx;
 // Survival rectangle: upward motion at the top border transfers into zone scrolling
 const useScroll=mode==='survival'&&map==='rectangle';
@@ -697,6 +697,8 @@ circle.y=newY;
 }else{
 circle.y+=circle.dy;
 }
+if(circle.dx>80)circle.dx=80;else if(circle.dx<-80)circle.dx=-80;
+if(circle.dy>80)circle.dy=80;else if(circle.dy<-80)circle.dy=-80;
 const vel=Math.hypot(circle.dx,circle.dy),tl=Math.min(22,Math.floor(vel/9));
 trail.unshift({x:circle.x,y:circle.y,op:1});while(trail.length>tl)trail.pop();
 for(let i=trail.length-1;i>=0;i--){trail[i].op-=0.09;if(trail[i].op<=0)trail.splice(i,1)}
@@ -706,12 +708,26 @@ walls=[{n:'right',c:circle.x+circle.radius>=w-SSW},{n:'left',c:circle.x-circle.r
 if(!useScroll)walls.push({n:'top',c:circle.y-circle.radius<=0});
 }else{const cx=w/2,cy=h/2,rad=Math.min(pw,h)/2-BW,d=Math.hypot(circle.x-cx,circle.y-cy);walls=[{n:'boundary',c:d+circle.radius>=rad}]}
 walls.forEach(wall=>{const contact=circle.wc[wall.n];if(wall.c){if(!contact.c){contact.c=true;contact.t=now;if(isTrack){wallHits++;wH.textContent=wallHits;updateHint();if(wallHits===level){wH.style.color='#00ff88';wH.style.textShadow='0 0 10px rgba(0,255,136,.6)'}else if(wallHits>level){wH.style.color='#ff3355';wH.style.textShadow='0 0 10px rgba(255,50,80,.5)'}else{wH.style.color='#e8f0ff';wH.style.textShadow='none'};spawnP(circle.x,circle.y,4,skinC().g)}}}else contact.c=false});
-if(map==='rectangle'){if(circle.x+circle.radius>w-SSW){circle.x=w-SSW-circle.radius;circle.dx=-circle.dx*BOUNCE}else if(circle.x-circle.radius<SSW){circle.x=SSW+circle.radius;circle.dx=-circle.dx*BOUNCE}
-if(circle.y+circle.radius>h){circle.y=h-circle.radius;circle.dy=-circle.dy*BOUNCE}
-if(!useScroll&&circle.y-circle.radius<0){circle.y=circle.radius;circle.dy=-circle.dy*BOUNCE}
-else if(useScroll&&circle.y-circle.radius<0){circle.y=circle.radius}
+if(map==='rectangle'){
+// Side walls — strong energy loss so it doesn't skate forever
+if(circle.x+circle.radius>w-SSW){circle.x=w-SSW-circle.radius;circle.dx=-circle.dx*0.72;circle.dy*=0.92}
+else if(circle.x-circle.radius<SSW){circle.x=SSW+circle.radius;circle.dx=-circle.dx*0.72;circle.dy*=0.92}
+// Floor — bouncy but kills horizontal speed; settle when soft
+if(circle.y+circle.radius>h){
+circle.y=h-circle.radius;
+circle.dy=-circle.dy*0.78;
+circle.dx*=0.82;
+if(Math.abs(circle.dy)<1.2){circle.dy=0;circle.dx*=0.7}
 }
-else{const cx=w/2,cy=h/2,rad=Math.min(pw,h)/2-BW,d=Math.hypot(circle.x-cx,circle.y-cy);if(d+circle.radius>=rad){const a=Math.atan2(circle.y-cy,circle.x-cx);circle.x=cx+Math.cos(a)*(rad-circle.radius);circle.y=cy+Math.sin(a)*(rad-circle.radius);const sp=Math.hypot(circle.dx,circle.dy);circle.dx=-Math.cos(a)*sp*BOUNCE;circle.dy=-Math.sin(a)*sp*BOUNCE}}
+if(!useScroll&&circle.y-circle.radius<0){circle.y=circle.radius;circle.dy=-circle.dy*0.85}
+else if(useScroll&&circle.y-circle.radius<0){circle.y=circle.radius}
+// Ground friction while resting on the floor
+if(circle.y+circle.radius>=h-0.6){
+circle.dx*=0.90;
+if(Math.abs(circle.dx)<0.12)circle.dx=0;
+}
+}
+else{const cx=w/2,cy=h/2,rad=Math.min(pw,h)/2-BW,d=Math.hypot(circle.x-cx,circle.y-cy);if(d+circle.radius>=rad){const a=Math.atan2(circle.y-cy,circle.x-cx);circle.x=cx+Math.cos(a)*(rad-circle.radius);circle.y=cy+Math.sin(a)*(rad-circle.radius);const sp=Math.hypot(circle.dx,circle.dy);circle.dx=-Math.cos(a)*sp*0.75;circle.dy=-Math.sin(a)*sp*0.75}}
 }
 holes.forEach(bh=>{bh.op=Math.max(0,1-(now-bh.st)/2000)});holes=holes.filter(bh=>bh.op>0);
 particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.life-=0.025});particles=particles.filter(p=>p.life>0);
