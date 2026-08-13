@@ -1022,25 +1022,8 @@ if(isPaused)saveSt();draw();
 }
 
 function stopDrag(e){
-// Hold-submit release: don't drop the ball — onSubUp will pause with possession
-if(subHoldGrab){
-let stillOn=false;
-try{
-const pt=(e.changedTouches&&e.changedTouches[0])||e;
-const el=document.elementFromPoint(pt.clientX||0,pt.clientY||0);
-stillOn=el===pB||(pB.contains&&pB.contains(el));
-}catch(err){stillOn=true}
-if(stillOn){
-circle.isDragging=false;
-circle.wasDraggingWhenPaused=true;
-circle.dx=0;circle.dy=0;
-if(!isPaused){pauseCD();isPaused=true}
-subHoldGrab=false;btnAct.play=false;
-saveSt();updDisp();draw();
-return;
-}
-subHoldGrab=false;
-}
+// Exclusive hold-submit owns the pointer until document mouseup/touchend
+if(subHoldGrab){circle.dx=0;circle.dy=0;return}
 if(gold.drag){let tid=gold.tid;if(e.changedTouches){let m=false;for(let i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===tid)m=true;if(!m&&e.touches&&e.touches.length>0)return}
 const dist=Math.hypot(gold.x-diaX,gold.y-diaY);if(dist<gold.r+DIA_R-6)startMerge();else springBack(gold.x,gold.y);draw();return}
 if(!circle.isDragging)return;let tid=circle.dragTouchId;if(e.touches&&e.touches.length>0)return;
@@ -1162,7 +1145,7 @@ tN.onclick=goNext;tNA.onclick=goNext;tP.onclick=goPrev;tSk.onclick=closeTut;
 mB.onclick=()=>{if(mergeA>0){mergeA=0;doCash();return}if(!isPaused){circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true}saveSt();mode=mode==='survival'?'freebie':'survival';circle.hasBeenTouched=false;loadSt(mode,map)};
 mpB.onclick=()=>{if(mergeA>0){mergeA=0;doCash();return}if(!isPaused){circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true}saveSt();map=map==='rectangle'?'circle':'rectangle';circle.hasBeenTouched=false;loadSt(mode,map)};
 pB.onclick=e=>{
-if(btnAct.play){btnAct.play=false;return}
+if(btnAct.play||subHoldGrab){btnAct.play=false;return}
 if(isPaused){
 // Tap always normal resume; only hold submits
 isPaused=false;resumeCD();resetGold();
@@ -1172,54 +1155,82 @@ circle.wasDraggingWhenPaused=false;updDisp();draw();
 }else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updDisp();draw()}
 };
 
-// Hold RESUME/SUBMIT to submit and grab the ball
+// RESUME/SUBMIT hold state machine (exclusive; document-level release)
 (function(){
-let subT=null,subArmed=false;
+let subT=null, subMode=null; // null | 'arming' | 'holding'
+let subLastX=0, subLastY=0, subTid=null;
 function canSub(){return isPaused&&wallHits===level&&circle.hasBeenTouched&&!postGame}
-function clearSub(){if(subT){clearTimeout(subT);subT=null}subArmed=false;pB.classList.remove('gG','rc')}
-function onSubDown(e){
+function pt(e){const t=(e.changedTouches&&e.changedTouches[0])||(e.touches&&e.touches[0])||e;return{x:t.clientX,y:t.clientY,id:t.identifier}}
+function onBtn(x,y){const r=pB.getBoundingClientRect();return x>=r.left-6&&x<=r.right+6&&y>=r.top-6&&y<=r.bottom+6}
+function resetSubFlags(){subHoldGrab=false;btnAct.play=false;subMode=null;subTid=null;pB.classList.remove('gG','rc')}
+function pauseWithPossession(){
+circle.isDragging=false;circle.dragTouchId=null;
+circle.wasDraggingWhenPaused=true;circle.dx=0;circle.dy=0;
+if(!isPaused){pauseCD();isPaused=true}
+resetSubFlags();saveSt();updDisp();draw();
+}
+function dropHeldBall(){
+circle.isDragging=false;circle.dragTouchId=null;
+circle.wasDraggingWhenPaused=false;circle.dx=0;circle.dy=0;
+resetSubFlags();updDisp();draw();
+}
+function onDown(e){
 if(!canSub())return;
+if(e.type==='mousedown'&&e.button!==0)return;
 e.preventDefault();e.stopPropagation();
-subArmed=true;
+const p=pt(e);subLastX=p.x;subLastY=p.y;subTid=p.id!=null?p.id:null;
+subMode='arming';subHoldGrab=false;btnAct.play=false;
 pB.classList.add('gG');
+if(subT)clearTimeout(subT);
 subT=setTimeout(function(){
-if(!subArmed||!canSub())return;
+if(subMode!=='arming'||!canSub())return;
+subT=null;
 pB.classList.remove('gG');pB.classList.add('rc');
 submitFromPause(true,e);
-btnAct.play=true;subHoldGrab=true;
+// Re-assert hold after submit
+circle.isDragging=true;circle.wasDraggingWhenPaused=false;circle.dx=0;circle.dy=0;
+circle.dragTouchId=subTid;
+try{const q=pt(e);circle.x=Math.max(SSW+circle.radius,Math.min(viewW-SSW-circle.radius,getPos(e,subTid).x));circle.y=Math.max(circle.radius,Math.min(viewH-circle.radius,getPos(e,subTid).y));circle.lastX=circle.x;circle.lastY=circle.y;circle.lastTime=Date.now()}catch(err){}
+subMode='holding';subHoldGrab=true;btnAct.play=true;
+updDisp();draw();
 },typeof HOLD_THR!=='undefined'?HOLD_THR:320);
 }
-function onSubUp(e){
-if(!subArmed)return;
-const didHoldSubmit=!!btnAct.play||subHoldGrab;
-clearSub();
-if(didHoldSubmit){
-let stillOn=false;
-try{
-const pt=(e.changedTouches&&e.changedTouches[0])||(e.touches&&e.touches[0])||e;
-const el=document.elementFromPoint(pt.clientX,pt.clientY);
-stillOn=el===pB||(pB.contains&&pB.contains(el));
-}catch(err){stillOn=true}
-if(stillOn){
-// Pause WITH possession — ball stays in holding state
-circle.isDragging=false;
-circle.wasDraggingWhenPaused=true;
-circle.dx=0;circle.dy=0;
-if(!isPaused){pauseCD();isPaused=true}
-saveSt();updDisp();draw();
+function onMove(e){
+if(!subMode)return;
+const p=pt(e);subLastX=p.x;subLastY=p.y;
+// When holding, ball already follows via drag() if isDragging; keep last pos
 }
-subHoldGrab=false;btnAct.play=false;
+function onUp(e){
+if(!subMode)return;
+try{const p=pt(e);subLastX=p.x;subLastY=p.y}catch(err){}
+if(subT){clearTimeout(subT);subT=null}
+const mode=subMode;
+if(mode==='arming'){
+// Short tap — cancel arm; let click resume normally
+resetSubFlags();pB.classList.remove('gG','rc');
+return;
+}
+if(mode==='holding'){
+if(onBtn(subLastX,subLastY)){
+pauseWithPossession();
 }else{
-subHoldGrab=false;btnAct.play=false;
+dropHeldBall();
 }
+return;
 }
-pB.addEventListener('touchstart',onSubDown,{passive:false});
-pB.addEventListener('mousedown',function(e){if(e.button===0)onSubDown(e)});
-pB.addEventListener('touchend',onSubUp);
-pB.addEventListener('touchcancel',onSubUp);
-pB.addEventListener('mouseup',onSubUp);
-pB.addEventListener('mouseleave',function(){if(subT){clearTimeout(subT);subT=null;pB.classList.remove('gG')}});
+resetSubFlags();
+}
+pB.addEventListener('touchstart',onDown,{passive:false});
+pB.addEventListener('mousedown',onDown);
+// Document-level so we never miss release (mouseup outside button, etc.)
+document.addEventListener('touchend',onUp);
+document.addEventListener('touchcancel',onUp);
+document.addEventListener('mouseup',onUp);
+document.addEventListener('touchmove',onMove,{passive:true});
+document.addEventListener('mousemove',onMove);
 })();
+
+
 sB.onclick=openStore;sCl.onclick=closeStore;hBtn.onclick=openHelp;hCl.onclick=closeHelp;hCb.onclick=closeHelp;
 
 const INFO={"potential": {"title": "POTENTIAL PAYOUT", "body": "<p>Your <strong>potential payout<\/strong> is the amount of $ you would receive if you cash out right now.<\/p>\n<p><strong>Formula:<\/strong> last level beaten this run &times; current lives<\/p>\n<p>Example: if you just cleared level 5 and have 3 lives, your potential is 5 &times; 3 = <strong>15 $<\/strong>.<\/p>\n<p>When you cash out (pause when the gold glow appears, drag the gold circle onto the blue $ and release), that potential is added to your $ balance and the Survival run resets.<\/p>\n<p>You can also keep playing to try for a higher payout later \u2014 the choice is yours each time cash-out becomes available.<\/p>"}, "lives": {"title": "LIVES", "body": "<p>Lives act as your <strong>score multiplier<\/strong> for the potential payout (last level beaten &times; current lives).<\/p>\n<p>You start each new Survival run with <strong>3 lives<\/strong>, and lives reset to 3 whenever a new game starts (after a cash-out or when you run out of lives).<\/p>\n<p><strong>Recovery on the Rectangle map:<\/strong> when you clear a level, the zone you land in adjusts lives based on how many you started the level with:<\/p>\n<ul><li><strong>Started at 3+:<\/strong> if you drop below 3, black returns you to 3, green to 4, red to 2.<\/li>\n<li><strong>Started at 2:<\/strong> if you drop below 2, black returns you to 2, green to 3, red keeps you at 1.<\/li>\n<li><strong>Started at 1:<\/strong> black and red keep you at 1, green bumps you to 2.<\/li><\/ul>"}, "bounces": {"title": "BOUNCE COUNT", "body": "<p>The <strong>left number<\/strong> is your live bounce count. The <strong>right number<\/strong> is the target for this level.<\/p>\n<p>To level up, that left number must <strong>exactly match<\/strong> the level number when you submit \u2014 either:<\/p>\n<ul><li>the first touch on the map after the countdown ends, or<\/li>\n<li>a touch during the countdown while the numbers already match.<\/li><\/ul>\n<p>One bounce over or under and you lose a life in Survival.<\/p>"}, "level": {"title": "LEVEL", "body": "<p>The level number is the bounce target for this round and also feeds into your potential payout multiplier (last level beaten &times; lives).<\/p>\n<p>Level starts at <strong>1<\/strong> and resets to 1 whenever a new Survival game starts (after cash-out or running out of lives).<\/p>\n<p>In Free mode the level you reach is saved and does not reset.<\/p>"}, "hiscore": {"title": "HI-SCORE", "body": "<p>Your hi-score is the <strong>highest level you have beaten<\/strong>.<\/p>\n<p>Hi-scores are saved <strong>separately for each mode and map combination<\/strong> (Survival Rectangle, Survival Circle, Free Rectangle, Free Circle), so each has its own best.<\/p>"}};
