@@ -271,7 +271,7 @@ let btnAct={play:false,mode:false,map:false,store:false,help:false};
 let gSec=null,rSec=null,pgSec=null,prSec=null,ngSec=null,nrSec=null,pLand=null;
 let holes=[],diaX=0,diaY=0,particles=[];
 const gold={x:0,y:0,hx:0,hy:0,r:38,drag:false,tid:null,ox:0,oy:0,wob:false,wT:0,wA:0,wDx:0,wDy:0,phase:null,fVx:0,fVy:0};
-let mergeA=0,mergeP=[],arrP=0,rightResize=false,viewW=320,viewH=480,prevPot=-1,postGame=false,uiLocked=false,zoneScroll=0;
+let mergeA=0,mergeP=[],arrP=0,rightResize=false,viewW=320,viewH=480,prevPot=-1,postGame=false,uiLocked=false,subHoldGrab=false,zoneScroll=0;
 const HS_REQS=[15,29,42,54,65,75,84,92,99,105,110,114,117,119,121,123,125,127,129,131,133,135,137,139,141,143,145,147,149,151];
 
 const SKINS=[
@@ -1022,6 +1022,25 @@ if(isPaused)saveSt();draw();
 }
 
 function stopDrag(e){
+// Hold-submit release: don't drop the ball — onSubUp will pause with possession
+if(subHoldGrab){
+let stillOn=false;
+try{
+const pt=(e.changedTouches&&e.changedTouches[0])||e;
+const el=document.elementFromPoint(pt.clientX||0,pt.clientY||0);
+stillOn=el===pB||(pB.contains&&pB.contains(el));
+}catch(err){stillOn=true}
+if(stillOn){
+circle.isDragging=false;
+circle.wasDraggingWhenPaused=true;
+circle.dx=0;circle.dy=0;
+if(!isPaused){pauseCD();isPaused=true}
+subHoldGrab=false;btnAct.play=false;
+saveSt();updDisp();draw();
+return;
+}
+subHoldGrab=false;
+}
 if(gold.drag){let tid=gold.tid;if(e.changedTouches){let m=false;for(let i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===tid)m=true;if(!m&&e.touches&&e.touches.length>0)return}
 const dist=Math.hypot(gold.x-diaX,gold.y-diaY);if(dist<gold.r+DIA_R-6)startMerge();else springBack(gold.x,gold.y);draw();return}
 if(!circle.isDragging)return;let tid=circle.dragTouchId;if(e.touches&&e.touches.length>0)return;
@@ -1167,15 +1186,32 @@ subT=setTimeout(function(){
 if(!subArmed||!canSub())return;
 pB.classList.remove('gG');pB.classList.add('rc');
 submitFromPause(true,e);
-btnAct.play=true;
+btnAct.play=true;subHoldGrab=true;
 },typeof HOLD_THR!=='undefined'?HOLD_THR:320);
 }
 function onSubUp(e){
 if(!subArmed)return;
+const didHoldSubmit=!!btnAct.play||subHoldGrab;
 clearSub();
-// Short tap: do not submit — normal click resumes. Hold already called submitFromPause(true).
-if(btnAct.play){/* keep flag so onclick ignores */}
-else{btnAct.play=false}
+if(didHoldSubmit){
+let stillOn=false;
+try{
+const pt=(e.changedTouches&&e.changedTouches[0])||(e.touches&&e.touches[0])||e;
+const el=document.elementFromPoint(pt.clientX,pt.clientY);
+stillOn=el===pB||(pB.contains&&pB.contains(el));
+}catch(err){stillOn=true}
+if(stillOn){
+// Pause WITH possession — ball stays in holding state
+circle.isDragging=false;
+circle.wasDraggingWhenPaused=true;
+circle.dx=0;circle.dy=0;
+if(!isPaused){pauseCD();isPaused=true}
+saveSt();updDisp();draw();
+}
+subHoldGrab=false;btnAct.play=false;
+}else{
+subHoldGrab=false;btnAct.play=false;
+}
 }
 pB.addEventListener('touchstart',onSubDown,{passive:false});
 pB.addEventListener('mousedown',function(e){if(e.button===0)onSubDown(e)});
