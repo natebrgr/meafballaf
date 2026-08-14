@@ -19,7 +19,7 @@ background-image:radial-gradient(ellipse at 20% 20%,rgba(0,80,120,.15),transpare
 .cg{display:flex;gap:10px;pointer-events:auto}
 .cur{display:flex;align-items:center;gap:5px;font-family:'Orbitron',sans-serif;font-weight:600;font-size:.95rem;background:var(--panel);border:1px solid rgba(0,240,255,.25);border-radius:16px;padding:4px 10px;pointer-events:auto;cursor:pointer}
 .ci{width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff}
-#cI{background:linear-gradient(135deg,#00e5ff,#0088ff)!important}#pI{background:linear-gradient(135deg,#ffd700,#ffaa00)}
+#cI{background:linear-gradient(135deg,#00e5ff,#0088ff)}#pI{background:linear-gradient(135deg,#ffd700,#ffaa00)}
 .sb{position:absolute;z-index:20;background:var(--panel);border:1px solid rgba(0,240,255,.25);border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;height:50px}
 .sl{font-size:.48rem;letter-spacing:.12em;color:var(--dim);font-weight:600;text-transform:uppercase}
 .sv{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.25rem;line-height:1}
@@ -204,12 +204,6 @@ body.ui-locked #bB,body.ui-locked #topBar,body.ui-locked #lB,body.ui-locked #hB,
 body.ui-locked #currency,body.ui-locked .cur,body.ui-locked canvas{
 pointer-events:none!important;
 }
-
-#pB.subG{border-color:rgba(0,255,136,.95)!important;color:#00ff88!important;background:rgba(0,40,30,.45)!important;animation:subGPulse .55s ease-in-out infinite;white-space:pre-line;line-height:1.05;font-size:.52rem;letter-spacing:.02em;padding:5px 3px}
-@keyframes subGPulse{0%,100%{box-shadow:0 0 8px rgba(0,255,136,.4);border-color:rgba(0,220,120,.75)}
-50%{box-shadow:0 0 22px rgba(0,255,136,.9),0 0 40px rgba(0,200,100,.4);border-color:#66ffb3}}
-#cC,.cur #cC{color:#ffe566!important;text-shadow:0 0 8px rgba(255,200,80,.45)}
-#cI{background:linear-gradient(135deg,#00e5ff,#0088ff)!important}
 </style>
 </head>
 <body>
@@ -439,11 +433,8 @@ fill.style.width=(pct*100)+'%';
 })();
 updateHint();
 title.textContent=mode==='survival'?'MEGA BOUNCE':'FREE BOUNCE';
-const canSub=isPaused&&wallHits===level&&circle.hasBeenTouched&&!postGame;
-if(canSub){pB.textContent='RESUME/\nSUBMIT';pB.classList.add('subG');pB.classList.remove('cr')}
-else if(isPaused){pB.textContent='RESUME';pB.classList.remove('subG','cr')}
-else if(cashAvail&&mode==='survival'){pB.textContent='PAUSE/\nCASH OUT';pB.classList.add('cr');pB.classList.remove('subG')}
-else{pB.textContent='PAUSE';pB.classList.remove('subG','cr')}
+if(isPaused)pB.textContent='RESUME';else if(cashAvail&&mode==='survival')pB.textContent='PAUSE/\nCASH OUT';else pB.textContent='PAUSE';
+if(cashAvail&&mode==='survival'&&!isPaused)pB.classList.add('cr');else pB.classList.remove('cr');
 cd.style.opacity=cdOp;cd.textContent=cdVal>0?cdVal:'';
 wH.textContent=wallHits;
 if(wallHits===level){wH.style.color='#00ff88';wH.style.textShadow='0 0 10px rgba(0,255,136,.6)'}
@@ -917,41 +908,6 @@ circle.isResizing=false;circle.resizeTouchId=null;rightResize=false;
 if(!didResize&&circle.isDragging&&!isPaused){dropBall();draw()}
 }
 
-
-function submitFromPause(keepHold,e){
-if(!isPaused||wallHits!==level||!circle.hasBeenTouched)return false;
-const oy=circle.y,ch=viewH,w=viewW,h=viewH;
-isTrack=false;
-if(cdInt){clearCDTimer();cdOp=0;cd.style.opacity=0;isCD=false}
-isPaused=false;
-resetGold();
-completeLevel(oy,ch);
-if(keepHold){
-circle.isDragging=true;
-circle.wasDraggingWhenPaused=false;
-circle.dx=0;circle.dy=0;
-let tid=null;
-if(e){
-if(e.changedTouches&&e.changedTouches.length)tid=e.changedTouches[0].identifier;
-else if(e.touches&&e.touches.length)tid=e.touches[0].identifier;
-}
-circle.dragTouchId=tid;
-try{
-const pos=getPos(e,tid);
-circle.x=Math.max(SSW+circle.radius,Math.min(w-SSW-circle.radius,pos.x));
-circle.y=Math.max(circle.radius,Math.min(h-circle.radius,pos.y));
-circle.lastX=circle.x;circle.lastY=circle.y;circle.lastTime=Date.now();
-}catch(err){
-circle.y=h-circle.radius;
-circle.lastX=circle.x;circle.lastY=circle.y;circle.lastTime=Date.now();
-}
-}else{
-circle.isDragging=false;circle.dragTouchId=null;
-circle.wasDraggingWhenPaused=false;circle.dx=0;circle.dy=0;
-}
-updateHint();updDisp();draw();
-return true;
-}
 function handleTap(e){
 if(uiLocked)return;
 if(isPaused)return;
@@ -1005,15 +961,7 @@ const scr=getScr(e,circle.dragTouchId);const target=document.elementFromPoint(sc
 const chk=(btn,key,fn)=>{if(target===btn){if(!holdT[key]&&!btnAct[key]){btn.classList.remove('gG','gR','gW','rc');if(key==='play')btn.classList.add(isPaused?'gG':'gR');else btn.classList.add('gW');
 holdT[key]=setTimeout(()=>{if(circle.isDragging&&document.elementFromPoint(scr.x,scr.y)===btn){btn.classList.remove('gG','gR','gW');btn.classList.add('rc');fn();btnAct[key]=true}holdT[key]=null},HOLD_THR)}}
 else{if(holdT[key]){clearTimeout(holdT[key]);holdT[key]=null;btn.classList.remove('gG','gR','gW');btn.classList.add('rc')}if(btnAct[key]&&target!==btn)btnAct[key]=false}};
-chk(pB,'play',()=>{
-if(isPaused){
-if(wallHits===level&&circle.hasBeenTouched&&!postGame){submitFromPause(true);return}
-isPaused=false;resumeCD();resetGold();
-try{circle.lastX=getPos(e,circle.dragTouchId).x;circle.lastY=getPos(e,circle.dragTouchId).y}catch(err){}
-circle.lastTime=Date.now();circle.dx=circle.dy=0;
-}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updateHint()}
-updDisp();draw();
-});
+chk(pB,'play',()=>{if(isPaused){isPaused=false;resumeCD();resetGold();circle.lastX=getPos(e,circle.dragTouchId).x;circle.lastY=getPos(e,circle.dragTouchId).y;circle.lastTime=Date.now();circle.dx=circle.dy=0;/* CD already resumed via resumeCD */}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updateHint()}updDisp();draw()});
 chk(mB,'mode',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();mode=mode==='survival'?'freebie':'survival';circle.hasBeenTouched=false;loadSt(mode,map)});
 chk(mpB,'map',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();map=map==='rectangle'?'circle':'rectangle';circle.hasBeenTouched=false;loadSt(mode,map)});
 chk(sB,'store',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();openStore()});
@@ -1142,65 +1090,7 @@ tN.onclick=goNext;tNA.onclick=goNext;tP.onclick=goPrev;tSk.onclick=closeTut;
 
 mB.onclick=()=>{if(mergeA>0){mergeA=0;doCash();return}if(!isPaused){circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true}saveSt();mode=mode==='survival'?'freebie':'survival';circle.hasBeenTouched=false;loadSt(mode,map)};
 mpB.onclick=()=>{if(mergeA>0){mergeA=0;doCash();return}if(!isPaused){circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true}saveSt();map=map==='rectangle'?'circle':'rectangle';circle.hasBeenTouched=false;loadSt(mode,map)};
-pB.onclick=e=>{
-if(btnAct.play){btnAct.play=false;return}
-if(isPaused){
-// Tap always normal resume; only hold submits
-isPaused=false;resumeCD();resetGold();
-if(circle.isDragging){const pos=getPos(e);circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0}
-else if(circle.wasDraggingWhenPaused){circle.isDragging=false;circle.dragTouchId=null;constrain();circle.dx=circle.dy=0}
-circle.wasDraggingWhenPaused=false;updDisp();draw();
-}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updDisp();draw()}
-};
-
-// Hold RESUME/SUBMIT to submit and grab the ball
-(function(){
-let subT=null,subArmed=false;
-function canSub(){return isPaused&&wallHits===level&&circle.hasBeenTouched&&!postGame}
-function clearSub(){if(subT){clearTimeout(subT);subT=null}subArmed=false;pB.classList.remove('gG','rc')}
-function onSubDown(e){
-if(!canSub())return;
-e.preventDefault();e.stopPropagation();
-subArmed=true;
-pB.classList.add('gG');
-subT=setTimeout(function(){
-if(!subArmed||!canSub())return;
-pB.classList.remove('gG');pB.classList.add('rc');
-submitFromPause(true,e);
-btnAct.play=true;
-},typeof HOLD_THR!=='undefined'?HOLD_THR:320);
-}
-function onSubUp(e){
-if(!subArmed)return;
-const heldToSubmit=btnAct.play; // true if hold timer already submitted
-clearSub();
-// Short tap: preventDefault on touchstart suppressed the synthetic click on mobile,
-// so we must resume here. Hold already called submitFromPause(true).
-if(heldToSubmit){
-  // keep flag so any subsequent onclick is ignored
-  btnAct.play=true;
-}else{
-  // Manual resume (same as pB.onclick when isPaused). Set btnAct.play so a
-  // late synthetic click (if any) is ignored and does not re-pause.
-  btnAct.play=true;
-  if(isPaused){
-    isPaused=false;resumeCD();resetGold();
-    if(circle.isDragging){
-      try{const pos=getPos(e,e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].identifier:null);circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0}catch(err){circle.dx=circle.dy=0}
-    }else if(circle.wasDraggingWhenPaused){circle.isDragging=false;circle.dragTouchId=null;constrain();circle.dx=circle.dy=0}
-    circle.wasDraggingWhenPaused=false;updDisp();draw();
-  }
-  // Clear ignore flag after click window
-  setTimeout(function(){btnAct.play=false},350);
-}
-}
-pB.addEventListener('touchstart',onSubDown,{passive:false});
-pB.addEventListener('mousedown',function(e){if(e.button===0)onSubDown(e)});
-pB.addEventListener('touchend',onSubUp);
-pB.addEventListener('touchcancel',onSubUp);
-pB.addEventListener('mouseup',onSubUp);
-pB.addEventListener('mouseleave',function(){if(subT){clearTimeout(subT);subT=null;pB.classList.remove('gG')}});
-})();
+pB.onclick=e=>{if(isPaused){isPaused=false;resumeCD();resetGold();if(circle.isDragging){const pos=getPos(e);circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0}else if(circle.wasDraggingWhenPaused){circle.isDragging=false;circle.dragTouchId=null;constrain();circle.dx=circle.dy=0}circle.wasDraggingWhenPaused=false;updDisp();draw()}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updDisp();draw()}};
 sB.onclick=openStore;sCl.onclick=closeStore;hBtn.onclick=openHelp;hCl.onclick=closeHelp;hCb.onclick=closeHelp;
 
 const INFO={"potential": {"title": "POTENTIAL PAYOUT", "body": "<p>Your <strong>potential payout<\/strong> is the amount of $ you would receive if you cash out right now.<\/p>\n<p><strong>Formula:<\/strong> last level beaten this run &times; current lives<\/p>\n<p>Example: if you just cleared level 5 and have 3 lives, your potential is 5 &times; 3 = <strong>15 $<\/strong>.<\/p>\n<p>When you cash out (pause when the gold glow appears, drag the gold circle onto the blue $ and release), that potential is added to your $ balance and the Survival run resets.<\/p>\n<p>You can also keep playing to try for a higher payout later \u2014 the choice is yours each time cash-out becomes available.<\/p>"}, "lives": {"title": "LIVES", "body": "<p>Lives act as your <strong>score multiplier<\/strong> for the potential payout (last level beaten &times; current lives).<\/p>\n<p>You start each new Survival run with <strong>3 lives<\/strong>, and lives reset to 3 whenever a new game starts (after a cash-out or when you run out of lives).<\/p>\n<p><strong>Recovery on the Rectangle map:<\/strong> when you clear a level, the zone you land in adjusts lives based on how many you started the level with:<\/p>\n<ul><li><strong>Started at 3+:<\/strong> if you drop below 3, black returns you to 3, green to 4, red to 2.<\/li>\n<li><strong>Started at 2:<\/strong> if you drop below 2, black returns you to 2, green to 3, red keeps you at 1.<\/li>\n<li><strong>Started at 1:<\/strong> black and red keep you at 1, green bumps you to 2.<\/li><\/ul>"}, "bounces": {"title": "BOUNCE COUNT", "body": "<p>The <strong>left number<\/strong> is your live bounce count. The <strong>right number<\/strong> is the target for this level.<\/p>\n<p>To level up, that left number must <strong>exactly match<\/strong> the level number when you submit \u2014 either:<\/p>\n<ul><li>the first touch on the map after the countdown ends, or<\/li>\n<li>a touch during the countdown while the numbers already match.<\/li><\/ul>\n<p>One bounce over or under and you lose a life in Survival.<\/p>"}, "level": {"title": "LEVEL", "body": "<p>The level number is the bounce target for this round and also feeds into your potential payout multiplier (last level beaten &times; lives).<\/p>\n<p>Level starts at <strong>1<\/strong> and resets to 1 whenever a new Survival game starts (after cash-out or running out of lives).<\/p>\n<p>In Free mode the level you reach is saved and does not reset.<\/p>"}, "hiscore": {"title": "HI-SCORE", "body": "<p>Your hi-score is the <strong>highest level you have beaten<\/strong>.<\/p>\n<p>Hi-scores are saved <strong>separately for each mode and map combination<\/strong> (Survival Rectangle, Survival Circle, Free Rectangle, Free Circle), so each has its own best.<\/p>"}};
@@ -1225,7 +1115,6 @@ if(e.button===2||rightResize||circle.isResizing){stopResizing(e);return}
 stopDrag(e);
 });
 document.addEventListener('mousemove',e=>{if(circle.isDragging||circle.isResizing||gold.drag)drag(e)});
-document.addEventListener('touchmove',e=>{if(circle.isDragging||circle.isResizing||gold.drag){e.preventDefault();drag(e)}},{passive:false});
 document.addEventListener('mouseup',e=>{if(e.button===2){stopResizing(e);return;}if(rightResize||circle.isResizing)stopResizing(e);if(e.button!==0)return;stopDrag(e)});
 canvas.addEventListener('contextmenu',e=>e.preventDefault()); // allow right-drag resize without menu
 canvas.addEventListener('touchstart',e=>{handleTap(e);startDrag(e);if(e.touches.length>=2)startResizing(e)},{passive:false});
