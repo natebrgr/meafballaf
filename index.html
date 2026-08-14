@@ -25,7 +25,9 @@ background-image:radial-gradient(ellipse at 20% 20%,rgba(0,80,120,.15),transpare
 .sv{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.25rem;line-height:1}
 #cC{color:#ffe566}
 #hC{color:#00e5ff}
-#lB{top:48px;left:2.5vw}#hB{top:48px;right:2.5vw}
+#lB{top:48px;left:2.5vw}#hB{top:48px;right:2.5vw;border-color:rgba(255,215,0,.55)}
+#hB.fg{animation:hBfg .5s ease}
+@keyframes hBfg{0%,100%{border-color:rgba(255,215,0,.55)}50%{border-color:var(--green);box-shadow:0 0 14px rgba(0,255,136,.4)}}
 #lvB{left:50%;transform:translateX(-50%);top:60px;width:110px;flex-direction:row;padding:0;overflow:hidden}
 #wH,#lN{flex:1;display:flex;justify-content:center;align-items:center;font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.4rem;height:100%}
 #wH{border-right:1px solid rgba(0,240,255,.2);cursor:pointer}#lN{color:var(--green);text-shadow:0 0 10px rgba(0,255,136,.45);cursor:pointer}
@@ -226,7 +228,7 @@ pointer-events:none!important;
 <button id="mpB">MAP</button><button id="hBtn">HELP</button>
 </div>
 <div class="ov" id="sO"><div class="s-sticky"><div class="oh"><div class="ot" style="background:linear-gradient(90deg,var(--gold),#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent">STORE</div><button class="oc" id="sCl">X</button></div>
-<div style="font-family:Orbitron;color:var(--cyan)">$ <span id="sCC">0</span></div>
+<div style="font-family:Orbitron;color:var(--cyan)"><span id="sHS">HS 0</span> · <span id="sCC">0</span> $</div>
 <div style="font-family:Exo 2,sans-serif;font-size:.72rem;color:rgba(200,210,230,.75);margin-top:6px;padding:0 12px">Items unlock with Survival high scores.</div>
 </div>
 <div style="width:100%;max-width:560px;margin-bottom:20px"><div style="font-family:Orbitron;font-size:.78rem;color:var(--dim);margin-bottom:8px;letter-spacing:.12em">CIRCLE SKINS</div><div class="sg" id="skG"></div></div>
@@ -420,7 +422,7 @@ if(level!==prevLv){const d=level-prevLv;if(!suppress&&d!==0){lN.classList.remove
 if(hiScore!==prevHS){const d=hiScore-prevHS;if(!suppress&&d>0){hB.classList.remove('fg');void hB.offsetHeight;hB.classList.add('fg')}prevHS=hiScore}
 if(coins!==prevC){const d=coins-prevC;if(!suppress&&d!==0){const curEl=cC.parentElement;curEl.classList.remove('cur-up','cur-down');void curEl.offsetHeight;curEl.classList.add(d>0?'cur-up':'cur-down');clearTimeout(curEl._glowT);curEl._glowT=setTimeout(()=>curEl.classList.remove('cur-up','cur-down'),950);
 if(d>0){const items=[...SKINS,...BGS];const newly=items.some(it=>!(ownedS.has(it.id)||ownedB.has(it.id))&&prevC<it.p&&coins>=it.p);if(newly){sB.classList.remove('sB-afford');void sB.offsetHeight;sB.classList.add('sB-afford');clearTimeout(sB._glowT);sB._glowT=setTimeout(()=>sB.classList.remove('sB-afford'),1200)}}}prevC=coins;saveP()}
-lN.textContent=level;lC.textContent=lives===Infinity?'\u221E':lives;hC.textContent=hiScore;cC.textContent=coins;sCC.textContent=coins;
+lN.textContent=level;lC.textContent=lives===Infinity?'\u221E':lives;hC.textContent=hiScore;cC.textContent=coins;sCC.textContent=coins;const _sHS=$('sHS');if(_sHS)_sHS.textContent='HS '+gSurvHS();
 potential=(mode==='survival'&&lives!==Infinity)?Math.max(0,(level-1)*lives):0;pC.textContent=potential;
 if(prevPot>=0&&potential!==prevPot){const d=potential-prevPot;if(!suppress&&d!==0){pD.classList.remove('pD-up','pD-down');void pD.offsetHeight;pD.classList.add(d>0?'pD-up':'pD-down');clearTimeout(pD._glowT);pD._glowT=setTimeout(()=>pD.classList.remove('pD-up','pD-down'),950)}}
 prevPot=potential;
@@ -993,7 +995,7 @@ btnAct={play:false,mode:false,map:false,store:false,help:false};if(isPaused)save
 function openStore(){pauseCD();isPaused=true;saveSt();renderStore();sO.classList.add('open');updDisp()}
 function closeStore(){sO.classList.remove('open');updDisp();draw()}
 function renderStore(){
-sCC.textContent=coins;skG.innerHTML='';bgG.innerHTML='';
+sCC.textContent=coins;const _sHS2=$('sHS');if(_sHS2)_sHS2.textContent='HS '+gSurvHS();skG.innerHTML='';bgG.innerHTML='';
 const survHS=gSurvHS();
 // Assign HS requirements by price (free items = 0; others in price order)
 const priced=[...SKINS.filter(s=>s.p>0).map(s=>({t:'s',o:s})),...BGS.filter(b=>b.p>0).map(b=>({t:'b',o:b}))]
