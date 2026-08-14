@@ -1172,10 +1172,27 @@ btnAct.play=true;
 }
 function onSubUp(e){
 if(!subArmed)return;
+const heldToSubmit=btnAct.play; // true if hold timer already submitted
 clearSub();
-// Short tap: do not submit — normal click resumes. Hold already called submitFromPause(true).
-if(btnAct.play){/* keep flag so onclick ignores */}
-else{btnAct.play=false}
+// Short tap: preventDefault on touchstart suppressed the synthetic click on mobile,
+// so we must resume here. Hold already called submitFromPause(true).
+if(heldToSubmit){
+  // keep flag so any subsequent onclick is ignored
+  btnAct.play=true;
+}else{
+  // Manual resume (same as pB.onclick when isPaused). Set btnAct.play so a
+  // late synthetic click (if any) is ignored and does not re-pause.
+  btnAct.play=true;
+  if(isPaused){
+    isPaused=false;resumeCD();resetGold();
+    if(circle.isDragging){
+      try{const pos=getPos(e,e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].identifier:null);circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0}catch(err){circle.dx=circle.dy=0}
+    }else if(circle.wasDraggingWhenPaused){circle.isDragging=false;circle.dragTouchId=null;constrain();circle.dx=circle.dy=0}
+    circle.wasDraggingWhenPaused=false;updDisp();draw();
+  }
+  // Clear ignore flag after click window
+  setTimeout(function(){btnAct.play=false},350);
+}
 }
 pB.addEventListener('touchstart',onSubDown,{passive:false});
 pB.addEventListener('mousedown',function(e){if(e.button===0)onSubDown(e)});
