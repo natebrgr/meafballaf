@@ -269,7 +269,7 @@ let btnAct={play:false,mode:false,map:false,store:false,help:false};
 let gSec=null,rSec=null,pgSec=null,prSec=null,ngSec=null,nrSec=null,pLand=null;
 let holes=[],diaX=0,diaY=0,particles=[];
 const gold={x:0,y:0,hx:0,hy:0,r:38,drag:false,tid:null,ox:0,oy:0,wob:false,wT:0,wA:0,wDx:0,wDy:0,phase:null,fVx:0,fVy:0};
-let mergeA=0,mergeP=[],arrP=0,rightResize=false,viewW=320,viewH=480,prevPot=-1,postGame=false,uiLocked=false,zoneScroll=0;
+let mergeA=0,mergeP=[],arrP=0,rightResize=false,viewW=320,viewH=480,prevPot=-1,postGame=false,uiLocked=false,zoneScroll=0,zoneScrollFrozen=false;
 const HS_REQS=[15,29,42,54,65,75,84,92,99,105,110,114,117,119,121,123,125,127,129,131,133,135,137,139,141,143,145,147,149,151];
 
 const SKINS=[
@@ -315,6 +315,28 @@ GS[k]={level:1,lives:k.startsWith('free')?Infinity:3,wallHits:0,isTrack:false,is
 function randSec(){const s=[0,1,2];const g=s.splice(Math.floor(Math.random()*s.length),1)[0];const r=s.splice(Math.floor(Math.random()*s.length),1)[0];return{g,r}}
 function asCur(){if(mode!=='survival'||map!=='rectangle'){gSec=rSec=null;return}const s=randSec();gSec=s.g;rSec=s.r}
 function asNext(){if(mode!=='survival'||map!=='rectangle'){ngSec=nrSec=null;return}const s=randSec();ngSec=s.g;nrSec=s.r}
+// Zone layout (survival rectangle): 3 color bands + 1 white TIME BACK band per period (white clears if bounces >= level)
+function zoneMetrics(h){const sH=h/3,period=4*sH;return{sH,period}}
+function zoneAt(oy,h){
+const {sH,period}=zoneMetrics(h);
+const content=oy-zoneScroll;
+const adj=((content%period)+period)%period;
+const sec=Math.min(3,Math.floor(adj/sH));
+const absK=Math.floor(content/period);
+const tier=Math.max(0,-absK);
+return{sH,period,content,adj,sec,isWhite:sec===3,absK,tier};
+}
+function restartTimeBack(){
+// Restart 3s countdown; keep bounce count and scroll position
+isCD=true;cdVal=3;cdOp=1;cdRemain=1000;isTrack=true;
+cd.style.opacity=1;cd.textContent='3';
+clearCDTimer();
+if(!isPaused)scheduleCD();
+updDisp();updateHint();
+}
+function freezeZones(){zoneScrollFrozen=true}
+function unfreezeZones(){zoneScrollFrozen=false}
+function resetZones(){zoneScroll=0;zoneScrollFrozen=false}
 function updTM(){throwMul=BASE_TM*Math.pow(TG,level-1)}
 function skinC(){return(SKINS.find(s=>s.id===eqS)||SKINS[0]).c}
 function skinF(){return(SKINS.find(s=>s.id===eqS)||SKINS[0]).face||'none'}
@@ -528,22 +550,70 @@ ctx.clearRect(0,0,canvas.width,canvas.height);drawBg(w,h);
 if(mode==='survival'&&map==='rectangle'){
 const gL=startL<=3?startL+1:(lives>2?lives+1:4),rL=startL<=3?Math.max(startL-1,1):(lives>2?Math.max(lives-1,1):2);
 const bS=[0,1,2].find(s=>s!==gSec&&s!==rSec),bL=startL<=3?startL:(lives>2?lives:3);
-const period=3*sH;
+const period=4*sH; // 3 color bands + 1 white TIME BACK
 const off=((zoneScroll%period)+period)%period;
 // Repeating life zones — scroll downward when ball presses the top
 ctx.save();
 ctx.beginPath();ctx.rect(SSW,0,pw,h);ctx.clip();
 for(let k=-6;k<=3;k++){
-for(let sec=0;sec<3;sec++){
+for(let sec=0;sec<4;sec++){
 const y=k*period+sec*sH+off;
 if(y+sH<0||y>h)continue;
+if(sec===3){
+// TIME BACK band — static cool look
+const bgGrad=ctx.createLinearGradient(SSW,y,SSW,y+sH);
+bgGrad.addColorStop(0,'rgba(18,24,42,0.94)');
+bgGrad.addColorStop(0.5,'rgba(36,48,78,0.9)');
+bgGrad.addColorStop(1,'rgba(18,24,42,0.94)');
+ctx.fillStyle=bgGrad;
+ctx.fillRect(SSW,y,pw,sH);
+// Soft white/cyan core
+const core=ctx.createRadialGradient(SSW+pw/2,y+sH/2,0,SSW+pw/2,y+sH/2,Math.max(pw,sH)*0.55);
+core.addColorStop(0,'rgba(255,255,255,0.28)');
+core.addColorStop(0.4,'rgba(170,220,255,0.12)');
+core.addColorStop(1,'rgba(0,0,0,0)');
+ctx.fillStyle=core;
+ctx.fillRect(SSW,y,pw,sH);
+// Glowing border
+ctx.strokeStyle='rgba(190,230,255,0.65)';
+ctx.lineWidth=2.5;
+ctx.shadowColor='rgba(120,200,255,0.75)';
+ctx.shadowBlur=14;
+ctx.strokeRect(SSW+2.5,y+2.5,pw-5,sH-5);
+ctx.shadowBlur=0;
+ctx.strokeStyle='rgba(255,255,255,0.35)';
+ctx.lineWidth=1;
+ctx.strokeRect(SSW+6,y+6,pw-12,sH-12);
+// Stretchy TIME BACK text — same blue as the band, soft white glow, subtle
+ctx.save();
+const label='TIME BACK';
+ctx.font="bold 48px 'Orbitron',sans-serif";
+ctx.textAlign='center';ctx.textBaseline='middle';
+const tw=ctx.measureText(label).width||1;
+const sx=(pw*0.9)/tw, sy=(sH*0.68)/48;
+ctx.translate(SSW+pw/2,y+sH/2);
+ctx.scale(sx,sy);
+ctx.lineJoin='round';ctx.miterLimit=2;
+// Soft white glow behind
+ctx.shadowColor='rgba(255,255,255,0.85)';ctx.shadowBlur=16;
+ctx.fillStyle='rgba(255,255,255,0.2)';
+ctx.fillText(label,0,0);
+ctx.shadowBlur=10;
+ctx.fillText(label,0,0);
+// Blue fill matching the rectangle
+ctx.shadowColor='rgba(255,255,255,0.55)';ctx.shadowBlur=8;
+ctx.fillStyle='rgba(42,58,92,0.92)';
+ctx.fillText(label,0,0);
+ctx.restore();
+}else{
 let col=null;
 if(sec===gSec)col='rgba(0,180,90,0.35)';
 else if(sec===rSec)col='rgba(180,30,50,0.35)';
 if(col){ctx.fillStyle=col;ctx.fillRect(SSW,y,pw,sH)}
 }
 }
-// +/- labels travel with the zones
+}
+// +/- labels travel with the zones (color bands only)
 ctx.font="bold 26px 'Orbitron',sans-serif";ctx.textAlign='center';ctx.textBaseline='middle';
 const dD=(sec,baseVal,col,kind)=>{
 if(sec===null||sec===undefined)return;
@@ -565,10 +635,10 @@ ctx.fillText(t,SSW+30,y);ctx.fillText(t,w-SSW-30,y);ctx.shadowBlur=0;
 };
 dD(gSec,gL,'#00ff88','g');dD(rSec,rL,'#ff3355','r');if(bS!==undefined)dD(bS,bL,'#8899aa','b');
 ctx.restore();
-// Side strips stay fixed (previous / next level preview)
+// Side strips stay fixed (previous / next level preview) — color bands only
 if(pgSec!==null){ctx.fillStyle='rgba(0,180,90,0.5)';ctx.fillRect(0,pgSec*sH,SSW,sH)}
 if(prSec!==null){ctx.fillStyle='rgba(180,30,50,0.5)';ctx.fillRect(0,prSec*sH,SSW,sH)}
-if(pLand!==null){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(1,pLand*sH+1,SSW-2,sH-2)}
+if(pLand!==null&&pLand!==3){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(1,pLand*sH+1,SSW-2,sH-2)}
 if(ngSec!==null){ctx.fillStyle='rgba(0,180,90,0.5)';ctx.fillRect(w-SSW,ngSec*sH,SSW,sH)}
 if(nrSec!==null){ctx.fillStyle='rgba(180,30,50,0.5)';ctx.fillRect(w-SSW,nrSec*sH,SSW,sH)}
 }
@@ -684,7 +754,6 @@ if(mergeA>0){mergeA-=0.07;mergeP.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vx*=0.97;p.vy
 if(gold.phase==='fling'){gold.y+=gold.fVy;gold.fVy-=1.4;gold.x+=gold.fVx;gold.fVx*=0.95}
 if(mergeA<=0){mergeA=0;gold.phase=null;doCash()}}
 if(gold.wob){gold.wT+=0.09;const damp=Math.exp(-gold.wT*2.2),amp=gold.wA*damp;gold.x=gold.hx+Math.cos(gold.wT*14)*amp*gold.wDx;gold.y=gold.hy+Math.cos(gold.wT*14)*amp*gold.wDy;if(damp<0.02){gold.wob=false;gold.x=gold.hx;gold.y=gold.hy}}
-if(circle.isDragging){zoneScroll=0}
 if(isPaused){if(circle.isDragging){circle.dx=0;circle.dy=0}return}
 const w=viewW,h=viewH,pw=w-2*SSW,now=Date.now();
 if(!circle.isDragging){
@@ -695,12 +764,12 @@ const useScroll=mode==='survival'&&map==='rectangle';
 if(useScroll){
 const topY=circle.radius;
 const newY=circle.y+circle.dy;
-if(zoneScroll>0||newY<=topY){
-// Transfer this frame's vertical delta into scroll (up => zones move down)
-zoneScroll-=circle.dy;
+// Background only moves when the ball presses into the top border.
+// Below the top the ball moves freely (zones hold their current scroll).
+if(newY<=topY){
+zoneScroll-=circle.dy; // upward (dy<0) increases scroll; downward unwinds
 if(zoneScroll<0){
-// Scroll fully unwound — residual downward motion goes back to the ball
-circle.y=topY-zoneScroll;
+circle.y=topY-zoneScroll; // leftover downward motion after fully unwound
 zoneScroll=0;
 }else{
 circle.y=topY; // pin to top while scroll absorbs vertical motion
@@ -789,7 +858,7 @@ function startCD(res){
 if(!res){
 isCD=true;cdVal=3;wallHits=0;wH.textContent='0';
 wH.style.color='#e8f0ff';wH.style.textShadow='none';
-isTrack=true;cdOp=1;cdRemain=1000;zoneScroll=0;
+isTrack=true;cdOp=1;cdRemain=1000;resetZones();
 }else{
 isCD=true;
 // resuming an existing countdown — keep cdVal and cdRemain as-is
@@ -800,13 +869,13 @@ if(!isPaused)scheduleCD();
 }
 
 function endGame(){
-zoneScroll=0;level=1;updTM();lives=3;startL=3;wallHits=0;isTrack=false;isPaused=false;isCD=false;cdVal=3;cdOp=0;
+resetZones();level=1;updTM();lives=3;startL=3;wallHits=0;isTrack=false;isPaused=false;isCD=false;cdVal=3;cdOp=0;
 clearCDTimer();cdRemain=1000;cd.style.opacity=0;cd.textContent='';
 const w=viewW,h=viewH;
 // Drop from center — death tap must NOT start the next run
 circle.x=w/2;circle.y=h*0.2;circle.dx=0;circle.dy=0;
 circle.hasBeenTouched=false;circle.isDragging=false;circle.dragTouchId=null;
-circle.wasDraggingWhenPaused=false;trail.length=0;zoneScroll=0;
+circle.wasDraggingWhenPaused=false;trail.length=0;resetZones();
 cashAvail=false;curInc=14;nextCO=16;resetGold();mergeA=0;mergeP=[];
 pgSec=prSec=pLand=null;asCur();asNext();
 active=true;postGame=true; // waiting for a fresh tap to start
@@ -828,18 +897,15 @@ return{x:e.clientX||(e.touches&&e.touches[0]&&e.touches[0].clientX)||(e.changedT
 function completeLevel(oy,ch){
 const completed=level;level++;if(mode==='freebie')coins+=1;potential=(level-1)*lives;updTM();
 if(mode==='survival'&&map==='rectangle'){
-const sH=ch/3,period=3*sH;
-const content=oy-zoneScroll;
-const adj=((content%period)+period)%period;
-const sec=Math.min(2,Math.floor(adj/sH));
-const absK=Math.floor(content/period); // absolute band in content space
-const tier=Math.max(0,-absK);
+const z=zoneAt(oy,ch);
+const sec=z.sec,tier=z.tier;
 let base;if(startL>3&&lives<3)base=3;else if(startL>3&&lives>2)base=lives;else base=startL;
-let target;if(sec===gSec)target=base+1+tier;
+let target;if(z.isWhite)target=base; // should not submit on white; treat as black if reached
+else if(sec===gSec)target=base+1+tier;
 else if(sec===rSec)target=Math.max(base-1-tier,1);
 else target=base;
 lives=Math.max(1,target);
-potential=(level-1)*lives;pLand=sec;
+potential=(level-1)*lives;pLand=z.isWhite?null:sec;
 }
 else if(mode==='survival'){lives=3;potential=(level-1)*lives}
 if(completed>gHS())sHS(completed);wallHits=0;startL=lives;pgSec=gSec;prSec=rSec;gSec=ngSec;rSec=nrSec;asNext();
@@ -848,7 +914,7 @@ if(mode==='survival'){
 if(cashAvail){cashAvail=false;nextCO=nextCO+curInc;curInc=Math.max(2,curInc-1)}
 if(level===nextCO){cashAvail=true;resetGold()}
 }else{cashAvail=false}
-zoneScroll=0;spawnP(circle.x,circle.y,12,'#fff');saveSt();updDisp();startCD();updateHint();
+resetZones();spawnP(circle.x,circle.y,12,'#fff');saveSt();updDisp();startCD();updateHint();
 }
 
 
@@ -902,6 +968,7 @@ function dropBall(){
 // Release ball with zero velocity so it falls straight down
 circle.isDragging=false;circle.dragTouchId=null;circle.dx=0;circle.dy=0;
 circle.wasDraggingWhenPaused=false;
+unfreezeZones();
 }
 function stopResizing(e){
 if(circle.resizeTouchId===null&&!rightResize)return;
@@ -920,21 +987,48 @@ if(isPaused)return;
 const pos=getPos(e);const w=viewW,h=viewH;
 if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
 const ox=circle.x,oy=circle.y;if(circle.isDragging)return;
-if(!circle.hasBeenTouched||postGame){postGame=false;uiLocked=false;zoneScroll=0;circle.hasBeenTouched=true;isTrack=false;wallHits=0;startCD();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updDisp();return}
+if(!circle.hasBeenTouched||postGame){postGame=false;uiLocked=false;resetZones();circle.hasBeenTouched=true;isTrack=false;wallHits=0;startCD();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updDisp();return}
 let bg='rgba(180,180,180,0.4)';
+let onWhite=false;
 if(mode==='survival'&&map==='rectangle'){
-const sH=h/3,period=3*sH,adj=(((oy-zoneScroll)%period)+period)%period,sec=Math.min(2,Math.floor(adj/sH));
-if(sec===gSec)bg='rgba(0,180,90,0.6)';else if(sec===rSec)bg='rgba(180,30,50,0.6)';
+const z=zoneAt(oy,h);
+if(z.isWhite){bg='rgba(255,255,255,0.7)';onWhite=true}
+else if(z.sec===gSec)bg='rgba(0,180,90,0.6)';
+else if(z.sec===rSec)bg='rgba(180,30,50,0.6)';
 }
 holes.push({x:ox,y:oy,st:Date.now(),bg,op:1});
-if(isCD){if(wallHits===level){isTrack=false;if(cdInt){clearCDTimer();cdOp=0;cd.style.opacity=0;isCD=false}completeLevel(oy,h);updateHint();circle.x=pos.x;circle.y=pos.y;constrain();return}circle.x=pos.x;circle.y=pos.y;constrain();updateHint();return}
+// White during CD: exact match clears; under only = TIME BACK; over = normal mid-CD tap (no reset)
+const whiteTimeBackCD=onWhite&&isCD&&wallHits<level;
+// White after CD with under: TIME BACK (keep current scroll) — not a miss
+const whiteTimeBackAfter=onWhite&&!isCD&&wallHits<level;
+if(isCD){
+if(wallHits===level){
+isTrack=false;if(cdInt){clearCDTimer();cdOp=0;cd.style.opacity=0;isCD=false}
+completeLevel(oy,h);updateHint();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();return;
+}
+if(whiteTimeBackCD){
+// TIME BACK during CD (under only): restart timer; keep zone scroll where it halted
+circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();
+restartTimeBack();
+return;
+}
+// Mid-countdown reposition (incl. white when already over): keep scroll, no timer reset
+circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();
+updateHint();return;
+}
+// After countdown
 if(wallHits===level)completeLevel(oy,h);
-else if(mode==='survival'){
+else if(whiteTimeBackAfter){
+// Under on white after CD: TIME BACK, keep current scroll (not a life loss)
+circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();
+restartTimeBack();
+return;
+}else if(mode==='survival'){
 lives--;potential=(level-1)*lives;
 if(lives<=0){endGame();return;} // death tap ends run only — does not start next
-wallHits=0;saveSt();updDisp();startCD();
-}else{wallHits=0;zoneScroll=0;startCD()}
-circle.x=pos.x;circle.y=pos.y;constrain();updateHint();
+wallHits=0;saveSt();updDisp();startCD(); // submitting miss resets zones
+}else{wallHits=0;resetZones();startCD()}
+circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updateHint();
 }
 
 function startDrag(e){
@@ -944,7 +1038,7 @@ const pos=getPos(e,e.touches?e.touches[0].identifier:null);const tid=e.touches?e
 if(isPaused&&cashAvail&&mode==='survival'&&mergeA<=0){if(Math.hypot(pos.x-gold.x,pos.y-gold.y)<=gold.r+12){e.preventDefault();gold.drag=true;gold.tid=tid;gold.ox=pos.x-gold.x;gold.oy=pos.y-gold.y;draw();return}}
 if(isPaused&&!circle.wasDraggingWhenPaused)return;
 const w=viewW;if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
-circle.isDragging=true;circle.dragTouchId=tid;zoneScroll=0;circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0;circle.x=pos.x;circle.y=pos.y;constrain();
+circle.isDragging=true;circle.dragTouchId=tid;circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0;circle.x=pos.x;circle.y=pos.y;constrain();
 if(!isPaused)trail.length=0;btnAct={play:false,mode:false,map:false,store:false,help:false};draw();
 }
 
@@ -988,7 +1082,7 @@ else if(target===mpB&&!btnAct.map)mpB.click();
 else if(target===sB&&!btnAct.store){if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();openStore()}
 else if(target===hBtn&&!btnAct.help){if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();openHelp()}
 else if(over&&!circle.hasBeenTouched){circle.hasBeenTouched=true;startCD()}
-circle.isDragging=false;circle.dragTouchId=null;
+circle.isDragging=false;circle.dragTouchId=null;unfreezeZones();
 Object.keys(holdT).forEach(k=>{if(holdT[k]){clearTimeout(holdT[k]);holdT[k]=null;const btn=k==='play'?pB:k==='mode'?mB:k==='map'?mpB:k==='store'?sB:hBtn;if(btn){btn.classList.remove('gG','gR','gW');btn.classList.add('rc')}}});
 btnAct={play:false,mode:false,map:false,store:false,help:false};if(isPaused)saveSt();draw();
 }
