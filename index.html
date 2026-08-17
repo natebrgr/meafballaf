@@ -337,6 +337,16 @@ updDisp();updateHint();
 function freezeZones(){zoneScrollFrozen=true}
 function unfreezeZones(){zoneScrollFrozen=false}
 function resetZones(){zoneScroll=0;zoneScrollFrozen=false}
+// How many lives the red band at oy is currently advertising to lose (matches on-screen label)
+function redMissLoss(oy,h){
+if(mode!=='survival'||map!=='rectangle'||rSec===null)return 1;
+const z=zoneAt(oy,h);
+if(z.isWhite||z.sec!==rSec)return 1;
+const rL=startL<=3?Math.max(startL-1,1):(lives>2?Math.max(lives-1,1):2);
+const baseDelta=rL-lives;
+const d=baseDelta-z.tier; // typically negative, e.g. -1, -2, ...
+return Math.max(1,-d);
+}
 function updTM(){throwMul=BASE_TM*Math.pow(TG,level-1)}
 function skinC(){return(SKINS.find(s=>s.id===eqS)||SKINS[0]).c}
 function skinF(){return(SKINS.find(s=>s.id===eqS)||SKINS[0]).face||'none'}
@@ -1024,7 +1034,13 @@ circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();
 restartTimeBack();
 return;
 }else if(mode==='survival'){
-lives--;potential=(level-1)*lives;
+// Miss on red after CD (under or over): lose the amount shown on that red band; otherwise lose 1
+let loss=1;
+if(wallHits!==level&&map==='rectangle'){
+const z=zoneAt(oy,h);
+if(!z.isWhite&&z.sec===rSec)loss=redMissLoss(oy,h);
+}
+lives=Math.max(0,lives-loss);potential=(level-1)*Math.max(0,lives);
 if(lives<=0){endGame();return;} // death tap ends run only — does not start next
 wallHits=0;saveSt();updDisp();startCD(); // submitting miss resets zones
 }else{wallHits=0;resetZones();startCD()}
