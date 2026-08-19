@@ -321,7 +321,7 @@ let postGame=false,uiLocked=false,arrP=0,rightResize=false,prevPot=-1;
 const BODY={
 pts:null,
 ready:false,
-pose:'super', // 'super' | 'straight'
+pose:'super', // 'super' | 'straight' | 'fall'
 prevScroll:0,
 virtDy:0,
 lastBallX:null,
@@ -331,7 +331,9 @@ feetStuck:false,
 feetY:0,
 faceDir:0, // 0 center, 2 eyes up
 landT:0, // 0 upright, 1 full splits+V arms
-angryUntil:0
+angryUntil:0,
+sway:0,
+swayV:0
 };
 function bPt(x,y){return{x:x,y:y,px:x,py:y}}
 function bodyReset(){
@@ -349,7 +351,7 @@ lFoot:bPt(cx-r*0.35,cy+r*3.0),rFoot:bPt(cx+r*0.35,cy+r*3.0)
 BODY.lastBallX=cx;BODY.lastBallY=cy;BODY.prevScroll=zoneScroll;
 BODY.ready=true;BODY.pose='super';BODY.faceDir=0;
 BODY.wasLeft=BODY.wasRight=BODY.wasBottom=false;
-BODY.feetStuck=false;BODY.feetY=0;BODY.landT=0;BODY.angryUntil=0;
+BODY.feetStuck=false;BODY.feetY=0;BODY.landT=0;BODY.angryUntil=0;BODY.sway=0;BODY.swayV=0;
 }
 function bodyPoseLocal(pose){
 const r=Math.max(12,circle.radius);
@@ -370,6 +372,14 @@ lElbow:[-r*0.28,r*0.7],rElbow:[r*0.28,r*0.7],
 lHand:[-r*0.3,r*1.05],rHand:[r*0.3,r*1.05],
 lKnee:[-r*0.14,r*1.55],rKnee:[r*0.14,r*1.55],
 lFoot:[-r*0.16,r*2.15],rFoot:[r*0.16,r*2.15]
+},
+fall:{
+chest:[0,r*0.36],hip:[0,r*0.95],
+lShoulder:[-r*0.4,r*0.2],rShoulder:[r*0.4,r*0.2],
+lElbow:[-r*0.6,r*0.05],rElbow:[r*0.6,r*0.05],
+lHand:[-r*0.7,r*-0.25],rHand:[r*0.7,r*-0.25],
+lKnee:[-r*0.22,r*1.5],rKnee:[r*0.22,r*1.5],
+lFoot:[-r*0.25,r*2.1],rFoot:[r*0.25,r*2.1]
 }
 };
 return poses[pose]||poses.super;
@@ -475,12 +485,13 @@ pts.hip.x=Math.max(pts.hip.x-push,leftW);
 }
 }
 function bodyUpdateFace(){
-// 0 forward, 2 eyes up, 3 ouchy (deeper splits), 4 brief angrier brows (side hit)
+// 0 forward, 2 eyes up, 3 ouchy, 4 angrier flash, 5 scared falling
 const now=Date.now();
-const deepSplits=BODY.landT>0.35; // only once legs are farther apart
+const deepSplits=BODY.landT>0.35;
 if(deepSplits)BODY.faceDir=3;
 else if(now<BODY.angryUntil)BODY.faceDir=4;
 else if(BODY.pose==='straight')BODY.faceDir=2;
+else if(BODY.pose==='fall')BODY.faceDir=5;
 else BODY.faceDir=0;
 }
 function bodyUpdate(){
@@ -506,20 +517,47 @@ const hitBottom=onBottom&&!BODY.wasBottom;
 BODY.wasLeft=onLeft;BODY.wasRight=onRight;BODY.wasBottom=onBottom;
 if(hitLeft||hitRight)BODY.angryUntil=Date.now()+480;
 
-// Virtual up only: pinned at top AND background scrolling down (scroll increasing)
 const virtualUp=atTop&&scrollDelta>0.25;
+const virtualDown=atTop&&scrollDelta<-0.25;
+const falling=(!circle.isDragging)&&(virtDy>0.25||virtualDown);
 if(hitBottom){
 BODY.pose='super';
 }else if(virtualUp){
 BODY.pose='straight';
+}else if(falling){
+BODY.pose='fall';
 }else if(BODY.pose==='straight'&&!virtualUp){
 BODY.pose='super';
+}else if(BODY.pose==='fall'&&!falling){
+BODY.pose='super';
 }
-// Side walls: no body/face change
+// Gentle sway from horizontal velocity and wall hits
+const targetSway=Math.max(-1,Math.min(1,circle.dx*0.045));
+if(hitLeft)BODY.swayV+=0.55;
+if(hitRight)BODY.swayV-=0.55;
+if(hitBottom)BODY.swayV*=0.4;
+BODY.swayV+=(targetSway-BODY.sway)*0.08;
+BODY.swayV*=0.92;
+BODY.sway=Math.max(-1,Math.min(1,(BODY.sway||0)+(BODY.swayV||0)));
+BODY.sway*=0.985;
 
+function bodyApplySway(){
+if(!BODY.pts)return;
+const s=BODY.sway||0;
+if(Math.abs(s)<0.01)return;
+const r=Math.max(12,circle.radius);
+const pts=BODY.pts;
+const lean=s*r*0.35;
+for(const k of ['chest','hip','lShoulder','rShoulder','lElbow','rElbow','lHand','rHand','lKnee','rKnee','lFoot','rFoot']){
+const p=pts[k];
+const w=Math.max(0,(p.y-pts.neck.y)/(r*2.2));
+p.x+=lean*w;p.px=p.x;
+}
+}
 function bodyFinishFrame(){
 bodyPinNeck();
 bodyApplyPose(BODY.pose);
+bodyApplySway();
 bodyAccordionBorders();
 // Landing splits: from feet touch → ball touch (t→1), then ease out as ball rises
 const floor=viewH-2;
@@ -669,6 +707,27 @@ ctx.stroke();
 ctx.fillStyle='rgba(40,10,20,0.35)';
 ctx.fill();
 ctx.fillStyle='#111';
+}else if(dir===5){
+// Scared — falling, eyes looking down
+ctx.lineWidth=Math.max(2.2,s*0.075);
+const ey=eyeY+s*0.08;
+ctx.beginPath();
+ctx.ellipse(-s*0.38,ey,eyeRx*1.1,eyeRy*1.15,0.1,0,Math.PI*2);ctx.fill();
+ctx.beginPath();
+ctx.ellipse(s*0.38,ey,eyeRx*1.1,eyeRy*1.15,-0.1,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#eee';
+ctx.beginPath();ctx.arc(-s*0.38,ey+s*0.04,s*0.04,0,Math.PI*2);ctx.fill();
+ctx.beginPath();ctx.arc(s*0.38,ey+s*0.04,s*0.04,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#111';
+ctx.lineWidth=Math.max(2.5,s*0.09);
+ctx.beginPath();
+ctx.moveTo(-s*0.55,browY+s*0.02);ctx.lineTo(-s*0.14,browY-s*0.1);
+ctx.moveTo(s*0.55,browY+s*0.02);ctx.lineTo(s*0.14,browY-s*0.1);
+ctx.stroke();
+ctx.lineWidth=Math.max(2.2,s*0.075);
+ctx.beginPath();
+ctx.ellipse(0,mouthY+s*0.04,s*0.16,s*0.2,0,0,Math.PI*2);
+ctx.stroke();
 }else if(dir===0||dir===2||dir===4){
 // Forward face; dir 2 = eyes up; dir 4 = angrier brows (brief side-hit flash)
 ctx.lineWidth=Math.max(2.2,s*0.075);
