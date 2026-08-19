@@ -330,7 +330,8 @@ wasLeft:false,wasRight:false,wasBottom:false,
 feetStuck:false,
 feetY:0,
 faceDir:0, // 0 center, 2 eyes up
-landT:0 // 0 upright, 1 full splits+V arms
+landT:0, // 0 upright, 1 full splits+V arms
+angryUntil:0
 };
 function bPt(x,y){return{x:x,y:y,px:x,py:y}}
 function bodyReset(){
@@ -348,7 +349,7 @@ lFoot:bPt(cx-r*0.35,cy+r*3.0),rFoot:bPt(cx+r*0.35,cy+r*3.0)
 BODY.lastBallX=cx;BODY.lastBallY=cy;BODY.prevScroll=zoneScroll;
 BODY.ready=true;BODY.pose='super';BODY.faceDir=0;
 BODY.wasLeft=BODY.wasRight=BODY.wasBottom=false;
-BODY.feetStuck=false;BODY.feetY=0;BODY.landT=0;
+BODY.feetStuck=false;BODY.feetY=0;BODY.landT=0;BODY.angryUntil=0;
 }
 function bodyPoseLocal(pose){
 const r=Math.max(12,circle.radius);
@@ -394,23 +395,38 @@ const r=Math.max(12,circle.radius);
 const pts=BODY.pts;
 const nx=pts.neck.x,ny=pts.neck.y;
 const a=Math.max(0,Math.min(1,t));
-// Target splits + V arms (local offsets from neck)
-const tgt={
+const floor=viewH-2;
+// Arms up in V (local from neck)
+const armTgt={
 lShoulder:[-r*0.35,r*0.15],rShoulder:[r*0.35,r*0.15],
 lElbow:[-r*0.7,r*-0.15],rElbow:[r*0.7,r*-0.15],
-lHand:[-r*0.95,r*-0.55],rHand:[r*0.95,r*-0.55], // arms up in V
-chest:[0,r*0.32],hip:[0,r*0.75],
-lKnee:[-r*0.85,r*1.15],rKnee:[r*0.85,r*1.15],
-lFoot:[-r*1.35,r*1.35],rFoot:[r*1.35,r*1.35] // splits
+lHand:[-r*0.95,r*-0.55],rHand:[r*0.95,r*-0.55],
+chest:[0,r*0.3],hip:[0,r*0.65]
 };
-for(const k of Object.keys(tgt)){
-const [lx,ly]=tgt[k];
+for(const k of Object.keys(armTgt)){
+const [lx,ly]=armTgt[k];
 const wx=nx+lx, wy=ny+ly;
 const p=pts[k];
 p.x+=(wx-p.x)*a;
 p.y+=(wy-p.y)*a;
 p.px=p.x;p.py=p.y;
 }
+// Legs: straight outward along the floor — no bending past the border
+const hipY=Math.min(pts.hip.y, floor-r*0.15);
+pts.hip.y+=(hipY-pts.hip.y)*a;pts.hip.py=pts.hip.y;
+const spread=r*(0.5+a*1.1); // how far feet slide out
+const footY=floor;
+const kneeY=floor; // knees stay on the floor line with the feet (straight legs)
+// Left leg straight out
+pts.lFoot.x+=(nx-spread-pts.lFoot.x)*a;
+pts.lFoot.y=footY;pts.lFoot.py=footY;
+pts.lKnee.x+=(nx-spread*0.55-pts.lKnee.x)*a;
+pts.lKnee.y=kneeY;pts.lKnee.py=kneeY;
+// Right leg straight out
+pts.rFoot.x+=(nx+spread-pts.rFoot.x)*a;
+pts.rFoot.y=footY;pts.rFoot.py=footY;
+pts.rKnee.x+=(nx+spread*0.55-pts.rKnee.x)*a;
+pts.rKnee.y=kneeY;pts.rKnee.py=kneeY;
 }
 function bodyAccordionBorders(){
 const h=viewH,w=viewW;
@@ -459,8 +475,12 @@ pts.hip.x=Math.max(pts.hip.x-push,leftW);
 }
 }
 function bodyUpdateFace(){
-// 0 forward, 2 forward + eyes up (straight / virtual-up pose)
-if(BODY.pose==='straight')BODY.faceDir=2;
+// 0 forward, 2 eyes up, 3 ouchy (deeper splits), 4 brief angrier brows (side hit)
+const now=Date.now();
+const deepSplits=BODY.landT>0.35; // only once legs are farther apart
+if(deepSplits)BODY.faceDir=3;
+else if(now<BODY.angryUntil)BODY.faceDir=4;
+else if(BODY.pose==='straight')BODY.faceDir=2;
 else BODY.faceDir=0;
 }
 function bodyUpdate(){
@@ -484,6 +504,7 @@ const hitLeft=onLeft&&!BODY.wasLeft;
 const hitRight=onRight&&!BODY.wasRight;
 const hitBottom=onBottom&&!BODY.wasBottom;
 BODY.wasLeft=onLeft;BODY.wasRight=onRight;BODY.wasBottom=onBottom;
+if(hitLeft||hitRight)BODY.angryUntil=Date.now()+480;
 
 // Virtual up only: pinned at top AND background scrolling down (scroll increasing)
 const virtualUp=atTop&&scrollDelta>0.25;
@@ -626,8 +647,30 @@ ctx.lineCap='round';
 ctx.lineJoin='round';
 const eyeY=-s*0.16, browY=-s*0.36, mouthY=s*0.42;
 const eyeRx=s*0.15, eyeRy=s*0.11;
-if(dir===0||dir===2){
-// Forward angry face (dir 2 = eyes glance upward)
+if(dir===3){
+// Ouchy face — hurts to do the splits
+ctx.lineWidth=Math.max(2.2,s*0.075);
+// Squinting / squeezed eyes
+ctx.beginPath();
+ctx.ellipse(-s*0.36,eyeY+s*0.02,eyeRx*1.05,eyeRy*0.55,0.25,0,Math.PI*2);ctx.fill();
+ctx.beginPath();
+ctx.ellipse(s*0.36,eyeY+s*0.02,eyeRx*1.05,eyeRy*0.55,-0.25,0,Math.PI*2);ctx.fill();
+// Worried brows (inner up, outer down — inverted angry)
+ctx.lineWidth=Math.max(2.5,s*0.09);
+ctx.beginPath();
+ctx.moveTo(-s*0.55,browY+s*0.08);ctx.lineTo(-s*0.14,browY-s*0.06);
+ctx.moveTo(s*0.55,browY+s*0.08);ctx.lineTo(s*0.14,browY-s*0.06);
+ctx.stroke();
+// Open ouch mouth
+ctx.lineWidth=Math.max(2.2,s*0.075);
+ctx.beginPath();
+ctx.ellipse(0,mouthY+s*0.06,s*0.22,s*0.28,0,0,Math.PI*2);
+ctx.stroke();
+ctx.fillStyle='rgba(40,10,20,0.35)';
+ctx.fill();
+ctx.fillStyle='#111';
+}else if(dir===0||dir===2||dir===4){
+// Forward face; dir 2 = eyes up; dir 4 = angrier brows (brief side-hit flash)
 ctx.lineWidth=Math.max(2.2,s*0.075);
 const ey=dir===2?eyeY-s*0.1:eyeY;
 ctx.beginPath();
@@ -641,10 +684,19 @@ ctx.beginPath();ctx.arc(s*0.38,ey-s*0.03,s*0.035,0,Math.PI*2);ctx.fill();
 ctx.fillStyle='#111';
 }
 ctx.lineWidth=Math.max(2.5,s*0.09);
+if(dir===4){
+// Angrier: steeper brows, closer to eyes
+ctx.lineWidth=Math.max(3,s*0.11);
+ctx.beginPath();
+ctx.moveTo(-s*0.62,browY-s*0.12);ctx.lineTo(-s*0.12,browY+s*0.16);
+ctx.moveTo(s*0.62,browY-s*0.12);ctx.lineTo(s*0.12,browY+s*0.16);
+ctx.stroke();
+}else{
 ctx.beginPath();
 ctx.moveTo(-s*0.58,browY-s*0.04);ctx.lineTo(-s*0.16,browY+s*0.1);
 ctx.moveTo(s*0.58,browY-s*0.04);ctx.lineTo(s*0.16,browY+s*0.1);
 ctx.stroke();
+}
 ctx.lineWidth=Math.max(2.2,s*0.075);
 ctx.beginPath();
 ctx.arc(0,mouthY,s*0.34,Math.PI*1.12,Math.PI*1.88);ctx.stroke();
