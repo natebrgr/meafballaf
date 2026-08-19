@@ -13,7 +13,7 @@
 html,body{margin:0;overflow:hidden;height:100%;height:100dvh;width:100%;font-family:'Exo 2',system-ui,sans-serif;background:var(--bg);color:var(--text);user-select:none;
 background-image:radial-gradient(ellipse at 20% 20%,rgba(0,80,120,.15),transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(80,0,100,.12),transparent 50%)}
 
-#title{pointer-events:none;white-space:nowrap;flex-shrink:0;font-size:1.05rem}
+#title{pointer-events:auto;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:1.05rem}
 .sb{cursor:pointer;pointer-events:auto}
 #title{font-family:'Orbitron',sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:.08em;background:linear-gradient(90deg,var(--cyan),#ff00aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .cg{display:flex;gap:10px;pointer-events:auto}
@@ -76,7 +76,7 @@ transform:none;
 @keyframes fg{0%,100%{border-color:rgba(0,240,255,.25)}50%{border-color:var(--green);box-shadow:0 0 14px rgba(0,255,136,.4)}}
 @keyframes fr{0%,100%{border-color:rgba(0,240,255,.25)}50%{border-color:var(--red);box-shadow:0 0 14px rgba(255,50,80,.4)}}
 
-button{font-family:'Orbitron',sans-serif;font-weight:600;font-size:.72rem;letter-spacing:.04em;padding:11px 12px;cursor:pointer;color:var(--text);background:var(--panel);border:1px solid rgba(0,240,255,.35);border-radius:4px;text-transform:uppercase;white-space:nowrap;flex:1 1 0;min-width:0;line-height:1.2;text-align:center;margin:0 4px}
+button{font-family:'Orbitron',sans-serif;font-weight:600;font-size:.58rem;letter-spacing:.04em;padding:11px 12px;cursor:pointer;color:var(--text);background:var(--panel);border:1px solid rgba(0,240,255,.35);border-radius:4px;text-transform:uppercase;white-space:nowrap;flex:1 1 0;min-width:0;line-height:1.2;text-align:center;margin:0 4px}
 button:first-child{margin-left:0}button:last-child{margin-right:0}
 button:hover{background:rgba(0,240,255,.12);border-color:var(--cyan)}
 #pB{background:linear-gradient(135deg,rgba(0,240,255,.15),rgba(0,100,150,.1));white-space:pre-line;line-height:1.15;padding:7px 12px;flex:1.15 1 0}
@@ -111,7 +111,7 @@ button.gG{animation:aG .8s linear forwards}button.gR{animation:aR .8s linear for
 .ta{flex-shrink:0;width:38px;height:38px;padding:0;font-size:1.5rem;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(0,240,255,.08);border:1px solid rgba(0,240,255,.35);color:var(--cyan);margin:0}
 .ta:disabled{opacity:.25}
 .hn{display:flex;gap:10px;margin-top:14px;justify-content:center}
-@media(max-width:480px){button{padding:9px 8px;font-size:.62rem}#pB{padding:6px 8px;font-size:.56rem}}
+@media(max-width:480px){button{padding:9px 6px;font-size:.5rem}#pB{padding:6px 8px;font-size:.56rem}}
 
 .cur{border:1px solid rgba(0,240,255,.25)}
 .cur.cur-up{animation:curGlowUp .9s ease}
@@ -208,10 +208,20 @@ body.ui-locked #bB,body.ui-locked #topBar,body.ui-locked #lB,body.ui-locked #hB,
 body.ui-locked #currency,body.ui-locked .cur,body.ui-locked canvas{
 pointer-events:none!important;
 }
+
+#pwrB.on,button#pwrB.on{color:#ffaa00!important;border-color:rgba(255,170,0,.85)!important;box-shadow:0 0 12px rgba(255,170,0,.45)!important}
+#bncB.on,button#bncB.on{color:#00ff88!important;border-color:rgba(0,255,136,.85)!important;box-shadow:0 0 12px rgba(0,255,136,.4)!important}
+#slwB.on,button#slwB.on{color:#c080ff!important;border-color:rgba(180,100,255,.85)!important;box-shadow:0 0 12px rgba(160,80,255,.4)!important}
+#lckB{font-size:1.05rem;line-height:1}
+#lckB.unlocked{color:#ffd700!important;border-color:rgba(255,215,0,.75)!important}
+#title{cursor:pointer;pointer-events:auto}
+
+#pwrB,#bncB,#slwB,#lckB{font-size:.95rem;letter-spacing:0;padding:8px 6px}
+@media(max-width:480px){#pwrB,#bncB,#slwB,#lckB{font-size:.85rem;padding:8px 4px}#pB{font-size:.5rem}}
 </style>
 </head>
 <body>
-<div id="topBar"><div id="title">MEGA BOUNCE</div><div class="cg">
+<div id="topBar"><div id="title" style="pointer-events:auto;cursor:pointer">MEGA BOUNCE</div><div class="cg">
 <div class="cur" id="pD" style="display:none"><div class="ci" id="pI"></div><span id="pC">0</span></div>
 <div class="cur"><div class="ci" id="cI">$</div><span id="cC">0</span></div>
 </div></div>
@@ -224,8 +234,8 @@ pointer-events:none!important;
 <div class="cf" id="lCh"></div><div class="cf" id="lvCh"></div><div class="cf" id="cCh"></div><div class="cf" id="hCh"></div>
 <canvas id="canvas"></canvas>
 <div id="bB">
-<button id="sB">STORE</button><button id="mB">MODE</button><button id="pB">PAUSE</button>
-<button id="mpB">MAP</button><button id="hBtn">HELP</button>
+<button id="pwrB" title="Power throw">&#9889;</button><button id="bncB" title="Extra bounce">&#8597;&#65039;</button><button id="pB">PAUSE</button>
+<button id="lckB" title="Scroll lock">&#128274;</button><button id="slwB" title="Slow motion">&#9201;</button>
 </div>
 <div class="ov" id="sO"><div class="s-sticky"><div class="oh"><div class="ot" style="background:linear-gradient(90deg,var(--gold),#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent">STORE</div><button class="oc" id="sCl">X</button></div>
 <div style="font-family:Orbitron;color:var(--cyan)"><span id="sHS">HS 0</span> · <span id="sCC">0</span> $</div>
@@ -248,8 +258,9 @@ pointer-events:none!important;
 const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
 const $=id=>document.getElementById(id);
 const lN=$('lN'),cd=$('cd'),wH=$('wH'),lC=$('lC'),lB=$('lB'),hC=$('hC'),hB=$('hB');
-const cC=$('cC'),pC=$('pC'),pD=$('pD'),title=$('title'),mB=$('mB'),mpB=$('mpB'),pB=$('pB');
-const sB=$('sB'),hBtn=$('hBtn'),sO=$('sO'),sCl=$('sCl'),sCC=$('sCC'),skG=$('skG'),bgG=$('bgG');
+const cC=$('cC'),pC=$('pC'),pD=$('pD'),title=$('title'),pB=$('pB');
+const sO=$('sO'),sCl=$('sCl'),sCC=$('sCC'),skG=$('skG'),bgG=$('bgG');
+const pwrB=$('pwrB'),bncB=$('bncB'),lckB=$('lckB'),slwB=$('slwB');
 const lCh=$('lCh'),lvCh=$('lvCh'),cCh=$('cCh'),hCh=$('hCh'),hO=$('hO'),hCl=$('hCl'),hCb=$('hCb'),hCo=$('hCo');
 const tO=$('tO'),tS=$('tS'),tT=$('tT'),tB=$('tB'),tN=$('tN'),tSk=$('tSk'),tP=$('tP'),tNA=$('tNA');
 
@@ -264,40 +275,378 @@ let lives=3,hiScore=0,coins=0,potential=0,isPaused=false;
 const hiScores={'survival-rectangle':0,'freebie-rectangle':0,'survival-circle':0,'freebie-circle':0};
 let prevL=lives,prevLv=level,prevHS=hiScore,prevC=coins,startL=lives,suppress=false;
 let mode='survival',map='rectangle',active=true,curInc=14,nextCO=16,cashAvail=false;
-const trail=[];let holdT={play:null,mode:null,map:null,store:null,help:null};
-let btnAct={play:false,mode:false,map:false,store:false,help:false};
+let powerOn=false,bouncyOn=false,slowOn=false,scrollUnlocked=false;
+let lockTrans=null; // {t0,dur,fromScroll,toScroll,fromY,toY,savedDx,savedDy}
+const usedTB=new Set(); // absolute white-band keys that have been consumed
+const POWER_MUL=6.5, BOUNCY_F=0.96, SLOW_SCALE=0.42;
+const trail=[];
+let holdT={play:null,power:null,bouncy:null,lock:null,slow:null};
+let btnAct={play:false,power:false,bouncy:false,lock:false,slow:false};
+let holes=[];
+let particles=[];
+let viewW=320,viewH=480;
+let zoneScroll=0,zoneScrollFrozen=false;
 let gSec=null,rSec=null,pgSec=null,prSec=null,ngSec=null,nrSec=null,pLand=null;
-let holes=[],diaX=0,diaY=0,particles=[];
-const gold={x:0,y:0,hx:0,hy:0,r:38,drag:false,tid:null,ox:0,oy:0,wob:false,wT:0,wA:0,wDx:0,wDy:0,phase:null,fVx:0,fVy:0};
-let mergeA=0,mergeP=[],arrP=0,rightResize=false,viewW=320,viewH=480,prevPot=-1,postGame=false,uiLocked=false,zoneScroll=0,zoneScrollFrozen=false;
-const HS_REQS=[15,29,42,54,65,75,84,92,99,105,110,114,117,119,121,123,125,127,129,131,133,135,137,139,141,143,145,147,149,151];
-
+let diaX=0,diaY=0,mergeA=0,mergeP=[];
+const gold={x:0,y:0,hx:0,hy:0,r:CASH_R,drag:false,tid:null,ox:0,oy:0,wob:false,wT:0,wA:0,wDx:0,wDy:0,phase:null,fVx:0,fVy:0};
+const HS_REQS=[15,20,25,30,40,50,60,75,90,110,130,150,180,220,260,300];
 const SKINS=[
-{id:'default',n:'Classic',p:0,c:{f:'rgba(255,255,255,0.65)',s:'#ffffff',g:'#ffffff'},face:'none'},
-{id:'neon',n:'Neon Pulse',p:100,c:{f:'rgba(0,240,255,0.55)',s:'#00f0ff',g:'#00f0ff'},face:'none'},
-{id:'emerald',n:'Emerald',p:150,c:{f:'rgba(0,255,136,0.5)',s:'#00ff88',g:'#00ff88'},face:'none'},
-{id:'gold',n:'Golden Orb',p:250,c:{f:'rgba(255,215,0,0.55)',s:'#ffd700',g:'#ffd700'},face:'none'},
-{id:'magenta',n:'Plasma',p:350,c:{f:'rgba(255,0,170,0.5)',s:'#ff00aa',g:'#ff00aa'},face:'ring'},
-{id:'ice',n:'Frost',p:450,c:{f:'rgba(180,230,255,0.5)',s:'#a0e0ff',g:'#80d0ff'},face:'crystal'},
-{id:'fire',n:'Inferno',p:600,c:{f:'rgba(255,80,0,0.55)',s:'#ff4400',g:'#ff6600'},face:'ember'},
-{id:'void',n:'Void',p:800,c:{f:'rgba(40,0,60,0.7)',s:'#aa00ff',g:'#8800ff'},face:'spiral'},
-{id:'chrome',n:'Chrome',p:1000,c:{f:'rgba(200,210,220,0.7)',s:'#e0e8f0',g:'#c0d0e0'},face:'glint'},
-{id:'toxic',n:'Toxic',p:1400,c:{f:'rgba(120,255,40,0.5)',s:'#88ff00',g:'#66ff00'},face:'bio'},
-{id:'prism',n:'Prism',p:2000,c:{f:'rgba(255,100,200,0.45)',s:'#ff66cc',g:'#ff99dd'},face:'facets'},
-{id:'solar',n:'Solar Flare',p:2800,c:{f:'rgba(255,180,40,0.55)',s:'#ffaa00',g:'#ffcc44'},face:'rays'},
-{id:'quantum',n:'Quantum',p:3600,c:{f:'rgba(80,40,255,0.55)',s:'#6644ff',g:'#8866ff'},face:'orbit'},
-{id:'nova',n:'Supernova',p:4500,c:{f:'rgba(255,255,255,0.4)',s:'#ffffff',g:'#ffeeaa'},face:'burst'},
-{id:'abyss',n:'Abyss',p:5000,c:{f:'rgba(5,5,20,0.85)',s:'#3344aa',g:'#2233ff'},face:'eye'}
+{id:'default',n:'Default',p:0,face:'none',c:{f:'#e8f0ff',s:'#00e5ff',g:'rgba(0,229,255,0.85)'}},
+{id:'crimson',n:'Crimson',p:120,face:'none',c:{f:'#ff4d6d',s:'#ff3355',g:'rgba(255,50,80,0.85)'}},
+{id:'lime',n:'Lime',p:180,face:'none',c:{f:'#b8ff66',s:'#00ff88',g:'rgba(0,255,136,0.85)'}},
+{id:'goldskin',n:'Gold',p:250,face:'none',c:{f:'#ffe566',s:'#ffd700',g:'rgba(255,215,0,0.85)'}},
+{id:'violet',n:'Violet',p:320,face:'none',c:{f:'#d9b3ff',s:'#b366ff',g:'rgba(180,100,255,0.85)'}},
+{id:'obsidian',n:'Obsidian',p:400,face:'none',c:{f:'#2a2e38',s:'#00e5ff',g:'rgba(0,229,255,0.7)'}},
+{id:'ember',n:'Ember',p:500,face:'none',c:{f:'#ff8c42',s:'#ff5500',g:'rgba(255,100,0,0.85)'}},
+{id:'aqua',n:'Aqua',p:650,face:'none',c:{f:'#7ef9ff',s:'#00f0ff',g:'rgba(0,240,255,0.9)'}},
+{id:'neon',n:'Neon Pulse',p:900,face:'none',c:{f:'#39ff14',s:'#00ff88',g:'rgba(57,255,20,0.9)'}},
+{id:'void',n:'Void',p:1200,face:'none',c:{f:'#1a1028',s:'#c080ff',g:'rgba(160,80,255,0.85)'}}
 ];
 const BGS=[
-{id:'default',n:'Deep Space',p:0,t:'solid'},{id:'grid',n:'Neon Grid',p:120,t:'grid'},
-{id:'stars',n:'Starfield',p:200,t:'stars'},{id:'aurora',n:'Aurora',p:350,t:'aurora'},
-{id:'circuit',n:'Circuit',p:500,t:'circuit'},{id:'lava',n:'Lava Flow',p:700,t:'lava'},
-{id:'ocean',n:'Deep Ocean',p:1000,t:'ocean'},{id:'matrix',n:'Matrix Rain',p:1500,t:'matrix'},
-{id:'nebula',n:'Nebula',p:2200,t:'nebula'},{id:'horizon',n:'Event Horizon',p:3200,t:'horizon'},
-{id:'glitch',n:'Glitch City',p:4200,t:'glitch'},{id:'singularity',n:'Singularity',p:5000,t:'singularity'}
+{id:'default',n:'Default',p:0,t:'default'},
+{id:'grid',n:'Grid',p:150,t:'grid'},
+{id:'stars',n:'Stars',p:220,t:'stars'},
+{id:'sunset',n:'Sunset',p:300,t:'sunset'},
+{id:'ocean',n:'Ocean',p:380,t:'ocean'},
+{id:'matrix',n:'Matrix',p:500,t:'matrix'},
+{id:'aurora',n:'Aurora',p:700,t:'aurora'},
+{id:'glitch',n:'Glitch City',p:4200,t:'glitch'},
+{id:'singularity',n:'Singularity',p:5000,t:'singularity'}
 ];
 let ownedS=new Set(['default']),ownedB=new Set(['default']),eqS='default',eqB='default';
+let postGame=false,uiLocked=false,arrP=0,rightResize=false,prevPot=-1;
+
+
+// --- Stick-figure pose system (cosmetic only, always upright) ---
+const BODY={
+pts:null,
+ready:false,
+pose:'super', // 'super' | 'straight'
+prevScroll:0,
+virtDy:0,
+lastBallX:null,
+lastBallY:null,
+wasLeft:false,wasRight:false,wasBottom:false,
+feetStuck:false,
+feetY:0,
+faceDir:0 // 0 center, -1 left, 1 right
+};
+function bPt(x,y){return{x:x,y:y,px:x,py:y}}
+function bodyReset(){
+const cx=circle.x,cy=circle.y,r=circle.radius;
+BODY.pts={
+neck:bPt(cx,cy+r*0.98),
+chest:bPt(cx,cy+r*1.35),
+hip:bPt(cx,cy+r*1.95),
+lShoulder:bPt(cx-r*0.38,cy+r*1.28),rShoulder:bPt(cx+r*0.38,cy+r*1.28),
+lElbow:bPt(cx-r*0.7,cy+r*1.7),rElbow:bPt(cx+r*0.7,cy+r*1.7),
+lHand:bPt(cx-r*0.85,cy+r*2.1),rHand:bPt(cx+r*0.85,cy+r*2.1),
+lKnee:bPt(cx-r*0.3,cy+r*2.5),rKnee:bPt(cx+r*0.3,cy+r*2.5),
+lFoot:bPt(cx-r*0.35,cy+r*3.0),rFoot:bPt(cx+r*0.35,cy+r*3.0)
+};
+BODY.lastBallX=cx;BODY.lastBallY=cy;BODY.prevScroll=zoneScroll;
+BODY.ready=true;BODY.pose='super';BODY.faceDir=0;
+BODY.wasLeft=BODY.wasRight=BODY.wasBottom=false;
+BODY.feetStuck=false;BODY.feetY=0;
+}
+function bodyPoseLocal(pose){
+const r=Math.max(12,circle.radius);
+const poses={
+super:{
+chest:[0,r*0.36],hip:[0,r*0.95],
+lShoulder:[-r*0.38,r*0.28],rShoulder:[r*0.38,r*0.28],
+lElbow:[-r*0.55,r*0.55],rElbow:[r*0.55,r*0.55],
+lHand:[-r*0.65,r*0.85],rHand:[r*0.65,r*0.85],
+lKnee:[-r*0.22,r*1.5],rKnee:[r*0.22,r*1.5],
+lFoot:[-r*0.25,r*2.1],rFoot:[r*0.25,r*2.1]
+},
+// Background scrolling down (virtual up) — limbs straightened closer to body
+straight:{
+chest:[0,r*0.34],hip:[0,r*0.92],
+lShoulder:[-r*0.22,r*0.3],rShoulder:[r*0.22,r*0.3],
+lElbow:[-r*0.28,r*0.7],rElbow:[r*0.28,r*0.7],
+lHand:[-r*0.3,r*1.05],rHand:[r*0.3,r*1.05],
+lKnee:[-r*0.14,r*1.55],rKnee:[r*0.14,r*1.55],
+lFoot:[-r*0.16,r*2.15],rFoot:[r*0.16,r*2.15]
+}
+};
+return poses[pose]||poses.super;
+}
+function bodyPinNeck(){
+const p=BODY.pts.neck;
+p.x=circle.x;p.y=circle.y+circle.radius*0.98;p.px=p.x;p.py=p.y;
+}
+function bodyApplyPose(pose){
+if(!BODY.pts)return;
+const loc=bodyPoseLocal(pose);
+const nx=BODY.pts.neck.x,ny=BODY.pts.neck.y;
+for(const k of Object.keys(loc)){
+const [lx,ly]=loc[k];
+const p=BODY.pts[k];
+p.x=nx+lx;p.y=ny+ly;p.px=p.x;p.py=p.y;
+}
+}
+function bodyAccordionBorders(){
+const h=viewH,w=viewW;
+const floor=h-2;
+const leftW=SSW+2, rightW=w-SSW-2;
+const pts=BODY.pts;
+const all=['chest','hip','lShoulder','rShoulder','lElbow','rElbow','lHand','rHand','lKnee','rKnee','lFoot','rFoot'];
+
+// Floor accordion
+let floorHit=false;
+for(const f of ['lFoot','rFoot']){
+if(pts[f].y>floor){pts[f].y=floor;pts[f].py=floor;floorHit=true;}
+}
+if(floorHit){
+BODY.feetStuck=true;BODY.feetY=floor;
+for(const n of all){
+if(pts[n].y>floor-4){pts[n].y=floor-4;pts[n].py=pts[n].y;}
+}
+pts.lFoot.y=floor;pts.rFoot.y=floor;
+}else if(BODY.feetStuck&&pts.lFoot.y<floor-2&&pts.rFoot.y<floor-2){
+BODY.feetStuck=false;
+}
+if(BODY.feetStuck){
+pts.lFoot.y=BODY.feetY;pts.rFoot.y=BODY.feetY;
+pts.lFoot.py=BODY.feetY;pts.rFoot.py=BODY.feetY;
+const midY=(pts.hip.y+floor)*0.5;
+pts.lKnee.y=Math.min(pts.lKnee.y,midY+6);pts.rKnee.y=Math.min(pts.rKnee.y,midY+6);
+}
+
+// Side wall accordion — compress limbs that poke past left/right play edges
+for(const n of all){
+const p=pts[n];
+if(p.x<leftW){p.x=leftW;p.px=leftW;}
+if(p.x>rightW){p.x=rightW;p.px=rightW;}
+}
+// If hands/elbows hit a wall, nudge spine slightly away so body "folds"
+if(pts.lHand.x<=leftW+1||pts.lElbow.x<=leftW+1||pts.lFoot.x<=leftW+1){
+const push=3;
+pts.chest.x=Math.min(pts.chest.x+push,rightW);
+pts.hip.x=Math.min(pts.hip.x+push,rightW);
+}
+if(pts.rHand.x>=rightW-1||pts.rElbow.x>=rightW-1||pts.rFoot.x>=rightW-1){
+const push=3;
+pts.chest.x=Math.max(pts.chest.x-push,leftW);
+pts.hip.x=Math.max(pts.hip.x-push,leftW);
+}
+}
+function bodyUpdateFace(){
+// 0 forward, 2 forward + eyes up (straight / virtual-up pose)
+if(BODY.pose==='straight')BODY.faceDir=2;
+else BODY.faceDir=0;
+}
+function bodyUpdate(){
+if(!BODY.ready||!BODY.pts)bodyReset();
+if(lockTrans)return;
+const pts=BODY.pts;
+const w=viewW,h=viewH;
+
+const scrollDelta=zoneScroll-BODY.prevScroll;
+BODY.prevScroll=zoneScroll;
+const atTop=circle.y<=circle.radius+1.5;
+let virtDy=circle.dy;
+if(atTop&&Math.abs(scrollDelta)>0.001)virtDy=-scrollDelta;
+if(circle.isDragging)virtDy=0;
+BODY.virtDy=virtDy;
+
+const onLeft=!circle.isDragging&&circle.x-circle.radius<=SSW+1.2;
+const onRight=!circle.isDragging&&circle.x+circle.radius>=w-SSW-1.2;
+const onBottom=!circle.isDragging&&circle.y+circle.radius>=h-1.2;
+const hitLeft=onLeft&&!BODY.wasLeft;
+const hitRight=onRight&&!BODY.wasRight;
+const hitBottom=onBottom&&!BODY.wasBottom;
+BODY.wasLeft=onLeft;BODY.wasRight=onRight;BODY.wasBottom=onBottom;
+
+// Virtual up only: pinned at top AND background scrolling down (scroll increasing)
+const virtualUp=atTop&&scrollDelta>0.25;
+if(hitBottom){
+BODY.pose='super';
+}else if(virtualUp){
+BODY.pose='straight';
+}else if(BODY.pose==='straight'&&!virtualUp){
+BODY.pose='super';
+}
+// Side walls: no body/face change
+
+// Holding — always allow body to follow while dragging (even if paused)
+if(circle.isDragging){
+if(BODY.lastBallX==null){BODY.lastBallX=circle.x;BODY.lastBallY=circle.y}
+const mdx=circle.x-BODY.lastBallX,mdy=circle.y-BODY.lastBallY;
+if(mdx||mdy){
+for(const k of Object.keys(pts)){const p=pts[k];p.x+=mdx;p.y+=mdy;p.px=p.x;p.py=p.y;}
+}
+BODY.lastBallX=circle.x;BODY.lastBallY=circle.y;
+bodyPinNeck();
+bodyApplyPose(BODY.pose);
+bodyAccordionBorders();
+bodyUpdateFace();
+return;
+}
+BODY.lastBallX=circle.x;BODY.lastBallY=circle.y;
+
+// Paused and not holding — freeze pose in place
+if(isPaused){
+bodyPinNeck();
+bodyApplyPose(BODY.pose);
+bodyAccordionBorders();
+bodyUpdateFace();
+return;
+}
+
+bodyPinNeck();
+bodyApplyPose(BODY.pose);
+bodyAccordionBorders();
+bodyUpdateFace();
+}
+
+function bodyAngle(){
+return Math.PI/2; // ball stays upright; glance is drawn into the face
+}
+function bodyDraw(ctx){
+if(!BODY.ready||!BODY.pts)return;
+const p=BODY.pts;
+const sk=skinC();
+const segs=[
+['neck','chest'],['chest','hip'],
+['neck','lShoulder'],['neck','rShoulder'],
+['lShoulder','lElbow'],['lElbow','lHand'],
+['rShoulder','rElbow'],['rElbow','rHand'],
+['hip','lKnee'],['lKnee','lFoot'],
+['hip','rKnee'],['rKnee','rFoot']
+];
+const thick=Math.max(5.5,circle.radius*0.16);
+ctx.save();
+ctx.lineCap='round';ctx.lineJoin='round';
+// Core fill stroke — solid, no glow (readable body)
+ctx.shadowBlur=0;
+ctx.strokeStyle=sk.f;
+ctx.lineWidth=thick;
+ctx.beginPath();
+for(const [a,b] of segs){
+ctx.moveTo(p[a].x,p[a].y);ctx.lineTo(p[b].x,p[b].y);
+}
+ctx.stroke();
+// Outline only glows (edge light matching ball)
+ctx.shadowColor=sk.g;
+ctx.shadowBlur=14;
+ctx.strokeStyle=sk.s;
+ctx.lineWidth=Math.max(1.8,thick*0.28);
+ctx.beginPath();
+for(const [a,b] of segs){
+ctx.moveTo(p[a].x,p[a].y);ctx.lineTo(p[b].x,p[b].y);
+}
+ctx.stroke();
+ctx.shadowBlur=0;
+// Joint dots
+ctx.fillStyle=sk.f;
+ctx.strokeStyle=sk.s;
+ctx.lineWidth=1.4;
+const jr=Math.max(3.2,thick*0.45);
+for(const name of ['chest','hip','lShoulder','rShoulder','lElbow','rElbow','lKnee','rKnee']){
+const q=p[name];
+ctx.beginPath();ctx.arc(q.x,q.y,jr,0,Math.PI*2);ctx.fill();ctx.stroke();
+}
+// Hands — circles
+const hr=Math.max(5.5,circle.radius*0.2);
+for(const name of ['lHand','rHand']){
+const q=p[name];
+ctx.beginPath();ctx.arc(q.x,q.y,hr,0,Math.PI*2);ctx.fill();ctx.stroke();
+}
+// Feet — ovals
+for(const [foot,knee] of [['lFoot','lKnee'],['rFoot','rKnee']]){
+const f=p[foot],k=p[knee];
+const ang=Math.atan2(f.y-k.y,f.x-k.x);
+const rw=Math.max(7,circle.radius*0.26);
+const rh=Math.max(4,circle.radius*0.14);
+ctx.beginPath();
+ctx.ellipse(f.x,f.y,rw,rh,ang,0,Math.PI*2);
+ctx.fill();ctx.stroke();
+}
+ctx.restore();
+}
+
+function drawAngryFace(ctx,cx,cy,r,ang){
+const dir=(BODY&&BODY.faceDir!=null)?BODY.faceDir:0; // -1 left turn, 0 center, 1 right turn, 2 eyes up
+const s=r;
+ctx.save();
+ctx.translate(cx,cy);
+ctx.fillStyle='#111';
+ctx.strokeStyle='#111';
+ctx.lineCap='round';
+ctx.lineJoin='round';
+const eyeY=-s*0.16, browY=-s*0.36, mouthY=s*0.42;
+const eyeRx=s*0.15, eyeRy=s*0.11;
+if(dir===0||dir===2){
+// Forward angry face (dir 2 = eyes glance upward)
+ctx.lineWidth=Math.max(2.2,s*0.075);
+const ey=dir===2?eyeY-s*0.1:eyeY;
+ctx.beginPath();
+ctx.ellipse(-s*0.38,ey,eyeRx,eyeRy,0.15,0,Math.PI*2);ctx.fill();
+ctx.beginPath();
+ctx.ellipse(s*0.38,ey,eyeRx,eyeRy,-0.15,0,Math.PI*2);ctx.fill();
+if(dir===2){
+ctx.fillStyle='#eee';
+ctx.beginPath();ctx.arc(-s*0.38,ey-s*0.03,s*0.035,0,Math.PI*2);ctx.fill();
+ctx.beginPath();ctx.arc(s*0.38,ey-s*0.03,s*0.035,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#111';
+}
+ctx.lineWidth=Math.max(2.5,s*0.09);
+ctx.beginPath();
+ctx.moveTo(-s*0.58,browY-s*0.04);ctx.lineTo(-s*0.16,browY+s*0.1);
+ctx.moveTo(s*0.58,browY-s*0.04);ctx.lineTo(s*0.16,browY+s*0.1);
+ctx.stroke();
+ctx.lineWidth=Math.max(2.2,s*0.075);
+ctx.beginPath();
+ctx.arc(0,mouthY,s*0.34,Math.PI*1.12,Math.PI*1.88);ctx.stroke();
+}else if(dir===1){
+// Head turned right — half face
+ctx.lineWidth=Math.max(2.2,s*0.075);
+ctx.beginPath();
+ctx.ellipse(s*0.28,eyeY,eyeRx*1.05,eyeRy,-0.15,0,Math.PI*2);ctx.fill();
+// Angry brow: slopes down toward the nose (inner end lower)
+ctx.lineWidth=Math.max(2.6,s*0.1);
+ctx.beginPath();
+ctx.moveTo(s*0.5,browY-s*0.1);
+ctx.lineTo(s*0.08,browY+s*0.12);
+ctx.stroke();
+// Half frown: starts near center, curves down toward the cheek (∩ inverted = frown corner)
+ctx.lineWidth=Math.max(2.3,s*0.08);
+ctx.beginPath();
+ctx.moveTo(s*0.04,mouthY);
+ctx.quadraticCurveTo(s*0.2,mouthY+s*0.2,s*0.4,mouthY+s*0.05);
+ctx.stroke();
+}else{
+// Head turned left — half face
+ctx.lineWidth=Math.max(2.2,s*0.075);
+ctx.beginPath();
+ctx.ellipse(-s*0.28,eyeY,eyeRx*1.05,eyeRy,0.15,0,Math.PI*2);ctx.fill();
+// Angry brow: slopes down toward the nose
+ctx.lineWidth=Math.max(2.6,s*0.1);
+ctx.beginPath();
+ctx.moveTo(-s*0.5,browY-s*0.1);
+ctx.lineTo(-s*0.08,browY+s*0.12);
+ctx.stroke();
+// Half frown
+ctx.lineWidth=Math.max(2.3,s*0.08);
+ctx.beginPath();
+ctx.moveTo(-s*0.04,mouthY);
+ctx.quadraticCurveTo(-s*0.2,mouthY+s*0.2,-s*0.4,mouthY+s*0.05);
+ctx.stroke();
+}
+ctx.restore();
+// Crosshair nose — always centered
+ctx.save();
+ctx.strokeStyle='rgba(0,0,0,0.7)';
+ctx.lineWidth=1.5;
+const cs=Math.max(11,r*0.28);
+ctx.beginPath();
+ctx.moveTo(cx-cs,cy);ctx.lineTo(cx+cs,cy);
+ctx.moveTo(cx,cy-cs);ctx.lineTo(cx,cy+cs);
+ctx.stroke();
+ctx.restore();
+}
 
 function saveP(){const k=mode+'-'+map;hiScores[k]=Math.max(hiScores[k]||0,hiScore);
 try{localStorage.setItem('megaBounceSave',JSON.stringify({coins,hiScores,ownedS:[...ownedS],ownedB:[...ownedB],eqS,eqB}))}catch(e){}}
@@ -317,14 +666,35 @@ function asCur(){if(mode!=='survival'||map!=='rectangle'){gSec=rSec=null;return}
 function asNext(){if(mode!=='survival'||map!=='rectangle'){ngSec=nrSec=null;return}const s=randSec();ngSec=s.g;nrSec=s.r}
 // Zone layout (survival rectangle): 3 color bands + 1 white TIME BACK band per period (white clears if bounces >= level)
 function zoneMetrics(h){const sH=h/3,period=4*sH;return{sH,period}}
+function bandIndexFromContent(contentY,sH){
+// Continuous band index; each band height sH; 4 bands per period
+return Math.floor(contentY/sH);
+}
+function absKSecFromBandIndex(bi){
+// Map band index → (absK, sec) with correct negative modulo
+const sec=((bi%4)+4)%4;
+// absK such that bi = absK*4 + sec
+const absK=Math.floor(bi/4);
+return{absK,sec};
+}
 function zoneAt(oy,h){
 const {sH,period}=zoneMetrics(h);
-const content=oy-zoneScroll;
-const adj=((content%period)+period)%period;
-const sec=Math.min(3,Math.floor(adj/sH));
-const absK=Math.floor(content/period);
+const contentY=oy-zoneScroll;
+const bi=bandIndexFromContent(contentY,sH);
+const{absK,sec}=absKSecFromBandIndex(bi);
+const adj=((contentY%period)+period)%period;
 const tier=Math.max(0,-absK);
-return{sH,period,content,adj,sec,isWhite:sec===3,absK,tier};
+const wasWhite=sec===3;
+const tbKey=absK+':3';
+const used=wasWhite&&usedTB.has(tbKey);
+const isWhite=wasWhite&&!used;
+const isRedExtra=used;
+return{sH,period,content:contentY,adj,sec,isWhite,isRedExtra,absK,tier,key:absK+':'+sec,tbKey,bi};
+}
+function markTBUsed(oy,h){
+const z=zoneAt(oy,h);
+// Only mark if this is a white (or was-white) band slot
+if(z.sec===3)usedTB.add(z.absK+':3');
 }
 function restartTimeBack(){
 // Restart 3s countdown; keep bounce count and scroll position
@@ -334,17 +704,64 @@ clearCDTimer();
 if(!isPaused)scheduleCD();
 updDisp();updateHint();
 }
+function updLockBtn(){
+if(!lckB)return;
+lckB.innerHTML=scrollUnlocked?'&#128275;':'&#128274;';
+lckB.classList.toggle('unlocked',!!scrollUnlocked);
+}
+function startLockTransition(){
+// Bring ball up to top (or as far as scroll allows) over 1s while pausing trajectory
+const topY=circle.radius;
+const maxLift=Math.max(0,circle.y-topY); // how far ball can move up on screen
+const scrollRoom=zoneScroll; // how much scroll can still absorb upward motion of content
+// Moving ball up on screen without changing world: decrease zoneScroll by same amount
+const lift=Math.min(maxLift,scrollRoom);
+const toY=circle.y-lift;
+const toScroll=zoneScroll-lift;
+lockTrans={
+t0:Date.now(),dur:1000,
+fromScroll:zoneScroll,toScroll:toScroll,
+fromY:circle.y,toY:toY,
+fromX:circle.x,toX:circle.x,
+savedDx:circle.dx,savedDy:circle.dy
+};
+circle.dx=0;circle.dy=0;
+}
+
 function freezeZones(){zoneScrollFrozen=true}
 function unfreezeZones(){zoneScrollFrozen=false}
 function resetZones(){zoneScroll=0;zoneScrollFrozen=false}
 // How many lives the red band at oy is currently advertising to lose (matches on-screen label)
-function redMissLoss(oy,h){
-if(mode!=='survival'||map!=='rectangle'||rSec===null)return 1;
-const z=zoneAt(oy,h);
-if(z.isWhite||z.sec!==rSec)return 1;
+// Rank: higher = lower on screen
+function bandRank(absK,sec){return absK*4+sec}
+// Red life delta. Floor (absK>0) always baseDelta.
+// From base period upward, each red is 1 harsher than the next red beneath it.
+function redDeltaAt(absK,sec){
 const rL=startL<=3?Math.max(startL-1,1):(lives>2?Math.max(lives-1,1):2);
 const baseDelta=rL-lives;
-const d=baseDelta-z.tier; // typically negative, e.g. -1, -2, ...
+if(rSec===null||rSec===undefined)return baseDelta;
+if(absK>0)return baseDelta;
+const my=bandRank(absK,sec);
+const floorRank=bandRank(0,3); // bottom of base period
+// Unique red ranks from floor up (absK <= 0)
+const reds=new Set();
+for(let ak=-30;ak<=0;ak++){
+reds.add(bandRank(ak,rSec));
+if(usedTB.has(ak+':3'))reds.add(bandRank(ak,3));
+}
+// Count reds strictly beneath me but at or above the floor bottom
+let beneath=0;
+for(const r of reds){
+if(r>my&&r<=floorRank)beneath++;
+}
+return baseDelta-beneath;
+}
+function redMissLoss(oy,h){
+if(rSec===null)return 1;
+const z=zoneAt(oy,h);
+const onRed=(z.sec===rSec&&!z.isWhite)||z.isRedExtra;
+if(!onRed)return 1;
+const d=redDeltaAt(z.absK,z.isRedExtra?3:z.sec);
 return Math.max(1,-d);
 }
 function updTM(){throwMul=BASE_TM*Math.pow(TG,level-1)}
@@ -453,7 +870,7 @@ if(lives!==prevL){const d=lives-prevL;if(!suppress&&d!==0){lB.classList.remove('
 if(level!==prevLv){const d=level-prevLv;if(!suppress&&d!==0){lN.classList.remove('lN-up','lN-down');void lN.offsetHeight;lN.classList.add(d>0?'lN-up':'lN-down');clearTimeout(lN._glowT);lN._glowT=setTimeout(()=>lN.classList.remove('lN-up','lN-down'),950)}prevLv=level}
 if(hiScore!==prevHS){const d=hiScore-prevHS;if(!suppress&&d>0){hB.classList.remove('fg');void hB.offsetHeight;hB.classList.add('fg')}prevHS=hiScore}
 if(coins!==prevC){const d=coins-prevC;if(!suppress&&d!==0){const curEl=cC.parentElement;curEl.classList.remove('cur-up','cur-down');void curEl.offsetHeight;curEl.classList.add(d>0?'cur-up':'cur-down');clearTimeout(curEl._glowT);curEl._glowT=setTimeout(()=>curEl.classList.remove('cur-up','cur-down'),950);
-if(d>0){const items=[...SKINS,...BGS];const newly=items.some(it=>!(ownedS.has(it.id)||ownedB.has(it.id))&&prevC<it.p&&coins>=it.p);if(newly){sB.classList.remove('sB-afford');void sB.offsetHeight;sB.classList.add('sB-afford');clearTimeout(sB._glowT);sB._glowT=setTimeout(()=>sB.classList.remove('sB-afford'),1200)}}}prevC=coins;saveP()}
+if(d>0){}}prevC=coins;saveP()}
 lN.textContent=level;lC.textContent=lives===Infinity?'\u221E':lives;hC.textContent=hiScore;cC.textContent=coins;sCC.textContent=coins;const _sHS=$('sHS');if(_sHS)_sHS.textContent='HS '+gSurvHS();
 potential=(mode==='survival'&&lives!==Infinity)?Math.max(0,(level-1)*lives):0;pC.textContent=potential;
 if(prevPot>=0&&potential!==prevPot){const d=potential-prevPot;if(!suppress&&d!==0){pD.classList.remove('pD-up','pD-down');void pD.offsetHeight;pD.classList.add(d>0?'pD-up':'pD-down');clearTimeout(pD._glowT);pD._glowT=setTimeout(()=>pD.classList.remove('pD-up','pD-down'),950)}}
@@ -505,8 +922,8 @@ else{gSec=rSec=pgSec=prSec=ngSec=nrSec=pLand=null}
 if(st.circle&&st.circle.x!==undefined){Object.assign(circle,{x:st.circle.x,y:st.circle.y,radius:st.circle.radius||INIT_R,dx:st.circle.dx,dy:st.circle.dy,isDragging:false,dragTouchId:null,lastX:st.circle.lastX,lastY:st.circle.lastY,lastTime:st.circle.lastTime||Date.now(),hasBeenTouched:st.circle.hasBeenTouched||false})}
 else{const w=viewW||400,h=viewH||400;circle.x=w/2;circle.y=h/2;circle.radius=INIT_R;circle.dx=circle.dy=0;circle.hasBeenTouched=false}
 constrain();trail.length=0;if(st.trail&&st.trail.length)trail.push(...st.trail);
-mode=md;map=mp;btnAct={play:false,mode:false,map:false,store:false,help:false};holdT={play:null,mode:null,map:null,store:null,help:null};
-[pB,mB,mpB,sB,hBtn].forEach(b=>b.classList.remove('gG','gR','gW','rc'));
+mode=md;map=mp;btnAct={play:false,power:false,bouncy:false,lock:false,slow:false};holdT={play:null,mode:null,map:null,store:null,help:null};
+[pB,pwrB,bncB,lckB,slwB].forEach(b=>{if(b)b.classList.remove('gG','gR','gW','rc')});
 active=true;canvas.style.pointerEvents='auto';
 curInc=st.curInc!==undefined?st.curInc:14;nextCO=st.nextCO!==undefined?st.nextCO:16;cashAvail=st.cashAvail===true;if(nextCO<16&&level<16&&!cashAvail){nextCO=16;curInc=14}
 resetGold();mergeA=0;updTM();updDisp();suppress=false;draw();
@@ -570,6 +987,17 @@ for(let sec=0;sec<4;sec++){
 const y=k*period+sec*sH+off;
 if(y+sH<0||y>h)continue;
 if(sec===3){
+// Band center content Y → same absK as zoneAt
+const bandCenterY=k*period+sec*sH+off+sH/2-zoneScroll;
+const biDraw=Math.floor(bandCenterY/sH);
+const secN=((biDraw%4)+4)%4;
+const absKBand=Math.floor(biDraw/4);
+const tbUsed=sec===3&&usedTB.has(absKBand+':3');
+if(tbUsed){
+// Consumed TIME BACK → red band
+ctx.fillStyle='rgba(180,30,50,0.35)';
+ctx.fillRect(SSW,y,pw,sH);
+}else{
 // TIME BACK band — static cool look
 const bgGrad=ctx.createLinearGradient(SSW,y,SSW,y+sH);
 bgGrad.addColorStop(0,'rgba(18,24,42,0.94)');
@@ -615,6 +1043,7 @@ ctx.shadowColor='rgba(255,255,255,0.55)';ctx.shadowBlur=8;
 ctx.fillStyle='rgba(42,58,92,0.92)';
 ctx.fillText(label,0,0);
 ctx.restore();
+} // end unused TB
 }else{
 let col=null;
 if(sec===gSec)col='rgba(0,180,90,0.35)';
@@ -637,13 +1066,32 @@ const absK=Math.floor(absTop/period);
 const tier=Math.max(0,-absK); // 0 at base band; +1,+2,... for each band higher
 let d=baseDelta;
 if(kind==='g')d=baseDelta+tier;
-else if(kind==='r')d=baseDelta-tier;
+else if(kind==='r'){
+const bandCenterR=k*period+sec*sH+off+sH/2-zoneScroll;
+const biR=Math.floor(bandCenterR/sH);
+const absKR=Math.floor(biR/4);
+d=redDeltaAt(absKR,sec);
+}
 const t=(d>=0?'+':'')+d;
 ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=6;
 ctx.fillText(t,SSW+30,y);ctx.fillText(t,w-SSW-30,y);ctx.shadowBlur=0;
 }
 };
 dD(gSec,gL,'#00ff88','g');dD(rSec,rL,'#ff3355','r');if(bS!==undefined)dD(bS,bL,'#8899aa','b');
+// Labels on consumed TIME BACK bands (as extra reds)
+ctx.fillStyle='#ff3355';ctx.shadowColor='#ff3355';ctx.shadowBlur=6;
+for(let k2=-8;k2<=4;k2++){
+const y2=k2*period+3*sH+off+sH/2;
+if(y2<-40||y2>h+40)continue;
+const bandCenter2=k2*period+3*sH+off+sH/2-zoneScroll;
+const bi2=Math.floor(bandCenter2/sH);
+const absK2=Math.floor(bi2/4);
+if(!usedTB.has(absK2+':3'))continue;
+const d2=redDeltaAt(absK2,3);
+const t2=(d2>=0?'+':'')+d2;
+ctx.fillText(t2,SSW+30,y2);ctx.fillText(t2,w-SSW-30,y2);
+}
+ctx.shadowBlur=0;
 ctx.restore();
 // Side strips stay fixed (previous / next level preview) — color bands only
 if(pgSec!==null){ctx.fillStyle='rgba(0,180,90,0.5)';ctx.fillRect(0,pgSec*sH,SSW,sH)}
@@ -656,6 +1104,44 @@ if(nrSec!==null){ctx.fillStyle='rgba(180,30,50,0.5)';ctx.fillRect(w-SSW,nrSec*sH
 ctx.strokeStyle='rgba(0,240,255,0.7)';ctx.lineWidth=BW*2;ctx.shadowColor='rgba(0,240,255,0.4)';ctx.shadowBlur=8;
 if(map==='rectangle')ctx.strokeRect(SSW,0,pw,h);else{ctx.beginPath();ctx.arc(w/2,h/2,Math.min(pw,h)/2-BW,0,Math.PI*2);ctx.stroke()}
 ctx.shadowBlur=0;
+// Bounce progress meter — clockwise from top-left along the play border
+(function drawBounceMeter(){
+const tgt=Math.max(1,level);
+const ratio=Math.max(0,Math.min(1,wallHits/tgt));
+const over=wallHits>level;
+const col=over?'#ff3355':'#00ff88';
+const x0=SSW,y0=0,bw=pw,bh=h;
+const peri=2*(bw+bh);
+const fillLen=peri*ratio;
+const lw=5;
+ctx.save();
+ctx.lineWidth=lw;
+ctx.lineCap='butt';
+ctx.strokeStyle=col;
+ctx.shadowColor=col;
+ctx.shadowBlur=over?12:10;
+// Track path segments: top → right → bottom → left (clockwise from top-left)
+const segs=[
+{x1:x0,y1:y0,x2:x0+bw,y2:y0,len:bw},
+{x1:x0+bw,y1:y0,x2:x0+bw,y2:y0+bh,len:bh},
+{x1:x0+bw,y1:y0+bh,x2:x0,y2:y0+bh,len:bw},
+{x1:x0,y1:y0+bh,x2:x0,y2:y0,len:bh}
+];
+let left=fillLen;
+ctx.beginPath();
+for(const s of segs){
+if(left<=0)break;
+const t=Math.min(1,left/s.len);
+const x=s.x1+(s.x2-s.x1)*t;
+const y=s.y1+(s.y2-s.y1)*t;
+ctx.moveTo(s.x1,s.y1);
+ctx.lineTo(x,y);
+left-=s.len;
+}
+ctx.stroke();
+ctx.restore();
+})();
+
 
 if(cashAvail&&mode==='survival'){
 const pulse=0.5+0.5*Math.sin((Date.now()%1600)/1600*Math.PI*2);ctx.save();
@@ -682,9 +1168,12 @@ const softR=circle.radius+30,sg=ctx.createRadialGradient(circle.x,circle.y,circl
 sg.addColorStop(0,gr);sg.addColorStop(0.55,gr.replace(/[\d.]+\)$/,'0.08)'));sg.addColorStop(1,'rgba(0,0,0,0)');
 ctx.beginPath();ctx.arc(circle.x,circle.y,softR,0,Math.PI*2);ctx.fillStyle=sg;ctx.fill();
 
+// Body behind the ball on the z-order
+bodyDraw(ctx);
 ctx.beginPath();ctx.shadowColor=sk.g;ctx.shadowBlur=16;ctx.arc(circle.x,circle.y,circle.radius,0,Math.PI*2);ctx.fillStyle=sk.f;ctx.fill();ctx.strokeStyle=sk.s;ctx.lineWidth=2.5;ctx.stroke();ctx.shadowBlur=0;
-drawFace(circle.x,circle.y,circle.radius,skinF(),sk.s);
-ctx.beginPath();ctx.strokeStyle='rgba(0,0,0,0.55)';ctx.lineWidth=1.5;const cs=13;ctx.moveTo(circle.x-cs,circle.y);ctx.lineTo(circle.x+cs,circle.y);ctx.moveTo(circle.x,circle.y-cs);ctx.lineTo(circle.x,circle.y+cs);ctx.stroke();
+const bang=bodyAngle();
+drawAngryFace(ctx,circle.x,circle.y,circle.radius,bang);
+
 
 if(map==='rectangle'){ctx.save();ctx.beginPath();ctx.rect(SSW+2,2,pw-4,h-4);ctx.clip()}
 const holdShow=(!isPaused&&circle.isDragging)||(isPaused&&circle.wasDraggingWhenPaused);
@@ -764,31 +1253,58 @@ if(mergeA>0){mergeA-=0.07;mergeP.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vx*=0.97;p.vy
 if(gold.phase==='fling'){gold.y+=gold.fVy;gold.fVy-=1.4;gold.x+=gold.fVx;gold.fVx*=0.95}
 if(mergeA<=0){mergeA=0;gold.phase=null;doCash()}}
 if(gold.wob){gold.wT+=0.09;const damp=Math.exp(-gold.wT*2.2),amp=gold.wA*damp;gold.x=gold.hx+Math.cos(gold.wT*14)*amp*gold.wDx;gold.y=gold.hy+Math.cos(gold.wT*14)*amp*gold.wDy;if(damp<0.02){gold.wob=false;gold.x=gold.hx;gold.y=gold.hy}}
-if(isPaused){if(circle.isDragging){circle.dx=0;circle.dy=0}return}
+// Lock transition: move ball+scroll together over 1s, ball trajectory paused
+if(lockTrans){
+const u=Math.min(1,(Date.now()-lockTrans.t0)/lockTrans.dur);
+const e=u*u*(3-2*u); // smoothstep
+zoneScroll=lockTrans.fromScroll+(lockTrans.toScroll-lockTrans.fromScroll)*e;
+const prevX=circle.x,prevY=circle.y;
+circle.y=lockTrans.fromY+(lockTrans.toY-lockTrans.fromY)*e;
+circle.x=lockTrans.fromX+(lockTrans.toX-lockTrans.fromX)*e;
+circle.dx=0;circle.dy=0;
+// Move body with ball; freeze limb momentum during transition
+if(BODY.ready&&BODY.pts){
+const mdx=circle.x-prevX,mdy=circle.y-prevY;
+if(mdx||mdy){
+for(const k of Object.keys(BODY.pts)){
+const p=BODY.pts[k];
+p.x+=mdx;p.y+=mdy;p.px=p.x;p.py=p.y; // zero relative velocity
+}
+}
+BODY.lastBallX=circle.x;BODY.lastBallY=circle.y;
+bodyPinNeck();
+}
+if(u>=1){
+circle.dx=lockTrans.savedDx;circle.dy=lockTrans.savedDy;
+lockTrans=null;scrollUnlocked=true;updLockBtn();
+}
+return;
+}
+if(isPaused){if(circle.isDragging){circle.dx=0;circle.dy=0;bodyUpdate()}return}
 const w=viewW,h=viewH,pw=w-2*SSW,now=Date.now();
+const slowF=slowOn?SLOW_SCALE:1;
 if(!circle.isDragging){
-circle.dy+=GRAV; // no air drag — vacuum; speed only changes via gravity and wall bounce
-circle.x+=circle.dx;
-// Survival rectangle: upward motion at the top border transfers into zone scrolling
-const useScroll=mode==='survival'&&map==='rectangle';
+circle.dy+=GRAV*slowF;
+circle.x+=circle.dx*slowF;
+const useScroll=true;
 if(useScroll){
 const topY=circle.radius;
-const newY=circle.y+circle.dy;
-// Background only moves when the ball presses into the top border.
-// Below the top the ball moves freely (zones hold their current scroll).
-if(newY<=topY){
-zoneScroll-=circle.dy; // upward (dy<0) increases scroll; downward unwinds
-if(zoneScroll<0){
-circle.y=topY-zoneScroll; // leftover downward motion after fully unwound
-zoneScroll=0;
-}else{
-circle.y=topY; // pin to top while scroll absorbs vertical motion
-}
+const stepDy=circle.dy*slowF;
+const newY=circle.y+stepDy;
+// Unlocked: stay pinned at top while any scroll remains (wind or unwind)
+if(scrollUnlocked&&zoneScroll>0){
+zoneScroll-=stepDy;
+if(zoneScroll<0){circle.y=topY-zoneScroll;zoneScroll=0;}
+else circle.y=topY;
+}else if(newY<=topY){
+zoneScroll-=stepDy;
+if(zoneScroll<0){circle.y=topY-zoneScroll;zoneScroll=0;}
+else circle.y=topY;
 }else{
 circle.y=newY;
 }
 }else{
-circle.y+=circle.dy;
+circle.y+=circle.dy*slowF;
 }
 if(circle.dx>80)circle.dx=80;else if(circle.dx<-80)circle.dx=-80;
 if(circle.dy>80)circle.dy=80;else if(circle.dy<-80)circle.dy=-80;
@@ -803,13 +1319,13 @@ if(!useScroll)walls.push({n:'top',c:circle.y-circle.radius<=0});
 walls.forEach(wall=>{const contact=circle.wc[wall.n];if(wall.c){if(!contact.c){contact.c=true;contact.t=now;if(isTrack){wallHits++;wH.textContent=wallHits;updateHint();if(wallHits===level){wH.style.color='#00ff88';wH.style.textShadow='0 0 10px rgba(0,255,136,.6)'}else if(wallHits>level){wH.style.color='#ff3355';wH.style.textShadow='0 0 10px rgba(255,50,80,.5)'}else{wH.style.color='#e8f0ff';wH.style.textShadow='none'};spawnP(circle.x,circle.y,4,skinC().g)}}}else contact.c=false});
 if(map==='rectangle'){
 // Side walls — strong energy loss so it doesn't skate forever
-if(circle.x+circle.radius>w-SSW){circle.x=w-SSW-circle.radius;circle.dx=-circle.dx*0.72;circle.dy*=0.92}
-else if(circle.x-circle.radius<SSW){circle.x=SSW+circle.radius;circle.dx=-circle.dx*0.72;circle.dy*=0.92}
+if(circle.x+circle.radius>w-SSW){circle.x=w-SSW-circle.radius;circle.dx=-circle.dx*(bouncyOn?0.92:0.72);circle.dy*=(bouncyOn?0.98:0.92)}
+else if(circle.x-circle.radius<SSW){circle.x=SSW+circle.radius;circle.dx=-circle.dx*(bouncyOn?0.92:0.72);circle.dy*=(bouncyOn?0.98:0.92)}
 // Floor — bouncy but kills horizontal speed; settle when soft
 if(circle.y+circle.radius>h){
 circle.y=h-circle.radius;
-circle.dy=-circle.dy*0.78;
-circle.dx*=0.82;
+circle.dy=-circle.dy*(bouncyOn?BOUNCY_F:0.78);
+circle.dx*=(bouncyOn?0.92:0.82);
 if(Math.abs(circle.dy)<1.2){circle.dy=0;circle.dx*=0.7}
 }
 if(!useScroll&&circle.y-circle.radius<0){circle.y=circle.radius;circle.dy=-circle.dy*0.85}
@@ -824,6 +1340,7 @@ else{const cx=w/2,cy=h/2,rad=Math.min(pw,h)/2-BW,d=Math.hypot(circle.x-cx,circle
 }
 holes.forEach(bh=>{bh.op=Math.max(0,1-(now-bh.st)/2000)});holes=holes.filter(bh=>bh.op>0);
 particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.life-=0.025});particles=particles.filter(p=>p.life>0);
+bodyUpdate();
 }
 
 function clearCDTimer(){if(cdInt){clearTimeout(cdInt);cdInt=null}}
@@ -879,7 +1396,7 @@ if(!isPaused)scheduleCD();
 }
 
 function endGame(){
-resetZones();level=1;updTM();lives=3;startL=3;wallHits=0;isTrack=false;isPaused=false;isCD=false;cdVal=3;cdOp=0;
+resetZones();usedTB.clear();scrollUnlocked=false;updLockBtn();BODY.ready=false;level=1;updTM();lives=3;startL=3;wallHits=0;isTrack=false;isPaused=false;isCD=false;cdVal=3;cdOp=0;
 clearCDTimer();cdRemain=1000;cd.style.opacity=0;cd.textContent='';
 const w=viewW,h=viewH;
 // Drop from center — death tap must NOT start the next run
@@ -910,12 +1427,15 @@ if(mode==='survival'&&map==='rectangle'){
 const z=zoneAt(oy,ch);
 const sec=z.sec,tier=z.tier;
 let base;if(startL>3&&lives<3)base=3;else if(startL>3&&lives>2)base=lives;else base=startL;
-let target;if(z.isWhite)target=base; // should not submit on white; treat as black if reached
+let target;if(z.isWhite)target=base;
 else if(sec===gSec)target=base+1+tier;
-else if(sec===rSec)target=Math.max(base-1-tier,1);
+else if(sec===rSec||z.isRedExtra){
+const d=redDeltaAt(z.absK,z.isRedExtra?3:sec);
+target=Math.max(1,lives+d); // d is negative delta
+}
 else target=base;
 lives=Math.max(1,target);
-potential=(level-1)*lives;pLand=z.isWhite?null:sec;
+potential=(level-1)*lives;pLand=(z.isWhite)?null:(z.isRedExtra?rSec:sec);
 }
 else if(mode==='survival'){lives=3;potential=(level-1)*lives}
 if(completed>gHS())sHS(completed);wallHits=0;startL=lives;pgSec=gSec;prSec=rSec;gSec=ngSec;rSec=nrSec;asNext();
@@ -994,17 +1514,22 @@ if(!didResize&&circle.isDragging&&!isPaused){dropBall();draw()}
 function handleTap(e){
 if(uiLocked)return;
 if(isPaused)return;
+if(lockTrans)return; // no map taps during lock transition
 const pos=getPos(e);const w=viewW,h=viewH;
 if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
 const ox=circle.x,oy=circle.y;if(circle.isDragging)return;
-if(!circle.hasBeenTouched||postGame){postGame=false;uiLocked=false;resetZones();circle.hasBeenTouched=true;isTrack=false;wallHits=0;startCD();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updDisp();return}
+// Tap while unlocked → lock scroll, resume normal locked mode
+if(scrollUnlocked){
+scrollUnlocked=false;updLockBtn();
+}
+if(!circle.hasBeenTouched||postGame){postGame=false;uiLocked=false;resetZones();BODY.ready=false;circle.hasBeenTouched=true;isTrack=false;wallHits=0;startCD();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updDisp();return}
 let bg='rgba(180,180,180,0.4)';
 let onWhite=false;
 if(mode==='survival'&&map==='rectangle'){
 const z=zoneAt(oy,h);
 if(z.isWhite){bg='rgba(255,255,255,0.7)';onWhite=true}
+else if(z.isRedExtra||z.sec===rSec)bg='rgba(180,30,50,0.6)';
 else if(z.sec===gSec)bg='rgba(0,180,90,0.6)';
-else if(z.sec===rSec)bg='rgba(180,30,50,0.6)';
 }
 holes.push({x:ox,y:oy,st:Date.now(),bg,op:1});
 // White during CD: exact match clears; under only = TIME BACK; over = normal mid-CD tap (no reset)
@@ -1017,7 +1542,8 @@ isTrack=false;if(cdInt){clearCDTimer();cdOp=0;cd.style.opacity=0;isCD=false}
 completeLevel(oy,h);updateHint();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();return;
 }
 if(whiteTimeBackCD){
-// TIME BACK during CD (under only): restart timer; keep zone scroll where it halted
+// TIME BACK during CD (under only): restart timer; consume this band
+markTBUsed(oy,h);
 circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();
 restartTimeBack();
 return;
@@ -1029,16 +1555,17 @@ updateHint();return;
 // After countdown
 if(wallHits===level)completeLevel(oy,h);
 else if(whiteTimeBackAfter){
-// Under on white after CD: TIME BACK, keep current scroll (not a life loss)
+// Under on white after CD: TIME BACK, consume band
+markTBUsed(oy,h);
 circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();
 restartTimeBack();
 return;
 }else if(mode==='survival'){
 // Miss on red after CD (under or over): lose the amount shown on that red band; otherwise lose 1
 let loss=1;
-if(wallHits!==level&&map==='rectangle'){
+if(wallHits!==level){
 const z=zoneAt(oy,h);
-if(!z.isWhite&&z.sec===rSec)loss=redMissLoss(oy,h);
+if((!z.isWhite&&z.sec===rSec)||z.isRedExtra)loss=redMissLoss(oy,h);
 }
 lives=Math.max(0,lives-loss);potential=(level-1)*Math.max(0,lives);
 if(lives<=0){endGame();return;} // death tap ends run only — does not start next
@@ -1049,13 +1576,14 @@ circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updateHint();
 
 function startDrag(e){
 if(uiLocked)return;
+if(lockTrans)return;
 if(postGame)return; // don't grab the ball on the death tap
 const pos=getPos(e,e.touches?e.touches[0].identifier:null);const tid=e.touches?e.touches[0].identifier:null;
 if(isPaused&&cashAvail&&mode==='survival'&&mergeA<=0){if(Math.hypot(pos.x-gold.x,pos.y-gold.y)<=gold.r+12){e.preventDefault();gold.drag=true;gold.tid=tid;gold.ox=pos.x-gold.x;gold.oy=pos.y-gold.y;draw();return}}
 if(isPaused&&!circle.wasDraggingWhenPaused)return;
 const w=viewW;if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
 circle.isDragging=true;circle.dragTouchId=tid;circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0;circle.x=pos.x;circle.y=pos.y;constrain();
-if(!isPaused)trail.length=0;btnAct={play:false,mode:false,map:false,store:false,help:false};draw();
+if(!isPaused)trail.length=0;btnAct={play:false,power:false,bouncy:false,lock:false,slow:false};draw();
 }
 
 function drag(e){
@@ -1072,16 +1600,16 @@ if(gold.drag){const pos=getPos(e,gold.tid);gold.x=Math.max(gold.r,Math.min(w-gol
 if(circle.isDragging&&!circle.isResizing){const pos=getPos(e,circle.dragTouchId);
 if(map==='rectangle'){pos.x=Math.max(SSW+circle.radius,Math.min(w-SSW-circle.radius,pos.x));pos.y=Math.max(circle.radius,Math.min(h-circle.radius,pos.y))}
 else{const cx=w/2,cy=h/2,mr=Math.min(pw,h)/2-BW-circle.radius;const dx=pos.x-cx,dy=pos.y-cy,d=Math.hypot(dx,dy);if(d>mr){const a=Math.atan2(dy,dx);pos.x=cx+Math.cos(a)*mr;pos.y=cy+Math.sin(a)*mr}}
-circle.x=pos.x;circle.y=pos.y;if(!isPaused){const dt=(now-circle.lastTime)/1000;if(dt>0){circle.dx=((pos.x-circle.lastX)/dt)*throwMul;circle.dy=((pos.y-circle.lastY)/dt)*throwMul}circle.lastTime=now}circle.lastX=pos.x;circle.lastY=pos.y}
+circle.x=pos.x;circle.y=pos.y;if(!isPaused){const dt=(now-circle.lastTime)/1000;if(dt>0){const tm=throwMul*(powerOn?POWER_MUL:1);circle.dx=((pos.x-circle.lastX)/dt)*tm;circle.dy=((pos.y-circle.lastY)/dt)*tm}circle.lastTime=now}circle.lastX=pos.x;circle.lastY=pos.y}
 const scr=getScr(e,circle.dragTouchId);const target=document.elementFromPoint(scr.x,scr.y);
 const chk=(btn,key,fn)=>{if(target===btn){if(!holdT[key]&&!btnAct[key]){btn.classList.remove('gG','gR','gW','rc');if(key==='play')btn.classList.add(isPaused?'gG':'gR');else btn.classList.add('gW');
 holdT[key]=setTimeout(()=>{if(circle.isDragging&&document.elementFromPoint(scr.x,scr.y)===btn){btn.classList.remove('gG','gR','gW');btn.classList.add('rc');fn();btnAct[key]=true}holdT[key]=null},HOLD_THR)}}
 else{if(holdT[key]){clearTimeout(holdT[key]);holdT[key]=null;btn.classList.remove('gG','gR','gW');btn.classList.add('rc')}if(btnAct[key]&&target!==btn)btnAct[key]=false}};
 chk(pB,'play',()=>{if(isPaused){isPaused=false;resumeCD();resetGold();circle.lastX=getPos(e,circle.dragTouchId).x;circle.lastY=getPos(e,circle.dragTouchId).y;circle.lastTime=Date.now();circle.dx=circle.dy=0;/* CD already resumed via resumeCD */}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updateHint()}updDisp();draw()});
-chk(mB,'mode',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();mode=mode==='survival'?'freebie':'survival';circle.hasBeenTouched=false;loadSt(mode,map)});
-chk(mpB,'map',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();map=map==='rectangle'?'circle':'rectangle';circle.hasBeenTouched=false;loadSt(mode,map)});
-chk(sB,'store',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();openStore()});
-chk(hBtn,'help',()=>{if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();openHelp()});
+chk(pwrB,'power',()=>{if(!lockTrans){powerOn=!powerOn;setModBtn(pwrB,powerOn)}});
+chk(bncB,'bouncy',()=>{if(!lockTrans){bouncyOn=!bouncyOn;setModBtn(bncB,bouncyOn)}});
+chk(lckB,'lock',()=>{if(!isPaused&&!lockTrans&&!circle.isDragging)lckB.onclick()});
+chk(slwB,'slow',()=>{if(!lockTrans){slowOn=!slowOn;setModBtn(slwB,slowOn)}});
 if(isPaused)saveSt();draw();
 }
 
@@ -1093,14 +1621,14 @@ if(e.changedTouches){let m=false;for(let i=0;i<e.changedTouches.length;i++)if(e.
 const scr=getScr(e,tid),target=document.elementFromPoint(scr.x,scr.y),rect=canvas.getBoundingClientRect();
 const over=scr.x>=rect.left&&scr.x<=rect.right&&scr.y>=rect.top&&scr.y<=rect.bottom;
 if(target===pB&&!btnAct.play)pB.click();
-else if(target===mB&&!btnAct.mode)mB.click();
-else if(target===mpB&&!btnAct.map)mpB.click();
-else if(target===sB&&!btnAct.store){if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();openStore()}
-else if(target===hBtn&&!btnAct.help){if(!isPaused)circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true;pauseCD();saveSt();openHelp()}
+else if(target===pwrB&&!btnAct.power)pwrB.click();
+else if(target===bncB&&!btnAct.bouncy)bncB.click();
+else if(target===lckB&&!btnAct.lock)lckB.click();
+else if(target===slwB&&!btnAct.slow)slwB.click();
 else if(over&&!circle.hasBeenTouched){circle.hasBeenTouched=true;startCD()}
 circle.isDragging=false;circle.dragTouchId=null;unfreezeZones();
-Object.keys(holdT).forEach(k=>{if(holdT[k]){clearTimeout(holdT[k]);holdT[k]=null;const btn=k==='play'?pB:k==='mode'?mB:k==='map'?mpB:k==='store'?sB:hBtn;if(btn){btn.classList.remove('gG','gR','gW');btn.classList.add('rc')}}});
-btnAct={play:false,mode:false,map:false,store:false,help:false};if(isPaused)saveSt();draw();
+Object.keys(holdT).forEach(k=>{if(holdT[k]){clearTimeout(holdT[k]);holdT[k]=null;const btn=k==='play'?pB:k==='power'?pwrB:k==='bouncy'?bncB:k==='lock'?lckB:slwB;if(btn){btn.classList.remove('gG','gR','gW');btn.classList.add('rc')}}});
+btnAct={play:false,power:false,bouncy:false,lock:false,slow:false};if(isPaused)saveSt();draw();
 }
 
 
@@ -1204,10 +1732,35 @@ function goNext(){if(tutI<TSTEPS.length-1){tutI++;showTut()}else closeTut()}
 function goPrev(){if(tutI>0){tutI--;showTut()}}
 tN.onclick=goNext;tNA.onclick=goNext;tP.onclick=goPrev;tSk.onclick=closeTut;
 
-mB.onclick=()=>{if(mergeA>0){mergeA=0;doCash();return}if(!isPaused){circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true}saveSt();mode=mode==='survival'?'freebie':'survival';circle.hasBeenTouched=false;loadSt(mode,map)};
-mpB.onclick=()=>{if(mergeA>0){mergeA=0;doCash();return}if(!isPaused){circle.wasDraggingWhenPaused=circle.isDragging;isPaused=true}saveSt();map=map==='rectangle'?'circle':'rectangle';circle.hasBeenTouched=false;loadSt(mode,map)};
+
+// Power / Bouncy / Slow — toggles, only while unpaused
+function setModBtn(btn,on){if(btn)btn.classList.toggle('on',!!on)}
+pwrB.onclick=()=>{if(lockTrans)return;powerOn=!powerOn;setModBtn(pwrB,powerOn)};
+bncB.onclick=()=>{if(lockTrans)return;bouncyOn=!bouncyOn;setModBtn(bncB,bouncyOn)};
+slwB.onclick=()=>{if(lockTrans)return;slowOn=!slowOn;setModBtn(slwB,slowOn)};
+lckB.onclick=()=>{
+if(lockTrans)return;
+if(circle.isDragging||circle.wasDraggingWhenPaused)return; // not while holding
+if(scrollUnlocked){
+// already unlocked — tapping lock re-locks
+scrollUnlocked=false;updLockBtn();return;
+}
+// Unlock: if ball not at top, run transition; else unlock immediately
+const topY=circle.radius;
+if(circle.y>topY+1&&zoneScroll>0){
+startLockTransition();
+}else if(circle.y>topY+1&&zoneScroll<=0){
+// near bottom of content — move as far as possible (nowhere for scroll); brief pause only
+startLockTransition(); // lift=0 effectively, still 1s then unlocks
+}else{
+scrollUnlocked=true;updLockBtn();
+}
+};
 pB.onclick=e=>{if(isPaused){isPaused=false;resumeCD();resetGold();if(circle.isDragging){const pos=getPos(e);circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0}else if(circle.wasDraggingWhenPaused){circle.isDragging=false;circle.dragTouchId=null;constrain();circle.dx=circle.dy=0}circle.wasDraggingWhenPaused=false;updDisp();draw()}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updDisp();draw()}};
-sB.onclick=openStore;sCl.onclick=closeStore;hBtn.onclick=openHelp;hCl.onclick=closeHelp;hCb.onclick=closeHelp;
+sCl.onclick=closeStore;hCl.onclick=closeHelp;hCb.onclick=closeHelp;
+title.onclick=()=>{if(lockTrans)return;openHelp()};
+updLockBtn();
+
 
 const INFO={"potential": {"title": "POTENTIAL PAYOUT", "body": "<p>Your <strong>potential payout<\/strong> is the amount of $ you would receive if you cash out right now.<\/p>\n<p><strong>Formula:<\/strong> last level beaten this run &times; current lives<\/p>\n<p>Example: if you just cleared level 5 and have 3 lives, your potential is 5 &times; 3 = <strong>15 $<\/strong>.<\/p>\n<p>When you cash out (pause when the gold glow appears, drag the gold circle onto the blue $ and release), that potential is added to your $ balance and the Survival run resets.<\/p>\n<p>You can also keep playing to try for a higher payout later \u2014 the choice is yours each time cash-out becomes available.<\/p>"}, "lives": {"title": "LIVES", "body": "<p>Lives act as your <strong>score multiplier<\/strong> for the potential payout (last level beaten &times; current lives).<\/p>\n<p>You start each new Survival run with <strong>3 lives<\/strong>, and lives reset to 3 whenever a new game starts (after a cash-out or when you run out of lives).<\/p>\n<p><strong>Recovery on the Rectangle map:<\/strong> when you clear a level, the zone you land in adjusts lives based on how many you started the level with:<\/p>\n<ul><li><strong>Started at 3+:<\/strong> if you drop below 3, black returns you to 3, green to 4, red to 2.<\/li>\n<li><strong>Started at 2:<\/strong> if you drop below 2, black returns you to 2, green to 3, red keeps you at 1.<\/li>\n<li><strong>Started at 1:<\/strong> black and red keep you at 1, green bumps you to 2.<\/li><\/ul>"}, "bounces": {"title": "BOUNCE COUNT", "body": "<p>The <strong>left number<\/strong> is your live bounce count. The <strong>right number<\/strong> is the target for this level.<\/p>\n<p>To level up, that left number must <strong>exactly match<\/strong> the level number when you submit \u2014 either:<\/p>\n<ul><li>the first touch on the map after the countdown ends, or<\/li>\n<li>a touch during the countdown while the numbers already match.<\/li><\/ul>\n<p>One bounce over or under and you lose a life in Survival.<\/p>"}, "level": {"title": "LEVEL", "body": "<p>The level number is the bounce target for this round and also feeds into your potential payout multiplier (last level beaten &times; lives).<\/p>\n<p>Level starts at <strong>1<\/strong> and resets to 1 whenever a new Survival game starts (after cash-out or running out of lives).<\/p>\n<p>In Free mode the level you reach is saved and does not reset.<\/p>"}, "hiscore": {"title": "HI-SCORE", "body": "<p>Your hi-score is the <strong>highest level you have beaten<\/strong>.<\/p>\n<p>Hi-scores are saved <strong>separately for each mode and map combination<\/strong> (Survival Rectangle, Survival Circle, Free Rectangle, Free Circle), so each has its own best.<\/p>"}};
 function openInfo(key){const d=INFO[key];if(!d)return;isPaused=true;saveSt();$('infoTitle').textContent=d.title;$('infoBody').innerHTML=d.body;$('infoO').classList.add('open');updDisp()}
