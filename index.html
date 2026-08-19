@@ -329,7 +329,8 @@ lastBallY:null,
 wasLeft:false,wasRight:false,wasBottom:false,
 feetStuck:false,
 feetY:0,
-faceDir:0 // 0 center, -1 left, 1 right
+faceDir:0, // 0 center, 2 eyes up
+landT:0 // 0 upright, 1 full splits+V arms
 };
 function bPt(x,y){return{x:x,y:y,px:x,py:y}}
 function bodyReset(){
@@ -347,7 +348,7 @@ lFoot:bPt(cx-r*0.35,cy+r*3.0),rFoot:bPt(cx+r*0.35,cy+r*3.0)
 BODY.lastBallX=cx;BODY.lastBallY=cy;BODY.prevScroll=zoneScroll;
 BODY.ready=true;BODY.pose='super';BODY.faceDir=0;
 BODY.wasLeft=BODY.wasRight=BODY.wasBottom=false;
-BODY.feetStuck=false;BODY.feetY=0;
+BODY.feetStuck=false;BODY.feetY=0;BODY.landT=0;
 }
 function bodyPoseLocal(pose){
 const r=Math.max(12,circle.radius);
@@ -384,6 +385,31 @@ for(const k of Object.keys(loc)){
 const [lx,ly]=loc[k];
 const p=BODY.pts[k];
 p.x=nx+lx;p.y=ny+ly;p.px=p.x;p.py=p.y;
+}
+}
+// Blend toward splits + V-arms while feet are on the floor until the ball lifts off
+function bodyApplyLandingSplits(t){
+if(!BODY.pts||t<=0)return;
+const r=Math.max(12,circle.radius);
+const pts=BODY.pts;
+const nx=pts.neck.x,ny=pts.neck.y;
+const a=Math.max(0,Math.min(1,t));
+// Target splits + V arms (local offsets from neck)
+const tgt={
+lShoulder:[-r*0.35,r*0.15],rShoulder:[r*0.35,r*0.15],
+lElbow:[-r*0.7,r*-0.15],rElbow:[r*0.7,r*-0.15],
+lHand:[-r*0.95,r*-0.55],rHand:[r*0.95,r*-0.55], // arms up in V
+chest:[0,r*0.32],hip:[0,r*0.75],
+lKnee:[-r*0.85,r*1.15],rKnee:[r*0.85,r*1.15],
+lFoot:[-r*1.35,r*1.35],rFoot:[r*1.35,r*1.35] // splits
+};
+for(const k of Object.keys(tgt)){
+const [lx,ly]=tgt[k];
+const wx=nx+lx, wy=ny+ly;
+const p=pts[k];
+p.x+=(wx-p.x)*a;
+p.y+=(wy-p.y)*a;
+p.px=p.x;p.py=p.y;
 }
 }
 function bodyAccordionBorders(){
@@ -470,6 +496,37 @@ BODY.pose='super';
 }
 // Side walls: no body/face change
 
+function bodyFinishFrame(){
+bodyPinNeck();
+bodyApplyPose(BODY.pose);
+bodyAccordionBorders();
+// Landing splits: from feet touch → ball touch (t→1), then ease out as ball rises
+const floor=viewH-2;
+const ballBottom=circle.y+circle.radius;
+const bodyLen=Math.max(20,circle.radius*2.15);
+const feetDown=BODY.feetStuck||(BODY.pts.lFoot.y>=floor-3||BODY.pts.rFoot.y>=floor-3);
+if(feetDown&&ballBottom<=floor+circle.radius*0.15){
+const gap=Math.max(0,floor-ballBottom);
+// gap≈bodyLen when feet just plant; gap≈0 when ball is on floor
+BODY.landT=1-Math.min(1,gap/bodyLen);
+}else if(BODY.landT>0){
+// Ball leaving ground — slide feet back together, lower arms
+const rising=circle.dy< -0.15||(!onBottom&&ballBottom<floor-4);
+if(rising||!feetDown)BODY.landT=Math.max(0,BODY.landT-0.1);
+else BODY.landT=Math.max(0,BODY.landT-0.04);
+}else{
+BODY.landT=0;
+}
+bodyApplyLandingSplits(BODY.landT);
+// Re-clamp feet to floor while landing so splits stay grounded
+if(BODY.landT>0.05&&feetDown){
+BODY.pts.lFoot.y=Math.min(BODY.pts.lFoot.y,floor);
+BODY.pts.rFoot.y=Math.min(BODY.pts.rFoot.y,floor);
+BODY.pts.lFoot.py=BODY.pts.lFoot.y;BODY.pts.rFoot.py=BODY.pts.rFoot.y;
+}
+bodyUpdateFace();
+}
+
 // Holding — always allow body to follow while dragging (even if paused)
 if(circle.isDragging){
 if(BODY.lastBallX==null){BODY.lastBallX=circle.x;BODY.lastBallY=circle.y}
@@ -478,27 +535,18 @@ if(mdx||mdy){
 for(const k of Object.keys(pts)){const p=pts[k];p.x+=mdx;p.y+=mdy;p.px=p.x;p.py=p.y;}
 }
 BODY.lastBallX=circle.x;BODY.lastBallY=circle.y;
-bodyPinNeck();
-bodyApplyPose(BODY.pose);
-bodyAccordionBorders();
-bodyUpdateFace();
+bodyFinishFrame();
 return;
 }
 BODY.lastBallX=circle.x;BODY.lastBallY=circle.y;
 
 // Paused and not holding — freeze pose in place
 if(isPaused){
-bodyPinNeck();
-bodyApplyPose(BODY.pose);
-bodyAccordionBorders();
-bodyUpdateFace();
+bodyFinishFrame();
 return;
 }
 
-bodyPinNeck();
-bodyApplyPose(BODY.pose);
-bodyAccordionBorders();
-bodyUpdateFace();
+bodyFinishFrame();
 }
 
 function bodyAngle(){
