@@ -6,7 +6,7 @@
 <title>MEGA BOUNCE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Exo+2:wght@400;600;700&family=Press+Start+2P&family=Pacifico&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#050508;--panel:rgba(12,14,22,.88);--cyan:#00f0ff;--gold:#ffd700;--green:#00ff88;--red:#ff3355;--text:#e8f0ff;--dim:#8899bb}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -28,7 +28,7 @@ background-image:radial-gradient(ellipse at 20% 20%,rgba(0,80,120,.15),transpare
 #lB{top:48px;left:2.5vw}#hB{top:48px;right:2.5vw;border-color:rgba(255,215,0,.55)}
 #hB.fg{animation:hBfg .5s ease}
 @keyframes hBfg{0%,100%{border-color:rgba(255,215,0,.55)}50%{border-color:var(--green);box-shadow:0 0 14px rgba(0,255,136,.4)}}
-#lvB{left:50%;transform:translateX(-50%);top:60px;width:110px;flex-direction:row;padding:0;overflow:hidden}
+#lvB{left:50%;transform:translateX(-50%);top:98px;width:110px;flex-direction:row;padding:0;overflow:hidden}
 #wH,#lN{flex:1;display:flex;justify-content:center;align-items:center;font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.4rem;height:100%}
 #wH{border-right:1px solid rgba(0,240,255,.2);cursor:pointer}#lN{color:var(--green);text-shadow:0 0 10px rgba(0,255,136,.45);cursor:pointer}
 canvas{
@@ -152,15 +152,7 @@ button.gG{animation:aG .8s linear forwards}button.gR{animation:aR .8s linear for
 @keyframes sBGlow{0%,100%{box-shadow:none;border-color:rgba(0,240,255,.25)}
 35%,55%{box-shadow:0 0 18px rgba(255,215,0,.85);border-color:#ffd700;color:#ffd700}}
 
-#subHint{position:fixed;left:50%;transform:translateX(-50%);z-index:15;pointer-events:none;
-font-family:'Orbitron',sans-serif;font-weight:700;font-size:.65rem;letter-spacing:.06em;
-text-align:center;opacity:0;visibility:hidden;transition:none;white-space:nowrap;
-text-shadow:0 0 5px #000,0 1px 2px #000;
-}
-#subHint.show{opacity:0.75;visibility:visible}
-#subHint.hi-match{color:#00cc6a;text-shadow:0 0 6px rgba(0,0,0,.9),0 0 4px rgba(0,200,100,.4)}
-#subHint.hi-over{color:#cc2944;text-shadow:0 0 6px rgba(0,0,0,.9),0 0 4px rgba(200,40,60,.4)}
-#subHint.hi-under{color:#a8b4c8;text-shadow:0 0 5px #000,0 1px 2px #000}
+
 
 #sO .s-sticky{position:sticky;top:0;margin-bottom:10px;z-index:5;background:rgba(8,10,18,.97);backdrop-filter:blur(12px);
 /* Full-bleed within .ov without clipping (matches .ov horizontal padding 14px) */
@@ -178,12 +170,61 @@ font-family:Orbitron;color:var(--cyan);text-align:center}
 #bB #hBtn,button#hBtn{color:#00ff88!important;border-color:rgba(0,255,136,.55)!important}
 #bB #hBtn:hover,button#hBtn:hover{color:#66ffb3!important;border-color:#00ff88!important;box-shadow:0 0 12px rgba(0,255,136,.35)!important}
 
-#pauseHint{position:fixed;left:50%;transform:translate(-50%,-50%);z-index:15;pointer-events:none;
-font-family:'Orbitron',sans-serif;font-weight:700;font-size:.7rem;letter-spacing:.08em;
-text-align:center;opacity:0;visibility:hidden;color:#e8f0ff;white-space:nowrap;
-text-shadow:0 0 6px #000,0 1px 3px #000}
-#pauseHint.show{opacity:0.85;visibility:visible}
-
+#pauseHint,#subHint{position:fixed;left:50%;z-index:15;pointer-events:none;
+font-family:'Press Start 2P',monospace;font-weight:400;
+letter-spacing:.1em;text-align:center;opacity:0;visibility:hidden;white-space:nowrap;
+text-transform:uppercase;
+color:#f2f6ff;
+line-height:1;
+display:flex;align-items:center;justify-content:center;
+/* static soft LED glow — no border/box */
+background:transparent;border:none;padding:0;margin:0;
+box-shadow:none;
+text-shadow:
+0 0 1px #fff,
+0 0 4px rgba(255,255,255,.85),
+0 0 8px rgba(200,220,255,.45);
+}
+#pauseHint.show,#subHint.show{opacity:1;visibility:visible}
+#subHint.hi-match{
+color:#7dffb5;
+text-shadow:0 0 1px #b8ffd9,0 0 5px rgba(0,255,136,.95),0 0 10px rgba(0,255,136,.5);
+}
+#subHint.hi-over{
+color:#ff7a92;
+text-shadow:0 0 1px #ffc0cc,0 0 5px rgba(255,50,80,.95),0 0 10px rgba(255,50,80,.5);
+}
+#subHint.hi-under{
+color:#f2f6ff;
+text-shadow:0 0 1px #fff,0 0 4px rgba(255,255,255,.85),0 0 8px rgba(200,220,255,.45);
+}
+#subHint.hi-formula{
+font-family:'Pacifico',cursive;font-weight:400;
+color:#0a0c10;
+letter-spacing:.06em;
+text-shadow:
+0 0 2px #fff,
+0 0 4px #fff,
+0 0 8px rgba(255,255,255,.95),
+0 0 14px rgba(255,255,255,.7),
+0 1px 0 #fff;
+}
+#subHint.hi-formula .fx{
+color:inherit;
+text-shadow:inherit;
+}
+#subHint.hi-formula .fx-up{
+color:#0a0c10; /* text stays dark */
+text-shadow:0 0 2px #fff,0 0 8px rgba(0,255,136,.95),0 0 16px rgba(0,255,136,.75),0 0 28px rgba(0,255,136,.45);
+}
+#subHint.hi-formula .fx-down{
+color:#0a0c10;
+text-shadow:0 0 2px #fff,0 0 8px rgba(255,51,85,.95),0 0 16px rgba(255,51,85,.75),0 0 28px rgba(255,51,85,.45);
+}
+#subHint.hi-formula .fx-prod{
+color:#0a0c10;
+text-shadow:0 0 2px #fff8dc,0 0 6px rgba(255,215,0,.95),0 0 14px rgba(255,200,0,.75),0 0 24px rgba(255,180,0,.45);
+}
 #sO.ov{padding-top:0}
 #sO .s-sticky{top:0;margin-top:0;padding-top:14px}
 
@@ -209,11 +250,15 @@ body.ui-locked #currency,body.ui-locked .cur,body.ui-locked canvas{
 pointer-events:none!important;
 }
 
-#pwrB.on,button#pwrB.on{color:#ffaa00!important;border-color:rgba(255,170,0,.85)!important;box-shadow:0 0 12px rgba(255,170,0,.45)!important}
-#bncB.on,button#bncB.on{color:#00ff88!important;border-color:rgba(0,255,136,.85)!important;box-shadow:0 0 12px rgba(0,255,136,.4)!important}
-#slwB.on,button#slwB.on{color:#c080ff!important;border-color:rgba(180,100,255,.85)!important;box-shadow:0 0 12px rgba(160,80,255,.4)!important}
-#lckB{font-size:1.05rem;line-height:1}
-#lckB.unlocked{color:#ffd700!important;border-color:rgba(255,215,0,.75)!important}
+#pwrB,#bncB,#slwB,#lckB{
+color:#e8e8e8!important;
+filter:grayscale(1);
+}
+#pwrB.on,button#pwrB.on{color:#fff!important;border-color:rgba(255,255,255,.85)!important;box-shadow:0 0 12px rgba(255,255,255,.35)!important;filter:grayscale(1);}
+#bncB.on,button#bncB.on{color:#fff!important;border-color:rgba(255,255,255,.85)!important;box-shadow:0 0 12px rgba(255,255,255,.35)!important;filter:grayscale(1);}
+#slwB.on,button#slwB.on{color:#fff!important;border-color:rgba(255,255,255,.85)!important;box-shadow:0 0 12px rgba(255,255,255,.35)!important;filter:grayscale(1);}
+#lckB{font-size:1.05rem;line-height:1;filter:grayscale(1);}
+#lckB.unlocked{color:#fff!important;border-color:rgba(255,255,255,.75)!important;filter:grayscale(1);}
 #title{cursor:pointer;pointer-events:auto}
 
 #pwrB,#bncB,#slwB,#lckB{font-size:.95rem;letter-spacing:0;padding:8px 6px}
@@ -234,7 +279,7 @@ pointer-events:none!important;
 <div class="cf" id="lCh"></div><div class="cf" id="lvCh"></div><div class="cf" id="cCh"></div><div class="cf" id="hCh"></div>
 <canvas id="canvas"></canvas>
 <div id="bB">
-<button id="pwrB" title="Power throw">&#9889;</button><button id="bncB" title="Extra bounce">&#8597;&#65039;</button><button id="pB">PAUSE</button>
+<button id="pwrB" title="Power throw">&#9889;</button><button id="bncB" title="Extra bounce">&#8597;</button><button id="pB">PAUSE</button>
 <button id="lckB" title="Scroll lock">&#128274;</button><button id="slwB" title="Slow motion">&#9201;</button>
 </div>
 <div class="ov" id="sO"><div class="s-sticky"><div class="oh"><div class="ot" style="background:linear-gradient(90deg,var(--gold),#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent">STORE</div><button class="oc" id="sCl">X</button></div>
@@ -278,7 +323,7 @@ let mode='survival',map='rectangle',active=true,curInc=14,nextCO=16,cashAvail=fa
 let powerOn=false,bouncyOn=false,slowOn=false,scrollUnlocked=false;
 let lockTrans=null; // {t0,dur,fromScroll,toScroll,fromY,toY,savedDx,savedDy}
 const usedTB=new Set(); // absolute white-band keys that have been consumed
-const POWER_MUL=6.5, BOUNCY_F=0.96, SLOW_SCALE=0.42;
+const POWER_MUL=16, BOUNCY_F=0.96, SLOW_SCALE=0.42;
 const trail=[];
 let holdT={play:null,power:null,bouncy:null,lock:null,slow:null};
 let btnAct={play:false,power:false,bouncy:false,lock:false,slow:false};
@@ -315,6 +360,7 @@ const BGS=[
 ];
 let ownedS=new Set(['default']),ownedB=new Set(['default']),eqS='default',eqB='default';
 let postGame=false,uiLocked=false,arrP=0,rightResize=false,prevPot=-1;
+let prevFormL=null,prevFormM=null,formLGlow=0,formMGlow=0; // -1 down, 1 up, 0 none
 
 
 // --- Stick-figure pose system (cosmetic only, always upright) ---
@@ -445,26 +491,17 @@ const leftW=SSW+2, rightW=w-SSW-2;
 const pts=BODY.pts;
 const all=['chest','hip','lShoulder','rShoulder','lElbow','rElbow','lHand','rHand','lKnee','rKnee','lFoot','rFoot'];
 
-// Floor accordion
-let floorHit=false;
+// Floor: soft clamp only — no sticky feet (avoids leg stretch when ball lifts off)
 for(const f of ['lFoot','rFoot']){
-if(pts[f].y>floor){pts[f].y=floor;pts[f].py=floor;floorHit=true;}
+if(pts[f].y>floor){pts[f].y=floor;pts[f].py=floor;}
 }
-if(floorHit){
-BODY.feetStuck=true;BODY.feetY=floor;
 for(const n of all){
-if(pts[n].y>floor-4){pts[n].y=floor-4;pts[n].py=pts[n].y;}
+if(pts[n].y>floor-2){pts[n].y=floor-2;pts[n].py=pts[n].y;}
 }
-pts.lFoot.y=floor;pts.rFoot.y=floor;
-}else if(BODY.feetStuck&&pts.lFoot.y<floor-2&&pts.rFoot.y<floor-2){
-BODY.feetStuck=false;
-}
-if(BODY.feetStuck){
-pts.lFoot.y=BODY.feetY;pts.rFoot.y=BODY.feetY;
-pts.lFoot.py=BODY.feetY;pts.rFoot.py=BODY.feetY;
-const midY=(pts.hip.y+floor)*0.5;
-pts.lKnee.y=Math.min(pts.lKnee.y,midY+6);pts.rKnee.y=Math.min(pts.rKnee.y,midY+6);
-}
+// Unstick immediately whenever ball is clearly off the floor
+const ballBottom=circle.y+circle.radius;
+BODY.feetStuck=ballBottom>=floor-1.5;
+BODY.feetY=floor;
 
 // Side wall accordion — compress limbs that poke past left/right play edges
 for(const n of all){
@@ -515,15 +552,19 @@ const hitLeft=onLeft&&!BODY.wasLeft;
 const hitRight=onRight&&!BODY.wasRight;
 const hitBottom=onBottom&&!BODY.wasBottom;
 BODY.wasLeft=onLeft;BODY.wasRight=onRight;BODY.wasBottom=onBottom;
-if(hitLeft||hitRight)BODY.angryUntil=Date.now()+480;
+if(hitLeft||hitRight)BODY.angryUntil=Date.now()+240;
 
 const virtualUp=atTop&&scrollDelta>0.25;
 const virtualDown=atTop&&scrollDelta<-0.25;
 const falling=(!circle.isDragging)&&(virtDy>0.25||virtualDown);
+const angryNow=Date.now()<BODY.angryUntil;
 if(hitBottom){
 BODY.pose='super';
 }else if(virtualUp){
 BODY.pose='straight';
+}else if(angryNow&&falling){
+// Side hit while falling: arms down with angry face, then back to fall when timer ends
+BODY.pose='super';
 }else if(falling){
 BODY.pose='fall';
 }else if(BODY.pose==='straight'&&!virtualUp){
@@ -531,10 +572,10 @@ BODY.pose='super';
 }else if(BODY.pose==='fall'&&!falling){
 BODY.pose='super';
 }
-// Gentle sway from horizontal velocity and wall hits
-const targetSway=Math.max(-1,Math.min(1,circle.dx*0.045));
-if(hitLeft)BODY.swayV+=0.55;
-if(hitRight)BODY.swayV-=0.55;
+// Gentle sway: body lags opposite travel (moving left → lean right)
+const targetSway=Math.max(-1,Math.min(1,-circle.dx*0.045));
+if(hitLeft)BODY.swayV-=0.55;  // hit left wall → body swings right
+if(hitRight)BODY.swayV+=0.55; // hit right wall → body swings left
 if(hitBottom)BODY.swayV*=0.4;
 BODY.swayV+=(targetSway-BODY.sway)*0.08;
 BODY.swayV*=0.92;
@@ -563,22 +604,15 @@ bodyAccordionBorders();
 const floor=viewH-2;
 const ballBottom=circle.y+circle.radius;
 const bodyLen=Math.max(20,circle.radius*2.15);
-const feetDown=BODY.feetStuck||(BODY.pts.lFoot.y>=floor-3||BODY.pts.rFoot.y>=floor-3);
-if(feetDown&&ballBottom<=floor+circle.radius*0.15){
+// Landing pose from ball height only — release instantly when ball lifts off
+if(ballBottom<=floor+circle.radius*0.2){
 const gap=Math.max(0,floor-ballBottom);
-// gap≈bodyLen when feet just plant; gap≈0 when ball is on floor
 BODY.landT=1-Math.min(1,gap/bodyLen);
-}else if(BODY.landT>0){
-// Ball leaving ground — slide feet back together, lower arms
-const rising=circle.dy< -0.15||(!onBottom&&ballBottom<floor-4);
-if(rising||!feetDown)BODY.landT=Math.max(0,BODY.landT-0.1);
-else BODY.landT=Math.max(0,BODY.landT-0.04);
 }else{
-BODY.landT=0;
+BODY.landT=0; // no sticky residual stretch
 }
 bodyApplyLandingSplits(BODY.landT);
-// Re-clamp feet to floor while landing so splits stay grounded
-if(BODY.landT>0.05&&feetDown){
+if(BODY.landT>0.05&&ballBottom<=floor+2){
 BODY.pts.lFoot.y=Math.min(BODY.pts.lFoot.y,floor);
 BODY.pts.rFoot.y=Math.min(BODY.pts.rFoot.y,floor);
 BODY.pts.lFoot.py=BODY.pts.lFoot.y;BODY.pts.rFoot.py=BODY.pts.rFoot.y;
@@ -592,6 +626,11 @@ if(BODY.lastBallX==null){BODY.lastBallX=circle.x;BODY.lastBallY=circle.y}
 const mdx=circle.x-BODY.lastBallX,mdy=circle.y-BODY.lastBallY;
 if(mdx||mdy){
 for(const k of Object.keys(pts)){const p=pts[k];p.x+=mdx;p.y+=mdy;p.px=p.x;p.py=p.y;}
+// Sway opposite drag direction (paused or not)
+BODY.swayV+=(-mdx)*0.02;
+BODY.swayV*=0.9;
+BODY.sway=Math.max(-1,Math.min(1,(BODY.sway||0)+(BODY.swayV||0)));
+BODY.sway*=0.98;
 }
 BODY.lastBallX=circle.x;BODY.lastBallY=circle.y;
 bodyFinishFrame();
@@ -901,14 +940,23 @@ const baseDelta=rL-lives;
 if(rSec===null||rSec===undefined)return baseDelta;
 if(absK>0)return baseDelta;
 const my=bandRank(absK,sec);
-const floorRank=bandRank(0,3); // bottom of base period
-// Unique red ranks from floor up (absK <= 0)
+const floorRank=bandRank(0,3); // bottom of base period (rank grows downward)
+// Unique red ranks from this band down through the floor.
+// Range must extend to the queried absK (not a fixed -30) so high bands keep cascading -1 each step.
 const reds=new Set();
-for(let ak=-30;ak<=0;ak++){
+const akStart=Math.min(absK,0);
+for(let ak=akStart;ak<=0;ak++){
 reds.add(bandRank(ak,rSec));
 if(usedTB.has(ak+':3'))reds.add(bandRank(ak,3));
 }
-// Count reds strictly beneath me but at or above the floor bottom
+// Also include any used-TB keys we know about above the loop start (paranoia for sparse set)
+for(const key of usedTB){
+const parts=String(key).split(':');
+const ak=parseInt(parts[0],10);
+if(!isFinite(ak)||ak>0||ak<akStart)continue;
+if(parts[1]==='3')reds.add(bandRank(ak,3));
+}
+// Count reds strictly beneath me (higher rank = lower on screen) down to the floor
 let beneath=0;
 for(const r of reds){
 if(r>my&&r<=floorRank)beneath++;
@@ -969,8 +1017,8 @@ const cl=padX;
 const lBox=$('lB'),hBox=$('hB'),lvBox=$('lvB');
 if(lBox){lBox.style.left=cl+'px';lBox.style.right='auto';}
 if(hBox){hBox.style.right=padX+'px';hBox.style.left='auto';}
-if(lvBox){lvBox.style.left=(cl+viewW/2)+'px';lvBox.style.transform='translateX(-50%)';}
-if(cd){cd.style.left=(cl+viewW/2)+'px';cd.style.top=(top+12)+'px';cd.style.transform='translateX(-50%)';}
+if(lvBox){lvBox.style.left=(cl+viewW/2)+'px';lvBox.style.top=top+'px';lvBox.style.transform='translateX(-50%)';}
+if(cd){cd.style.left=(cl+viewW/2)+'px';cd.style.top=(top+viewH/6)+'px';cd.style.transform='translate(-50%,-50%)';}
 if(lCh){lCh.style.left=(cl+48)+'px';}
 if(lvCh){lvCh.style.left=(cl+viewW/2+42)+'px';}
 if(cCh){cCh.style.left=(cl+viewW-44)+'px';cCh.style.right='auto';}
@@ -978,10 +1026,41 @@ if(hCh){hCh.style.right=(padX+64)+'px';hCh.style.left='auto';}
 diaX=viewW/2;diaY=Math.max(40,viewH-80);
 gold.hx=viewW/2;gold.hy=viewH/2;
 if(!gold.drag){gold.x=gold.hx;gold.y=gold.hy}
-const shEl=$('subHint');
-if(shEl){shEl.style.left=(cl+viewW/2)+'px';shEl.style.top=(top+viewH/6)+'px';shEl.style.transform='translate(-50%,-50%)';}
-const phEl=$('pauseHint');
-if(phEl){phEl.style.left=(cl+viewW/2)+'px';phEl.style.top=(top+viewH/6)+'px';phEl.style.transform='translate(-50%,-50%)';}
+// Hints: same vertical band as lives/hi-score squares, stretch between them
+let hintLeft=cl+8, hintRight=cl+viewW-8, hintTop=48, hintH=50;
+if(lBox){const r=lBox.getBoundingClientRect();hintLeft=r.right+14;hintTop=r.top;hintH=r.height}
+if(hBox){const r=hBox.getBoundingClientRect();hintRight=r.left-8;if(!lBox){hintTop=r.top;hintH=r.height}}
+const hintW=Math.max(40,hintRight-hintLeft);
+const fs=Math.max(10,Math.floor(hintH*0.42));
+function layoutHint(el){
+if(!el)return;
+el.style.left=hintLeft+'px';
+el.style.width=hintW+'px';
+el.style.top=hintTop+'px';
+el.style.height=hintH+'px';
+el.style.fontSize=fs+'px';
+el.style.lineHeight=hintH+'px';
+el.style.transformOrigin='center center';
+el.style.letterSpacing='0.08em';
+el.style.whiteSpace='nowrap';
+el.style.transform='scaleX(1)';
+// Measure full text width (even if hidden) then squash to fit gap
+const txt=(el.textContent||'').trim()||'NEXT TOUCH SUBMITS!';
+let tw=0;
+try{
+const mctx=document.createElement('canvas').getContext('2d');
+mctx.font=fs+"px 'Press Start 2P',monospace";
+tw=mctx.measureText(txt).width*1.08; // letter-spacing fudge
+}catch(e){tw=el.scrollWidth||hintW}
+if(tw>hintW&&tw>0){
+el.style.transform='scaleX('+(hintW/tw).toFixed(4)+')';
+}else{
+el.style.transform='none';
+}
+}
+layoutHint($('subHint'));
+layoutHint($('pauseHint'));
+
 if($('tO')&&$('tO').classList.contains('open'))setTutHighlights(true);
 constrain();
 }
@@ -992,19 +1071,84 @@ const waitingBegin=(postGame||!circle.hasBeenTouched)&&!isPaused;
 const waitingSubmit=!isCD&&isTrack&&circle.hasBeenTouched;
 const matchDuringCD=isCD&&wallHits===level&&wallHits>0;
 const showSubmit=!isPaused&&!postGame&&(waitingSubmit||matchDuringCD);
-el.classList.remove('show','hi-match','hi-over','hi-under');
+// TIME BACK is active when crosshair is on an unused white band and bounces are still under the level
+// (during or after countdown) — same rules as handleTap whiteTimeBackCD / whiteTimeBackAfter
+let timeBackAvail=false;
+if(!isPaused&&!postGame&&circle.hasBeenTouched&&mode==='survival'&&map==='rectangle'&&wallHits<level){
+try{
+const z=zoneAt(circle.y,viewH);
+timeBackAvail=!!(z&&z.isWhite);
+}catch(e){}
+}
+el.classList.remove('show','hi-match','hi-over','hi-under','hi-formula');
+function crossZoneKind(){
+let zoneKind='black';
+if(mode==='survival'&&map==='rectangle'){
+try{
+const z=zoneAt(circle.y,viewH);
+if(z){
+if(z.isWhite)zoneKind='white';
+else if(z.isRedExtra||z.sec===rSec)zoneKind='red';
+else if(z.sec===gSec)zoneKind='green';
+else zoneKind='black';
+}
+}catch(e){}
+}
+return zoneKind;
+}
 if(waitingBegin){
 el.textContent='NEXT TOUCH BEGINS';
 el.classList.add('show','hi-under');
+}else if(timeBackAvail){
+el.textContent='TOUCH FOR TIME!';
+el.classList.add('show','hi-under'); // white LED
 }else if(showSubmit){
-el.textContent='NEXT TOUCH SUBMITS!';
 el.classList.add('show');
-if(wallHits===level)el.classList.add('hi-match');
-else if(wallHits>level)el.classList.add('hi-over');
-else el.classList.add('hi-under');
+const zoneKind=crossZoneKind();
+if(wallHits===level){
+if(zoneKind==='green')el.textContent='NEXT TOUCH SUBMITS:)';
+else if(zoneKind==='red')el.textContent='NEXT TOUCH SUBMITS:(';
+else el.textContent='NEXT TOUCH SUBMITS:/';
+el.classList.add('hi-match'); // all match texts green
+}else if(wallHits>level){
+// Over: :( only on red; otherwise :/ — both red
+if(zoneKind==='red')el.textContent='NEXT TOUCH SUBMITS:(';
+else el.textContent='NEXT TOUCH SUBMITS:/';
+el.classList.add('hi-over');
+}else{
+el.textContent='NEXT TOUCH SUBMITS!';
+el.classList.add('hi-under');
+}
+}else if(!isPaused&&circle.hasBeenTouched&&!postGame){
+// Formula appears after life loss / level clear — apply pending glow flags
+const lv=lives===Infinity?'∞':String(lives);
+const mul=Math.max(0,level-1);
+const prod=(lives===Infinity)?'∞':String(lives*mul);
+const lvCls=formLGlow>0?'fx fx-up':(formLGlow<0?'fx fx-down':'fx');
+const mCls=formMGlow>0?'fx fx-up':(formMGlow<0?'fx fx-down':'fx');
+el.innerHTML='<span class="'+lvCls+'">'+lv+'</span>&nbsp;x&nbsp;<span class="'+mCls+'">'+mul+'</span>&nbsp;=&nbsp;<span class="fx fx-prod">'+prod+'</span>';
+el.classList.add('show','hi-formula');
 }
 const ph=$('pauseHint');
 if(ph){if(isPaused)ph.classList.add('show');else ph.classList.remove('show');}
+// Re-fit pixel text between lives / hi-score after text change
+try{
+const lB2=$('lB'),hB2=$('hB');
+let hL=8,hR=window.innerWidth-8,hT=48,hH=50;
+if(lB2){const r=lB2.getBoundingClientRect();hL=r.right+14;hT=r.top;hH=r.height}
+if(hB2){const r=hB2.getBoundingClientRect();hR=r.left-8}
+const hW=Math.max(40,hR-hL),f2=Math.max(10,Math.floor(hH*0.42));
+function fit(el){
+if(!el)return;
+el.style.left=hL+'px';el.style.width=hW+'px';el.style.top=hT+'px';el.style.height=hH+'px';
+el.style.fontSize=f2+'px';el.style.lineHeight=hH+'px';el.style.transformOrigin='center center';
+const txt=(el.textContent||'').trim()||'NEXT TOUCH SUBMITS!';
+let tw=0;
+try{const c=document.createElement('canvas').getContext('2d');c.font=f2+"px 'Press Start 2P',monospace";tw=c.measureText(txt).width*1.08}catch(e){tw=hW}
+el.style.transform=(tw>hW&&tw>0)?'scaleX('+(hW/tw).toFixed(4)+')':'none';
+}
+fit(el);fit(ph);
+}catch(e){}
 }
 
 function placeFloat(el, anchor, side){
@@ -1025,12 +1169,23 @@ void el.offsetHeight;
 el.classList.add(cls);
 }
 function updDisp(){
+// Formula glows: only the numbers that actually changed this frame
+let livesChanged=false,levelChanged=false,livesDelta=0,levelDelta=0;
+if(lives!==prevL){livesDelta=lives-prevL;livesChanged=livesDelta!==0}
+if(level!==prevLv){levelDelta=level-prevLv;levelChanged=levelDelta!==0}
 if(lives!==prevL){const d=lives-prevL;if(!suppress&&d!==0){lB.classList.remove('fg','fr');void lB.offsetHeight;if(d>0){lB.classList.add('fg');animF(lCh,'plus','+'+d,lB,'right')}else{lB.classList.add('fr');animF(lCh,'minus',''+d,lB,'right')}}prevL=lives}
 if(level!==prevLv){const d=level-prevLv;if(!suppress&&d!==0){lN.classList.remove('lN-up','lN-down');void lN.offsetHeight;lN.classList.add(d>0?'lN-up':'lN-down');clearTimeout(lN._glowT);lN._glowT=setTimeout(()=>lN.classList.remove('lN-up','lN-down'),950)}prevLv=level}
+if(suppress){formLGlow=0;formMGlow=0;}
+else if(livesChanged||levelChanged){
+// On a real lives/level change: color only the number(s) that changed; the other goes white.
+// TIME BACK / other updDisp with no change leaves both glows as-is.
+formLGlow=livesChanged?(livesDelta>0?1:-1):0;
+formMGlow=levelChanged?(levelDelta>0?1:-1):0;
+}
 if(hiScore!==prevHS){const d=hiScore-prevHS;if(!suppress&&d>0){hB.classList.remove('fg');void hB.offsetHeight;hB.classList.add('fg')}prevHS=hiScore}
 if(coins!==prevC){const d=coins-prevC;if(!suppress&&d!==0){const curEl=cC.parentElement;curEl.classList.remove('cur-up','cur-down');void curEl.offsetHeight;curEl.classList.add(d>0?'cur-up':'cur-down');clearTimeout(curEl._glowT);curEl._glowT=setTimeout(()=>curEl.classList.remove('cur-up','cur-down'),950);
 if(d>0){}}prevC=coins;saveP()}
-lN.textContent=level;lC.textContent=lives===Infinity?'\u221E':lives;hC.textContent=hiScore;cC.textContent=coins;sCC.textContent=coins;const _sHS=$('sHS');if(_sHS)_sHS.textContent='HS '+gSurvHS();
+lN.textContent=level;lC.textContent=lives===Infinity?'∞':lives;hC.textContent=hiScore;cC.textContent=coins;sCC.textContent=coins;const _sHS=$('sHS');if(_sHS)_sHS.textContent='HS '+gSurvHS();
 potential=(mode==='survival'&&lives!==Infinity)?Math.max(0,(level-1)*lives):0;pC.textContent=potential;
 if(prevPot>=0&&potential!==prevPot){const d=potential-prevPot;if(!suppress&&d!==0){pD.classList.remove('pD-up','pD-down');void pD.offsetHeight;pD.classList.add(d>0?'pD-up':'pD-down');clearTimeout(pD._glowT);pD._glowT=setTimeout(()=>pD.classList.remove('pD-up','pD-down'),950)}}
 prevPot=potential;
@@ -1444,13 +1599,21 @@ const w=viewW,h=viewH,pw=w-2*SSW,now=Date.now();
 const slowF=slowOn?SLOW_SCALE:1;
 if(!circle.isDragging){
 circle.dy+=GRAV*slowF;
+// Clamp velocity BEFORE integrating; power mode allows much higher speed
+const MAX_V=powerOn?110:52;
+if(circle.dx>MAX_V)circle.dx=MAX_V;else if(circle.dx<-MAX_V)circle.dx=-MAX_V;
+if(circle.dy>MAX_V)circle.dy=MAX_V;else if(circle.dy<-MAX_V)circle.dy=-MAX_V;
 circle.x+=circle.dx*slowF;
 const useScroll=true;
 if(useScroll){
 const topY=circle.radius;
-const stepDy=circle.dy*slowF;
+// Substep vertical motion so scroll stays continuous even if a frame is delayed
+let remainDy=circle.dy*slowF;
+const maxStep=Math.max(8,viewH*0.06); // small steps keep scroll continuous at high speed
+while(Math.abs(remainDy)>0.0001){
+const stepDy=remainDy>0?Math.min(remainDy,maxStep):Math.max(remainDy,-maxStep);
+remainDy-=stepDy;
 const newY=circle.y+stepDy;
-// Unlocked: stay pinned at top while any scroll remains (wind or unwind)
 if(scrollUnlocked&&zoneScroll>0){
 zoneScroll-=stepDy;
 if(zoneScroll<0){circle.y=topY-zoneScroll;zoneScroll=0;}
@@ -1462,11 +1625,10 @@ else circle.y=topY;
 }else{
 circle.y=newY;
 }
+}
 }else{
 circle.y+=circle.dy*slowF;
 }
-if(circle.dx>80)circle.dx=80;else if(circle.dx<-80)circle.dx=-80;
-if(circle.dy>80)circle.dy=80;else if(circle.dy<-80)circle.dy=-80;
 const vel=Math.hypot(circle.dx,circle.dy),tl=Math.min(22,Math.floor(vel/9));
 trail.unshift({x:circle.x,y:circle.y,op:1,zs:zoneScroll});while(trail.length>tl)trail.pop();
 for(let i=trail.length-1;i>=0;i--){trail[i].op-=0.09;if(trail[i].op<=0)trail.splice(i,1)}
@@ -1500,6 +1662,7 @@ else{const cx=w/2,cy=h/2,rad=Math.min(pw,h)/2-BW,d=Math.hypot(circle.x-cx,circle
 holes.forEach(bh=>{bh.op=Math.max(0,1-(now-bh.st)/2000)});holes=holes.filter(bh=>bh.op>0);
 particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.life-=0.025});particles=particles.filter(p=>p.life>0);
 bodyUpdate();
+if(circle.hasBeenTouched&&!postGame)updateHint();
 }
 
 function clearCDTimer(){if(cdInt){clearTimeout(cdInt);cdInt=null}}
@@ -1556,6 +1719,7 @@ if(!isPaused)scheduleCD();
 
 function endGame(){
 resetZones();usedTB.clear();scrollUnlocked=false;updLockBtn();BODY.ready=false;level=1;updTM();lives=3;startL=3;wallHits=0;isTrack=false;isPaused=false;isCD=false;cdVal=3;cdOp=0;
+formLGlow=0;formMGlow=0;prevFormL=null;prevFormM=null;
 clearCDTimer();cdRemain=1000;cd.style.opacity=0;cd.textContent='';
 const w=viewW,h=viewH;
 // Drop from center — death tap must NOT start the next run
@@ -1681,7 +1845,7 @@ const ox=circle.x,oy=circle.y;if(circle.isDragging)return;
 if(scrollUnlocked){
 scrollUnlocked=false;updLockBtn();
 }
-if(!circle.hasBeenTouched||postGame){postGame=false;uiLocked=false;resetZones();BODY.ready=false;circle.hasBeenTouched=true;isTrack=false;wallHits=0;startCD();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updDisp();return}
+if(!circle.hasBeenTouched||postGame){postGame=false;uiLocked=false;resetZones();BODY.ready=false;circle.hasBeenTouched=true;isTrack=false;wallHits=0;formLGlow=0;formMGlow=0;prevFormL=null;prevFormM=null;startCD();circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updDisp();return}
 let bg='rgba(180,180,180,0.4)';
 let onWhite=false;
 if(mode==='survival'&&map==='rectangle'){
@@ -1759,7 +1923,10 @@ if(gold.drag){const pos=getPos(e,gold.tid);gold.x=Math.max(gold.r,Math.min(w-gol
 if(circle.isDragging&&!circle.isResizing){const pos=getPos(e,circle.dragTouchId);
 if(map==='rectangle'){pos.x=Math.max(SSW+circle.radius,Math.min(w-SSW-circle.radius,pos.x));pos.y=Math.max(circle.radius,Math.min(h-circle.radius,pos.y))}
 else{const cx=w/2,cy=h/2,mr=Math.min(pw,h)/2-BW-circle.radius;const dx=pos.x-cx,dy=pos.y-cy,d=Math.hypot(dx,dy);if(d>mr){const a=Math.atan2(dy,dx);pos.x=cx+Math.cos(a)*mr;pos.y=cy+Math.sin(a)*mr}}
-circle.x=pos.x;circle.y=pos.y;if(!isPaused){const dt=(now-circle.lastTime)/1000;if(dt>0){const tm=throwMul*(powerOn?POWER_MUL:1);circle.dx=((pos.x-circle.lastX)/dt)*tm;circle.dy=((pos.y-circle.lastY)/dt)*tm}circle.lastTime=now}circle.lastX=pos.x;circle.lastY=pos.y}
+circle.x=pos.x;circle.y=pos.y;if(!isPaused){const dt=(now-circle.lastTime)/1000;if(dt>0){const tm=throwMul*(powerOn?POWER_MUL:1);circle.dx=((pos.x-circle.lastX)/dt)*tm;circle.dy=((pos.y-circle.lastY)/dt)*tm;
+// Soft cap only — power throws can go much higher
+const MAX_THROW=powerOn?140:60;const sp=Math.hypot(circle.dx,circle.dy);if(sp>MAX_THROW){const s=MAX_THROW/sp;circle.dx*=s;circle.dy*=s;}
+}circle.lastTime=now}circle.lastX=pos.x;circle.lastY=pos.y}
 const scr=getScr(e,circle.dragTouchId);const target=document.elementFromPoint(scr.x,scr.y);
 const chk=(btn,key,fn)=>{if(target===btn){if(!holdT[key]&&!btnAct[key]){btn.classList.remove('gG','gR','gW','rc');if(key==='play')btn.classList.add(isPaused?'gG':'gR');else btn.classList.add('gW');
 holdT[key]=setTimeout(()=>{if(circle.isDragging&&document.elementFromPoint(scr.x,scr.y)===btn){btn.classList.remove('gG','gR','gW');btn.classList.add('rc');fn();btnAct[key]=true}holdT[key]=null},HOLD_THR)}}
