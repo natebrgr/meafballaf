@@ -6,7 +6,7 @@
 <title>MEGA BOUNCE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Exo+2:wght@400;600;700&family=Press+Start+2P&family=Pacifico&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Exo+2:wght@400;600;700&family=Press+Start+2P&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#050508;--panel:rgba(12,14,22,.88);--cyan:#00f0ff;--gold:#ffd700;--green:#00ff88;--red:#ff3355;--text:#e8f0ff;--dim:#8899bb}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -199,9 +199,10 @@ color:#f2f6ff;
 text-shadow:0 0 1px #fff,0 0 4px rgba(255,255,255,.85),0 0 8px rgba(200,220,255,.45);
 }
 #subHint.hi-formula{
-font-family:'Pacifico',cursive;font-weight:400;
+font-family:'Caveat',cursive;font-weight:700;
 color:#0a0c10;
-letter-spacing:.06em;
+letter-spacing:.04em;
+font-size:1.15em;
 text-shadow:
 0 0 2px #fff,
 0 0 4px #fff,
@@ -1028,8 +1029,8 @@ gold.hx=viewW/2;gold.hy=viewH/2;
 if(!gold.drag){gold.x=gold.hx;gold.y=gold.hy}
 // Hints: same vertical band as lives/hi-score squares, stretch between them
 let hintLeft=cl+8, hintRight=cl+viewW-8, hintTop=48, hintH=50;
-if(lBox){const r=lBox.getBoundingClientRect();hintLeft=r.right+14;hintTop=r.top;hintH=r.height}
-if(hBox){const r=hBox.getBoundingClientRect();hintRight=r.left-8;if(!lBox){hintTop=r.top;hintH=r.height}}
+if(lBox){const r=lBox.getBoundingClientRect();hintLeft=r.right+8;hintTop=r.top;hintH=r.height}
+if(hBox){const r=hBox.getBoundingClientRect();hintRight=r.left-6;if(!lBox){hintTop=r.top;hintH=r.height}}
 const hintW=Math.max(40,hintRight-hintLeft);
 const fs=Math.max(10,Math.floor(hintH*0.42));
 function layoutHint(el){
@@ -1041,21 +1042,25 @@ el.style.height=hintH+'px';
 el.style.fontSize=fs+'px';
 el.style.lineHeight=hintH+'px';
 el.style.transformOrigin='center center';
-el.style.letterSpacing='0.08em';
+el.style.letterSpacing=el.classList.contains('hi-formula')?'0.04em':'0.08em';
 el.style.whiteSpace='nowrap';
 el.style.transform='scaleX(1)';
-// Measure full text width (even if hidden) then squash to fit gap
 const txt=(el.textContent||'').trim()||'NEXT TOUCH SUBMITS!';
+const isFormula=el.classList.contains('hi-formula');
 let tw=0;
 try{
 const mctx=document.createElement('canvas').getContext('2d');
-mctx.font=fs+"px 'Press Start 2P',monospace";
-tw=mctx.measureText(txt).width*1.08; // letter-spacing fudge
+mctx.font=isFormula?(fs+"px 'Caveat',cursive"):(fs+"px 'Press Start 2P',monospace");
+tw=mctx.measureText(txt).width*(isFormula?1.05:1.08);
 }catch(e){tw=el.scrollWidth||hintW}
-if(tw>hintW&&tw>0){
-el.style.transform='scaleX('+(hintW/tw).toFixed(4)+')';
-}else{
-el.style.transform='none';
+// Formula: mild stretch toward the gap (not full-width); other hints shrink if too wide
+if(tw>0){
+if(isFormula){
+const target=hintW*0.88;
+const sx=Math.min(1.35,Math.max(1,target/tw));
+el.style.transform=sx>1.02?'scaleX('+sx.toFixed(4)+')':'none';
+}else if(tw>hintW)el.style.transform='scaleX('+(hintW/tw).toFixed(4)+')';
+else el.style.transform='none';
 }
 }
 layoutHint($('subHint'));
@@ -1135,17 +1140,30 @@ if(ph){if(isPaused)ph.classList.add('show');else ph.classList.remove('show');}
 try{
 const lB2=$('lB'),hB2=$('hB');
 let hL=8,hR=window.innerWidth-8,hT=48,hH=50;
-if(lB2){const r=lB2.getBoundingClientRect();hL=r.right+14;hT=r.top;hH=r.height}
-if(hB2){const r=hB2.getBoundingClientRect();hR=r.left-8}
+if(lB2){const r=lB2.getBoundingClientRect();hL=r.right+8;hT=r.top;hH=r.height}
+if(hB2){const r=hB2.getBoundingClientRect();hR=r.left-6}
 const hW=Math.max(40,hR-hL),f2=Math.max(10,Math.floor(hH*0.42));
 function fit(el){
 if(!el)return;
 el.style.left=hL+'px';el.style.width=hW+'px';el.style.top=hT+'px';el.style.height=hH+'px';
 el.style.fontSize=f2+'px';el.style.lineHeight=hH+'px';el.style.transformOrigin='center center';
+const isFormula=el.classList.contains('hi-formula');
+el.style.letterSpacing=isFormula?'0.04em':'0.08em';
 const txt=(el.textContent||'').trim()||'NEXT TOUCH SUBMITS!';
 let tw=0;
-try{const c=document.createElement('canvas').getContext('2d');c.font=f2+"px 'Press Start 2P',monospace";tw=c.measureText(txt).width*1.08}catch(e){tw=hW}
-el.style.transform=(tw>hW&&tw>0)?'scaleX('+(hW/tw).toFixed(4)+')':'none';
+try{
+const c=document.createElement('canvas').getContext('2d');
+c.font=isFormula?(f2+"px 'Caveat',cursive"):(f2+"px 'Press Start 2P',monospace");
+tw=c.measureText(txt).width*(isFormula?1.05:1.08);
+}catch(e){tw=hW}
+if(tw>0){
+if(isFormula){
+const target=hW*0.88;
+const sx=Math.min(1.35,Math.max(1,target/tw));
+el.style.transform=sx>1.02?'scaleX('+sx.toFixed(4)+')':'none';
+}else if(tw>hW)el.style.transform='scaleX('+(hW/tw).toFixed(4)+')';
+else el.style.transform='none';
+}
 }
 fit(el);fit(ph);
 }catch(e){}
