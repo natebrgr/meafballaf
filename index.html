@@ -6,24 +6,26 @@
 <title>MEGA BOUNCE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Exo+2:wght@400;600;700&family=Press+Start+2P&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Exo+2:wght@400;600;700&family=Press+Start+2P&family=Permanent+Marker&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#050508;--panel:rgba(12,14,22,.88);--cyan:#00f0ff;--gold:#ffd700;--green:#00ff88;--red:#ff3355;--text:#e8f0ff;--dim:#8899bb}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;overflow:hidden;height:100%;height:100dvh;width:100%;font-family:'Exo 2',system-ui,sans-serif;background:var(--bg);color:var(--text);user-select:none;
 background-image:radial-gradient(ellipse at 20% 20%,rgba(0,80,120,.15),transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(80,0,100,.12),transparent 50%)}
 
-#title{pointer-events:auto;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:1.05rem}
+#title{pointer-events:auto;cursor:pointer;white-space:nowrap;flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:clamp(.62rem,3.8vw,1.05rem)}
 .sb{cursor:pointer;pointer-events:auto}
-#title{font-family:'Orbitron',sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:.08em;background:linear-gradient(90deg,var(--cyan),#ff00aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.cg{display:flex;gap:10px;pointer-events:auto}
-.cur{display:flex;align-items:center;gap:5px;font-family:'Orbitron',sans-serif;font-weight:600;font-size:.95rem;background:var(--panel);border:1px solid rgba(0,240,255,.25);border-radius:16px;padding:4px 10px;pointer-events:auto;cursor:pointer}
-.ci{width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff}
+#title{font-family:'Orbitron',sans-serif;font-weight:800;letter-spacing:.08em;background:linear-gradient(90deg,var(--cyan),#ff00aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.cg{display:flex;gap:6px;pointer-events:auto;flex:0 0 auto;margin-left:auto;align-items:center;z-index:80}
+.cur{display:inline-flex;align-items:center;gap:5px;font-family:'Orbitron',sans-serif;font-weight:600;font-size:clamp(.7rem,2.8vw,.95rem);background:var(--panel);border:1px solid rgba(0,240,255,.25);border-radius:16px;padding:4px 10px;pointer-events:auto;cursor:pointer;position:relative;z-index:80;width:auto;min-width:fit-content;height:auto;flex:0 0 auto;box-sizing:border-box;overflow:visible;white-space:nowrap}
+.ci{width:15px;height:15px;min-width:15px;min-height:15px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff;transform:none!important}
 #cI{background:linear-gradient(135deg,#00e5ff,#0088ff)}#pI{background:linear-gradient(135deg,#ffd700,#ffaa00)}
+#cC,#pC{transform:none!important;white-space:nowrap;line-height:1;display:inline-block}
 .sb{position:absolute;z-index:20;background:var(--panel);border:1px solid rgba(0,240,255,.25);border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;height:50px}
 .sl{font-size:.48rem;letter-spacing:.12em;color:var(--dim);font-weight:600;text-transform:uppercase}
 .sv{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.25rem;line-height:1}
 #cC{color:#ffe566}
+.cg .cur{z-index:80}
 #hC{color:#00e5ff}
 #lB{top:48px;left:2.5vw}#hB{top:48px;right:2.5vw;border-color:rgba(255,215,0,.55)}
 #hB.fg{animation:hBfg .5s ease}
@@ -62,16 +64,18 @@ height:42px;
 display:flex;
 align-items:center;
 justify-content:space-between;
+gap:8px;
 z-index:30;
 pointer-events:none;
 box-sizing:border-box;
 transform:none;
+overflow:visible;
 }
-#cd{position:absolute;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-weight:800;font-size:4rem;z-index:15;pointer-events:none;color:#fff;text-shadow:0 0 28px rgba(0,240,255,.8);opacity:0}
+#cd{position:absolute;left:50%;top:0;transform:none;font-family:'Orbitron',sans-serif;font-weight:800;font-size:4rem;z-index:15;pointer-events:none;color:#fff;text-shadow:0 0 20px rgba(0,240,255,.7);opacity:0;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
 .cf{position:fixed;z-index:40;font-family:'Orbitron',sans-serif;font-weight:700;font-size:0;pointer-events:none;opacity:0;white-space:nowrap}
 .cf.plus{color:var(--green);animation:fp 1.3s ease forwards}.cf.minus{color:var(--red);animation:fm 1.3s ease forwards}
-@keyframes fp{0%{font-size:0;opacity:1}30%{font-size:1.25rem;opacity:1;transform:translateY(-8px) rotate(12deg)}70%{font-size:1.25rem;opacity:1}100%{font-size:0;opacity:0;transform:translateY(-18px)}}
-@keyframes fm{0%{font-size:0;opacity:1}30%{font-size:1.25rem;opacity:1;transform:translateY(-8px) rotate(-12deg)}70%{font-size:1.25rem;opacity:1}100%{font-size:0;opacity:0;transform:translateY(-18px)}}
+@keyframes fp{0%{font-size:0;opacity:1}30%{font-size:1.25rem;opacity:1;transform:translateY(-8px)}70%{font-size:1.25rem;opacity:1}100%{font-size:0;opacity:0;transform:translateY(-18px)}}
+@keyframes fm{0%{font-size:0;opacity:1}30%{font-size:1.25rem;opacity:1;transform:translateY(-8px)}70%{font-size:1.25rem;opacity:1}100%{font-size:0;opacity:0;transform:translateY(-18px)}}
 .sb.fg{animation:fg .5s ease}.sb.fr{animation:fr .5s ease}
 @keyframes fg{0%,100%{border-color:rgba(0,240,255,.25)}50%{border-color:var(--green);box-shadow:0 0 14px rgba(0,255,136,.4)}}
 @keyframes fr{0%,100%{border-color:rgba(0,240,255,.25)}50%{border-color:var(--red);box-shadow:0 0 14px rgba(255,50,80,.4)}}
@@ -170,14 +174,21 @@ font-family:Orbitron;color:var(--cyan);text-align:center}
 #bB #hBtn,button#hBtn{color:#00ff88!important;border-color:rgba(0,255,136,.55)!important}
 #bB #hBtn:hover,button#hBtn:hover{color:#66ffb3!important;border-color:#00ff88!important;box-shadow:0 0 12px rgba(0,255,136,.35)!important}
 
-#pauseHint,#subHint{position:fixed;left:50%;z-index:15;pointer-events:none;
+#eqHint{
+position:fixed;left:50%;z-index:14;pointer-events:none;
+text-align:center;opacity:0.55;visibility:visible;white-space:nowrap;
+line-height:1;display:flex;align-items:center;justify-content:center;
+background:transparent;border:none;padding:0;margin:0;
+transform-origin:center center;
+filter:blur(0.5px);
+}
+#pauseHint,#subHint{position:fixed;left:50%;z-index:16;pointer-events:none;
 font-family:'Press Start 2P',monospace;font-weight:400;
 letter-spacing:.1em;text-align:center;opacity:0;visibility:hidden;white-space:nowrap;
 text-transform:uppercase;
 color:#f2f6ff;
 line-height:1;
 display:flex;align-items:center;justify-content:center;
-/* static soft LED glow — no border/box */
 background:transparent;border:none;padding:0;margin:0;
 box-shadow:none;
 text-shadow:
@@ -198,33 +209,29 @@ text-shadow:0 0 1px #ffc0cc,0 0 5px rgba(255,50,80,.95),0 0 10px rgba(255,50,80,
 color:#f2f6ff;
 text-shadow:0 0 1px #fff,0 0 4px rgba(255,255,255,.85),0 0 8px rgba(200,220,255,.45);
 }
-#subHint.hi-formula{
-font-family:'Caveat',cursive;font-weight:700;
+#eqHint .fx{color:inherit;text-shadow:inherit}
+#eqHint .fx-up{
 color:#0a0c10;
-letter-spacing:.04em;
-font-size:1.15em;
+text-shadow:0 0 2px #fff,0 0 8px rgba(0,255,136,.95),0 0 16px rgba(0,255,136,.75),0 0 28px rgba(0,255,136,.45);
+}
+#eqHint .fx-down{
+color:#0a0c10;
+text-shadow:0 0 2px #fff,0 0 8px rgba(255,51,85,.95),0 0 16px rgba(255,51,85,.75),0 0 28px rgba(255,51,85,.45);
+}
+#eqHint .fx-prod{
+color:#0a0c10;
+text-shadow:0 0 2px #fff8dc,0 0 6px rgba(255,215,0,.95),0 0 14px rgba(255,200,0,.75),0 0 24px rgba(255,180,0,.45);
+}
+#eqHint{
+font-family:'Permanent Marker',cursive;font-weight:400;
+color:#0a0c10;
+letter-spacing:.02em;
 text-shadow:
 0 0 2px #fff,
 0 0 4px #fff,
 0 0 8px rgba(255,255,255,.95),
 0 0 14px rgba(255,255,255,.7),
 0 1px 0 #fff;
-}
-#subHint.hi-formula .fx{
-color:inherit;
-text-shadow:inherit;
-}
-#subHint.hi-formula .fx-up{
-color:#0a0c10; /* text stays dark */
-text-shadow:0 0 2px #fff,0 0 8px rgba(0,255,136,.95),0 0 16px rgba(0,255,136,.75),0 0 28px rgba(0,255,136,.45);
-}
-#subHint.hi-formula .fx-down{
-color:#0a0c10;
-text-shadow:0 0 2px #fff,0 0 8px rgba(255,51,85,.95),0 0 16px rgba(255,51,85,.75),0 0 28px rgba(255,51,85,.45);
-}
-#subHint.hi-formula .fx-prod{
-color:#0a0c10;
-text-shadow:0 0 2px #fff8dc,0 0 6px rgba(255,215,0,.95),0 0 14px rgba(255,200,0,.75),0 0 24px rgba(255,180,0,.45);
 }
 #sO.ov{padding-top:0}
 #sO .s-sticky{top:0;margin-top:0;padding-top:14px}
@@ -251,19 +258,20 @@ body.ui-locked #currency,body.ui-locked .cur,body.ui-locked canvas{
 pointer-events:none!important;
 }
 
-#pwrB,#bncB,#slwB,#lckB{
+#homeB,#bncB,#slwB,#lckB{
 color:#e8e8e8!important;
 filter:grayscale(1);
 }
-#pwrB.on,button#pwrB.on{color:#fff!important;border-color:rgba(255,255,255,.85)!important;box-shadow:0 0 12px rgba(255,255,255,.35)!important;filter:grayscale(1);}
+#homeB{font-size:1.15rem;line-height:1;filter:grayscale(1)!important;}
+#homeB.on,button#homeB.on{color:#fff!important;border-color:rgba(255,255,255,.85)!important;box-shadow:0 0 12px rgba(255,255,255,.35)!important;}
 #bncB.on,button#bncB.on{color:#fff!important;border-color:rgba(255,255,255,.85)!important;box-shadow:0 0 12px rgba(255,255,255,.35)!important;filter:grayscale(1);}
 #slwB.on,button#slwB.on{color:#fff!important;border-color:rgba(255,255,255,.85)!important;box-shadow:0 0 12px rgba(255,255,255,.35)!important;filter:grayscale(1);}
 #lckB{font-size:1.05rem;line-height:1;filter:grayscale(1);}
 #lckB.unlocked{color:#fff!important;border-color:rgba(255,255,255,.75)!important;filter:grayscale(1);}
 #title{cursor:pointer;pointer-events:auto}
 
-#pwrB,#bncB,#slwB,#lckB{font-size:.95rem;letter-spacing:0;padding:8px 6px}
-@media(max-width:480px){#pwrB,#bncB,#slwB,#lckB{font-size:.85rem;padding:8px 4px}#pB{font-size:.5rem}}
+#homeB,#bncB,#slwB,#lckB{font-size:.95rem;letter-spacing:0;padding:8px 6px}
+@media(max-width:480px){#homeB,#bncB,#slwB,#lckB{font-size:.85rem;padding:8px 4px}#pB{font-size:.5rem}}
 </style>
 </head>
 <body>
@@ -276,12 +284,12 @@ filter:grayscale(1);
 <div id="bcCall" class="tutCall tutCallL"><span class="tutCallArr">↑</span><span class="tutCallTxt">bounce count</span></div>
 <div id="bgCall" class="tutCall tutCallR"><span class="tutCallArr">↑</span><span class="tutCallTxt">bounce goal</span></div>
 <div class="sb" id="hB"><div class="sl">HI-SCORE</div><div class="sv" id="hC">0</div></div>
-<div id="pauseHint">GAME IS PAUSED...</div><div id="subHint">NEXT TOUCH SUBMITS!</div><div id="cd">3</div>
+<div id="eqHint" class="hi-formula">3 x 0 = 0</div><div id="pauseHint">GAME IS PAUSED...</div><div id="subHint">NEXT TOUCH SUBMITS!</div><div id="cd">3</div>
 <div class="cf" id="lCh"></div><div class="cf" id="lvCh"></div><div class="cf" id="cCh"></div><div class="cf" id="hCh"></div>
 <canvas id="canvas"></canvas>
 <div id="bB">
-<button id="pwrB" title="Power throw">&#9889;</button><button id="bncB" title="Extra bounce">&#8597;</button><button id="pB">PAUSE</button>
-<button id="lckB" title="Scroll lock">&#128274;</button><button id="slwB" title="Slow motion">&#9201;</button>
+<button id="homeB" title="Home">&#127968;</button><button id="lckB" title="Scroll lock">&#128274;</button><button id="pB">PAUSE</button>
+<button id="bncB" title="Extra bounce">&#8597;</button><button id="slwB" title="Slow motion">&#9201;</button>
 </div>
 <div class="ov" id="sO"><div class="s-sticky"><div class="oh"><div class="ot" style="background:linear-gradient(90deg,var(--gold),#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent">STORE</div><button class="oc" id="sCl">X</button></div>
 <div style="font-family:Orbitron;color:var(--cyan)"><span id="sHS">HS 0</span> · <span id="sCC">0</span> $</div>
@@ -306,7 +314,7 @@ const $=id=>document.getElementById(id);
 const lN=$('lN'),cd=$('cd'),wH=$('wH'),lC=$('lC'),lB=$('lB'),hC=$('hC'),hB=$('hB');
 const cC=$('cC'),pC=$('pC'),pD=$('pD'),title=$('title'),pB=$('pB');
 const sO=$('sO'),sCl=$('sCl'),sCC=$('sCC'),skG=$('skG'),bgG=$('bgG');
-const pwrB=$('pwrB'),bncB=$('bncB'),lckB=$('lckB'),slwB=$('slwB');
+const homeB=$('homeB'),bncB=$('bncB'),lckB=$('lckB'),slwB=$('slwB');
 const lCh=$('lCh'),lvCh=$('lvCh'),cCh=$('cCh'),hCh=$('hCh'),hO=$('hO'),hCl=$('hCl'),hCb=$('hCb'),hCo=$('hCo');
 const tO=$('tO'),tS=$('tS'),tT=$('tT'),tB=$('tB'),tN=$('tN'),tSk=$('tSk'),tP=$('tP'),tNA=$('tNA');
 
@@ -321,13 +329,18 @@ let lives=3,hiScore=0,coins=0,potential=0,isPaused=false;
 const hiScores={'survival-rectangle':0,'freebie-rectangle':0,'survival-circle':0,'freebie-circle':0};
 let prevL=lives,prevLv=level,prevHS=hiScore,prevC=coins,startL=lives,suppress=false;
 let mode='survival',map='rectangle',active=true,curInc=14,nextCO=16,cashAvail=false;
-let powerOn=false,bouncyOn=false,slowOn=false,scrollUnlocked=false;
+let bouncyOn=false,slowOn=false,scrollUnlocked=false;
+let homeAway=false;
+let homeTrans=null;
+let homeSaved=null; // ball/CD state frozen at home press
+const HOME_POWER_AT_100=16; // former power-on multiplier reached at level 100
+
 let lockTrans=null; // {t0,dur,fromScroll,toScroll,fromY,toY,savedDx,savedDy}
 const usedTB=new Set(); // absolute white-band keys that have been consumed
-const POWER_MUL=16, BOUNCY_F=0.96, SLOW_SCALE=0.42;
+const BOUNCY_F=0.96, SLOW_SCALE=0.42;
 const trail=[];
-let holdT={play:null,power:null,bouncy:null,lock:null,slow:null};
-let btnAct={play:false,power:false,bouncy:false,lock:false,slow:false};
+let holdT={play:null,home:null,bouncy:null,lock:null,slow:null};
+let btnAct={play:false,home:false,bouncy:false,lock:false,slow:false};
 let holes=[];
 let particles=[];
 let viewW=320,viewH=480;
@@ -411,6 +424,15 @@ lHand:[-r*0.65,r*0.85],rHand:[r*0.65,r*0.85],
 lKnee:[-r*0.22,r*1.5],rKnee:[r*0.22,r*1.5],
 lFoot:[-r*0.25,r*2.1],rFoot:[r*0.25,r*2.1]
 },
+// Neutral standing (home idle) — straight legs, arms relaxed at sides
+stand:{
+chest:[0,r*0.34],hip:[0,r*0.98],
+lShoulder:[-r*0.32,r*0.3],rShoulder:[r*0.32,r*0.3],
+lElbow:[-r*0.36,r*0.72],rElbow:[r*0.36,r*0.72],
+lHand:[-r*0.34,r*1.15],rHand:[r*0.34,r*1.15],
+lKnee:[-r*0.1,r*1.55],rKnee:[r*0.1,r*1.55],
+lFoot:[-r*0.12,r*2.12],rFoot:[r*0.12,r*2.12]
+},
 // Background scrolling down (virtual up) — limbs straightened closer to body
 straight:{
 chest:[0,r*0.34],hip:[0,r*0.92],
@@ -427,6 +449,39 @@ lElbow:[-r*0.6,r*0.05],rElbow:[r*0.6,r*0.05],
 lHand:[-r*0.7,r*-0.25],rHand:[r*0.7,r*-0.25],
 lKnee:[-r*0.22,r*1.5],rKnee:[r*0.22,r*1.5],
 lFoot:[-r*0.25,r*2.1],rFoot:[r*0.25,r*2.1]
+},
+// Walking cycle (in place) — facing handled by faceDir
+walk0:{
+chest:[0,r*0.34],hip:[0,r*0.9],
+lShoulder:[-r*0.32,r*0.28],rShoulder:[r*0.32,r*0.28],
+lElbow:[-r*0.55,r*0.55],rElbow:[r*0.48,r*0.2],
+lHand:[-r*0.45,r*0.85],rHand:[r*0.55,r*-0.05],
+lKnee:[-r*0.35,r*1.45],rKnee:[r*0.4,r*1.35],
+lFoot:[-r*0.45,r*2.05],rFoot:[r*0.55,r*1.95]
+},
+walk1:{
+chest:[0,r*0.34],hip:[0,r*0.9],
+lShoulder:[-r*0.32,r*0.28],rShoulder:[r*0.32,r*0.28],
+lElbow:[-r*0.48,r*0.2],rElbow:[r*0.55,r*0.55],
+lHand:[-r*0.55,r*-0.05],rHand:[r*0.45,r*0.85],
+lKnee:[-r*0.4,r*1.35],rKnee:[r*0.35,r*1.45],
+lFoot:[-r*0.55,r*1.95],rFoot:[r*0.45,r*2.05]
+},
+squat:{
+chest:[0,r*0.42],hip:[0,r*0.82],
+lShoulder:[-r*0.38,r*0.32],rShoulder:[r*0.38,r*0.32],
+lElbow:[-r*0.62,r*0.55],rElbow:[r*0.62,r*0.55],
+lHand:[-r*0.72,r*0.78],rHand:[r*0.72,r*0.78],
+lKnee:[-r*0.38,r*1.22],rKnee:[r*0.38,r*1.22],
+lFoot:[-r*0.32,r*1.58],rFoot:[r*0.32,r*1.58]
+},
+jump:{
+chest:[0,r*0.32],hip:[0,r*0.88],
+lShoulder:[-r*0.42,r*0.18],rShoulder:[r*0.42,r*0.18],
+lElbow:[-r*0.78,r*0.08],rElbow:[r*0.78,r*0.08],
+lHand:[-r*1.05,r*-0.12],rHand:[r*1.05,r*-0.12],
+lKnee:[-r*0.18,r*1.28],rKnee:[r*0.18,r*1.28],
+lFoot:[-r*0.12,r*1.72],rFoot:[r*0.12,r*1.72]
 }
 };
 return poses[pose]||poses.super;
@@ -523,7 +578,10 @@ pts.hip.x=Math.max(pts.hip.x-push,leftW);
 }
 }
 function bodyUpdateFace(){
-// 0 forward, 2 eyes up, 3 ouchy, 4 angrier flash, 5 scared falling
+if(homeTrans&&!{centerX:1,toFloor:1,glideBack:1,restore:1}[homeTrans.phase]){
+return; // cinematic faces during jump/idle
+}
+if(homeAway&&!homeTrans){BODY.faceDir=6;return;}
 const now=Date.now();
 const deepSplits=BODY.landT>0.35;
 if(deepSplits)BODY.faceDir=3;
@@ -534,7 +592,7 @@ else BODY.faceDir=0;
 }
 function bodyUpdate(){
 if(!BODY.ready||!BODY.pts)bodyReset();
-if(lockTrans)return;
+// lockTrans no longer freezes the body — pose/borders/faces run during the glide
 const pts=BODY.pts;
 const w=viewW,h=viewH;
 
@@ -701,16 +759,31 @@ for(const name of ['lHand','rHand']){
 const q=p[name];
 ctx.beginPath();ctx.arc(q.x,q.y,hr,0,Math.PI*2);ctx.fill();ctx.stroke();
 }
-// Feet — ovals
+// Feet — ovals; flatten horizontally when planted on the floor
+const floorY=viewH-2;
+const plant=(homeTrans&&['squat','squatIn','landSquat','standUp','landInSquat','standInUp','idleAway','centerX','toFloor'].indexOf(homeTrans.phase)>=0)||!!homeAway;
 for(const [foot,knee] of [['lFoot','lKnee'],['rFoot','rKnee']]){
 const f=p[foot],k=p[knee];
-const ang=Math.atan2(f.y-k.y,f.x-k.x);
+const onFloor=plant||f.y>=floorY-3;
+const ang=onFloor?0:Math.atan2(f.y-k.y,f.x-k.x);
 const rw=Math.max(7,circle.radius*0.26);
 const rh=Math.max(4,circle.radius*0.14);
 ctx.beginPath();
-ctx.ellipse(f.x,f.y,rw,rh,ang,0,Math.PI*2);
+ctx.ellipse(f.x,onFloor?Math.min(f.y,floorY):f.y,rw,rh,ang,0,Math.PI*2);
 ctx.fill();ctx.stroke();
 }
+ctx.restore();
+}
+
+function drawCrosshair(ctx,cx,cy,r){
+ctx.save();
+ctx.strokeStyle='rgba(0,0,0,0.7)';
+ctx.lineWidth=1.5;
+const cs=Math.max(11,r*0.28);
+ctx.beginPath();
+ctx.moveTo(cx-cs,cy);ctx.lineTo(cx+cs,cy);
+ctx.moveTo(cx,cy-cs);ctx.lineTo(cx,cy+cs);
+ctx.stroke();
 ctx.restore();
 }
 
@@ -767,6 +840,22 @@ ctx.stroke();
 ctx.lineWidth=Math.max(2.2,s*0.075);
 ctx.beginPath();
 ctx.ellipse(0,mouthY+s*0.04,s*0.16,s*0.2,0,0,Math.PI*2);
+ctx.stroke();
+}else if(dir===6){
+// Straight/neutral face — after leaving the game
+ctx.lineWidth=Math.max(2.2,s*0.075);
+ctx.beginPath();
+ctx.ellipse(-s*0.36,eyeY,eyeRx,eyeRy,0.1,0,Math.PI*2);ctx.fill();
+ctx.beginPath();
+ctx.ellipse(s*0.36,eyeY,eyeRx,eyeRy,-0.1,0,Math.PI*2);ctx.fill();
+ctx.lineWidth=Math.max(2.2,s*0.08);
+ctx.beginPath();
+ctx.moveTo(-s*0.5,browY);ctx.lineTo(-s*0.16,browY);
+ctx.moveTo(s*0.5,browY);ctx.lineTo(s*0.16,browY);
+ctx.stroke();
+ctx.lineWidth=Math.max(2.3,s*0.08);
+ctx.beginPath();
+ctx.moveTo(-s*0.22,mouthY);ctx.lineTo(s*0.22,mouthY);
 ctx.stroke();
 }else if(dir===0||dir===2||dir===4){
 // Forward face; dir 2 = eyes up; dir 4 = angrier brows (brief side-hit flash)
@@ -835,16 +924,8 @@ ctx.quadraticCurveTo(-s*0.2,mouthY+s*0.2,-s*0.4,mouthY+s*0.05);
 ctx.stroke();
 }
 ctx.restore();
-// Crosshair nose — always centered
-ctx.save();
-ctx.strokeStyle='rgba(0,0,0,0.7)';
-ctx.lineWidth=1.5;
-const cs=Math.max(11,r*0.28);
-ctx.beginPath();
-ctx.moveTo(cx-cs,cy);ctx.lineTo(cx+cs,cy);
-ctx.moveTo(cx,cy-cs);ctx.lineTo(cx,cy+cs);
-ctx.stroke();
-ctx.restore();
+// Crosshair nose — skip during home (drawn frozen+scrolled separately, same graphic)
+if(!(homeTrans||homeAway))drawCrosshair(ctx,cx,cy,r);
 }
 
 function saveP(){const k=mode+'-'+map;hiScores[k]=Math.max(hiScores[k]||0,hiScore);
@@ -908,6 +989,375 @@ if(!lckB)return;
 lckB.innerHTML=scrollUnlocked?'&#128275;':'&#128274;';
 lckB.classList.toggle('unlocked',!!scrollUnlocked);
 }
+function levelThrowMul(){
+return 1+(HOME_POWER_AT_100-1)*Math.max(0,level-1)/99;
+}
+function reverseHomeTrans(){
+if(!homeTrans)return;
+const now=Date.now();
+const w=viewW;
+const targetScroll=w+90;
+const GLIDE_DUR=0.65;
+const JUMP_DUR=0.7;
+const p=homeTrans.phase;
+const s=homeTrans.saved||homeSaved;
+const leavePhases={centerX:1,squat:1,jump:1,landSquat:1,standUp:1,idleAway:1};
+const returnPhases={squatIn:1,jumpIn:1,landInSquat:1,restore:1,glideBack:1};
+
+if(homeTrans.dir==='leave'||leavePhases[p]){
+homeTrans.dir='return';
+homeAway=false;
+if(p==='centerX'||p==='squat'){
+// Reverse leave-glide/squat from current spot back into play
+const elapsed=p==='centerX'?Math.min(1,(now-homeTrans.t0)/1000/GLIDE_DUR):0.35;
+homeTrans.phase='glideBack';
+homeTrans.t0=now;
+homeTrans.glideDur=Math.max(0.15,elapsed*GLIDE_DUR);
+homeTrans.glideFrom={x:circle.x,y:circle.y};
+homeTrans.glideTo=s?{x:s.x,y:s.y}:{x:circle.x,y:circle.y};
+homeTrans.rFrom=circle.radius;
+homeTrans.rTo=s&&s.radius!=null?s.radius:circle.radius;
+homeTrans.restDx=s?s.dx:0;homeTrans.restDy=s?s.dy:0;
+if(s){isCD=s.isCD;cdVal=s.cdVal;cdOp=s.cdOp;cdRemain=s.cdRemain;isTrack=s.isTrack;wallHits=s.wallHits;zoneScroll=s.zoneScroll;}
+}else if(p==='jump'){
+const u=Math.min(1,(homeTrans.jumpT||0)/JUMP_DUR);
+homeTrans.phase='jumpIn';
+homeTrans.jumpT=(1-u)*JUMP_DUR; // mirror hop + scroll from this exact point
+homeTrans.t0=now;
+homeTrans.scrollX=targetScroll*u;
+}else if(p==='landSquat'||p==='standUp'||p==='idleAway'){
+homeTrans.phase='squatIn';
+homeTrans.t0=now;homeTrans.jumpT=0;
+homeTrans.scrollX=targetScroll;
+circle.radius=INIT_R;
+}
+}else if(homeTrans.dir==='return'||returnPhases[p]){
+homeTrans.dir='leave';
+if(p==='squatIn'){
+homeTrans.phase='squat';
+homeTrans.t0=now;homeTrans.jumpT=0;
+homeTrans.scrollX=homeTrans.scrollX||0;
+}else if(p==='jumpIn'){
+const u=Math.min(1,(homeTrans.jumpT||0)/JUMP_DUR);
+homeTrans.phase='jump';
+homeTrans.jumpT=(1-u)*JUMP_DUR;
+homeTrans.t0=now;
+homeTrans.scrollX=targetScroll*(1-u);
+}else if(p==='landInSquat'||p==='restore'){
+homeTrans.phase='jump';
+homeTrans.t0=now;homeTrans.jumpT=0;
+homeTrans.scrollX=0;
+circle.radius=INIT_R;
+circle.x=w/2;circle.y=homeStandYFor(INIT_R);
+}else if(p==='glideBack'){
+const elapsed=Math.min(1,(now-homeTrans.t0)/1000/(homeTrans.glideDur||GLIDE_DUR));
+homeTrans.phase='centerX';
+homeTrans.t0=now;
+homeTrans.glideDur=Math.max(0.15,elapsed*(homeTrans.glideDur||GLIDE_DUR));
+homeTrans.rFrom=circle.radius;
+homeTrans.rTo=INIT_R;
+homeTrans.glideFrom={x:circle.x,y:circle.y};
+}
+}
+}
+
+function toggleHome(){
+if(homeTrans){
+reverseHomeTrans();
+if(homeB)homeB.classList.add('on');
+return;
+}
+if(homeAway){
+if(!window._homeFreeze)freezeHomeUI();
+homeTrans={dir:'return',phase:'squatIn',t0:Date.now(),scrollX:viewW+90,walkT:0,jumpT:0,saved:homeSaved||null};
+}else{
+if(isCD)pauseCD();
+isPaused=true;
+freezeHomeUI(); // lock text scales/layout exactly as on screen
+homeSaved={x:circle.x,y:circle.y,dx:circle.dx,dy:circle.dy,radius:circle.radius,
+isCD:isCD,cdVal:cdVal,cdOp:cdOp,cdRemain:cdRemain,isTrack:isTrack,wallHits:wallHits,zoneScroll:zoneScroll};
+homeTrans={dir:'leave',phase:'centerX',t0:Date.now(),scrollX:0,walkT:0,jumpT:0,saved:homeSaved,
+rFrom:circle.radius,rTo:INIT_R,glideFrom:{x:circle.x,y:circle.y}};
+circle.isDragging=false;
+}
+if(homeB)homeB.classList.add('on');
+}
+function homeStandYFor(r){
+r=Math.max(12,r);
+const footReach=r*0.98+r*2.12;
+return viewH-2-footReach;
+}
+function homeSquatYFor(r){
+r=Math.max(12,r);
+const footReach=r*0.98+r*1.58;
+return viewH-2-footReach;
+}
+function homeStandY(){return homeStandYFor(circle.radius);}
+function homeSquatY(){return homeSquatYFor(circle.radius);}
+function applyHomeUIScroll(sx){
+if(!window._homeFreeze)return;
+const sxn=sx||0;
+Object.keys(window._homeFreeze).forEach(key=>{
+if(key.startsWith('_'))return;
+const f=window._homeFreeze[key], el=$(key);
+if(!el||!f)return;
+el.style.position='fixed';
+el.style.left=(f.left+sxn)+'px';
+el.style.top=f.top+'px';
+el.style.width=f.width+'px';
+el.style.height=f.height+'px';
+el.style.right='auto';
+el.style.bottom='auto';
+el.style.margin='0';
+el.style.transform=f.transform||'none';
+el.style.transformOrigin=f.origin||'center center';
+});
+['_bnc','_lck','_slw','_pB'].forEach((k,i)=>{
+const el=[bncB,lckB,slwB,pB][i], f=window._homeFreeze[k];
+if(!el||!f)return;
+el.style.position='fixed';
+el.style.left=(f.left+sxn)+'px';
+el.style.top=f.top+'px';
+el.style.width=f.width+'px';
+el.style.height=f.height+'px';
+el.style.right='auto';
+el.style.margin='0';
+el.style.transform=f.transform||'none';
+});
+// $ coins stay in the top bar — never freeze/scroll them
+const cC=$('cC');
+if(cC&&cC.parentElement){
+cC.parentElement.style.position='';
+cC.parentElement.style.left='';
+cC.parentElement.style.top='';
+cC.parentElement.style.width='';
+cC.parentElement.style.height='';
+cC.parentElement.style.transform='';
+cC.parentElement.style.zIndex='80';
+}
+if(homeB){
+homeB.style.transform='none';
+if(window._homeFreeze&&window._homeFreeze._home){
+const f=window._homeFreeze._home;
+homeB.style.flex='0 0 auto';
+homeB.style.width=f.width+'px';
+homeB.style.minWidth=f.width+'px';
+homeB.style.maxWidth=f.width+'px';
+homeB.style.height=f.height+'px';
+}
+}
+}
+
+function freezeHomeUI(){
+window._homeFreeze={};
+const snap=el=>{
+if(!el)return null;
+const r=el.getBoundingClientRect();
+// Keep only scale* from inline transform; drop translates
+let t=el.style.transform||'none';
+t=t.replace(/translateX\([^)]*\)/g,'').replace(/translate\([^)]*\)/g,'').trim()||'none';
+return{left:r.left,top:r.top,width:Math.max(1,r.width),height:Math.max(1,r.height),transform:t,origin:el.style.transformOrigin||'center center'};
+};
+['lB','hB','lvB','eqHint','subHint','pauseHint','cd','lCh','lvCh','cCh','hCh','pD','bcCall','bgCall','title'].forEach(id=>{
+const el=$(id);if(!el)return;
+window._homeFreeze[id]=snap(el);
+});
+[bncB,lckB,slwB,pB].forEach((el,i)=>{
+if(el)window._homeFreeze[['_bnc','_lck','_slw','_pB'][i]]=snap(el);
+});
+if(homeB)window._homeFreeze._home=snap(homeB);
+// freeze animation clock + head text anchors
+window._homeAnim={arrP:arrP,t0:Date.now(),pulseT:Date.now()%1600};
+window._homeHead={x:circle.x,y:circle.y,r:circle.radius,hits:wallHits,lv:level,hold:(!isPaused&&circle.isDragging)||(isPaused&&circle.wasDraggingWhenPaused)};
+}
+
+function clearHomeUIFreeze(){
+const ids=['lB','hB','lvB','eqHint','subHint','pauseHint','cd','lCh','lvCh','cCh','hCh','pD','bcCall','bgCall','title'];
+ids.forEach(id=>{
+const el=$(id);if(!el)return;
+el.style.position='';el.style.left='';el.style.top='';el.style.width='';el.style.height='';
+el.style.right='';el.style.bottom='';el.style.margin='';el.style.transform='';el.style.transformOrigin='';
+});
+window._homeFreeze=null;
+window._homeAnim=null;
+window._homeHead=null;
+[bncB,lckB,slwB,pB].forEach(el=>{
+if(!el)return;
+el.style.position='';el.style.left='';el.style.top='';el.style.width='';el.style.height='';el.style.transform='';el.style.margin='';
+});
+if(homeB){
+homeB.style.flex='';homeB.style.width='';homeB.style.minWidth='';homeB.style.maxWidth='';homeB.style.height='';homeB.style.transform='';
+}
+const cWrap=$('cC')&&$('cC').parentElement;
+if(cWrap){cWrap.style.position='';cWrap.style.left='';cWrap.style.top='';cWrap.style.width='';cWrap.style.height='';cWrap.style.transform='';}
+try{setSize();updateHint();}catch(e){}
+}
+
+function homeUpdate(){
+if(!homeTrans)return;
+const now=Date.now();
+const h=viewH,w=viewW;
+const standY=homeStandY();
+const squatY=homeSquatY();
+const dt=Math.min(0.05,(now-(homeTrans.last||now))/1000);
+homeTrans.last=now;
+BODY.landT=0;BODY.feetStuck=false;
+const targetScroll=w+90;
+const GLIDE_DUR=0.65; // leave centerX and return glideBack share this duration
+
+if(homeTrans.phase==='centerX'){
+// Timed leave glide (same duration as return glideBack) + size toward default
+const rFrom=homeTrans.rFrom!=null?homeTrans.rFrom:(homeSaved&&homeSaved.radius)||circle.radius;
+const rTo=homeTrans.rTo!=null?homeTrans.rTo:INIT_R;
+const a=homeTrans.glideFrom||{x:circle.x,y:circle.y};
+const dur=homeTrans.glideDur||GLIDE_DUR;
+const t=Math.min(1,(now-homeTrans.t0)/1000/dur);
+const u=t*t*(3-2*t);
+circle.radius=rFrom+(rTo-rFrom)*u;
+const tx=w/2, ty=homeStandYFor(rTo);
+circle.x=a.x+(tx-a.x)*u;
+circle.y=a.y+(ty-a.y)*u;
+circle.dx=0;circle.dy=0;
+BODY.pose='super';BODY.faceDir=0;BODY.sway=0;
+if(t>=1){
+circle.x=tx;circle.y=ty;circle.radius=rTo;
+homeTrans.phase='squat';homeTrans.t0=now;homeTrans.glideDur=null;
+}
+}else if(homeTrans.phase==='squat'){
+BODY.pose='squat';BODY.faceDir=0;BODY.sway=0;
+circle.radius=INIT_R;
+circle.x=w/2;
+circle.y+=(homeSquatYFor(INIT_R)-circle.y)*0.2;
+if(now-homeTrans.t0>420){homeTrans.phase='jump';homeTrans.t0=now;homeTrans.jumpT=0;}
+}else if(homeTrans.phase==='jump'){
+BODY.pose='jump';BODY.faceDir=0;BODY.sway=0;
+circle.radius=INIT_R;
+homeTrans.jumpT=(homeTrans.jumpT||0)+dt;
+const jt=homeTrans.jumpT;
+const dur=0.7;
+const u=Math.min(1,jt/dur);
+const hop=Math.sin(u*Math.PI)*circle.radius*1.65;
+circle.x=w/2;
+circle.y=homeStandYFor(INIT_R)-hop;
+homeTrans.scrollX=targetScroll*u; // absolute so reverse maps cleanly
+if(u>=1){
+circle.y=homeSquatYFor(INIT_R);homeTrans.scrollX=targetScroll;
+homeTrans.phase='landSquat';homeTrans.t0=now;homeAway=true;
+BODY.pose='squat';BODY.faceDir=6;
+}
+}else if(homeTrans.phase==='landSquat'){
+BODY.pose='squat';BODY.faceDir=6;BODY.sway=0;homeAway=true;
+circle.radius=INIT_R;
+circle.x=w/2;circle.y=homeSquatYFor(INIT_R);
+homeTrans.scrollX=targetScroll;
+if(now-homeTrans.t0>300){homeTrans.phase='standUp';homeTrans.t0=now;}
+}else if(homeTrans.phase==='standUp'){
+BODY.pose='stand';BODY.faceDir=6;BODY.sway=0;homeAway=true;
+circle.radius=INIT_R;
+circle.x=w/2;
+const sy=homeStandYFor(INIT_R);
+circle.y+=(sy-circle.y)*0.2;
+homeTrans.scrollX=targetScroll;
+if(now-homeTrans.t0>380||Math.abs(circle.y-sy)<3){
+circle.y=sy;homeTrans.phase='idleAway';homeTrans.t0=now;
+}
+}else if(homeTrans.phase==='idleAway'){
+BODY.faceDir=6;BODY.pose='stand';BODY.sway=0;homeAway=true;
+circle.radius=INIT_R;
+circle.x=w/2;circle.y=homeStandYFor(INIT_R);
+homeTrans.scrollX=targetScroll;
+}else if(homeTrans.phase==='squatIn'){
+homeAway=false;
+BODY.pose='squat';BODY.faceDir=0;BODY.sway=0;
+circle.radius=INIT_R;
+circle.x=w/2;
+circle.y+=(homeSquatYFor(INIT_R)-circle.y)*0.2;
+if(now-homeTrans.t0>360){homeTrans.phase='jumpIn';homeTrans.t0=now;homeTrans.jumpT=0;}
+}else if(homeTrans.phase==='jumpIn'){
+BODY.pose='jump';BODY.faceDir=0;BODY.sway=0;
+circle.radius=INIT_R;
+homeTrans.jumpT=(homeTrans.jumpT||0)+dt;
+const jt=homeTrans.jumpT;
+const dur=0.7;
+const u=Math.min(1,jt/dur);
+const hop=Math.sin(u*Math.PI)*circle.radius*1.65;
+circle.x=w/2;
+circle.y=homeStandYFor(INIT_R)-hop;
+homeTrans.scrollX=Math.max(0,targetScroll*(1-u));
+if(u>=1){
+circle.y=homeSquatYFor(INIT_R);homeTrans.scrollX=0;
+homeTrans.phase='landInSquat';homeTrans.t0=now;
+BODY.pose='squat';BODY.faceDir=0;
+}
+}else if(homeTrans.phase==='landInSquat'){
+// Land back in game: squat, then go straight into return glide
+BODY.pose='squat';BODY.faceDir=0;BODY.sway=0;
+circle.radius=INIT_R;
+circle.x=w/2;circle.y=homeSquatYFor(INIT_R);
+homeTrans.scrollX=0;
+if(now-homeTrans.t0>300){homeTrans.phase='restore';homeTrans.t0=now;}
+}else if(homeTrans.phase==='restore'){
+// Begin smooth glide from stand pose back to saved ball position + size
+const s=homeTrans.saved||homeSaved;
+homeTrans.phase='glideBack';
+homeTrans.t0=now;
+homeTrans.glideFrom={x:circle.x,y:circle.y};
+homeTrans.glideTo=s?{x:s.x,y:s.y}:{x:circle.x,y:circle.y};
+homeTrans.rFrom=INIT_R;
+homeTrans.rTo=s&&s.radius!=null?s.radius:INIT_R;
+if(s){
+isCD=s.isCD;cdVal=s.cdVal;cdOp=s.cdOp;cdRemain=s.cdRemain;
+isTrack=s.isTrack;wallHits=s.wallHits;zoneScroll=s.zoneScroll;
+homeTrans.restDx=s.dx;homeTrans.restDy=s.dy;
+}else{homeTrans.restDx=0;homeTrans.restDy=0;}
+BODY.faceDir=0;BODY.pose='super';
+}else if(homeTrans.phase==='glideBack'){
+const dur=homeTrans.glideDur||GLIDE_DUR;
+const t=Math.min(1,(now-homeTrans.t0)/1000/dur);
+const u=t*t*(3-2*t);
+const a=homeTrans.glideFrom,b=homeTrans.glideTo;
+const rFrom=homeTrans.rFrom!=null?homeTrans.rFrom:INIT_R;
+const rTo=homeTrans.rTo!=null?homeTrans.rTo:((homeSaved&&homeSaved.radius)||INIT_R);
+circle.radius=rFrom+(rTo-rFrom)*u;
+circle.x=a.x+(b.x-a.x)*u;
+circle.y=a.y+(b.y-a.y)*u;
+circle.dx=0;circle.dy=0;
+// Don't force face/pose — bodyUpdate drives splits/faces from position
+if(t>=1){
+circle.x=b.x;circle.y=b.y;circle.radius=rTo;
+circle.dx=homeTrans.restDx||0;circle.dy=homeTrans.restDy||0;
+// Final body frame while still in glideBack so pose/face/borders stick
+bodyUpdate();
+homeTrans=null;homeAway=false;
+clearHomeUIFreeze();
+applyHomeUIScroll(0);
+if(homeB)homeB.classList.remove('on');
+isPaused=true;
+pauseCD();
+updDisp();updateHint();
+return;
+}
+}
+
+if(homeTrans&&homeTrans.phase!=='glideBack'&&homeTrans.phase!=='centerX'){circle.dx=0;circle.dy=0;}
+if(homeTrans)applyHomeUIScroll(homeTrans.scrollX||0);
+else if(homeAway)applyHomeUIScroll(targetScroll);
+else applyHomeUIScroll(0);
+const fullBodyPhases={centerX:1,toFloor:1,glideBack:1,restore:1};
+if(homeTrans&&fullBodyPhases[homeTrans.phase]){
+bodyUpdate(); // borders, splits, faces during exit+return glides
+}else if(homeTrans||homeAway){
+if(!BODY.ready||!BODY.pts)bodyReset();
+bodyPinNeck();
+bodyApplyPose(BODY.pose||'super');
+if(homeTrans&&['squat','squatIn','landSquat','standUp','landInSquat','idleAway'].indexOf(homeTrans.phase)>=0||homeAway){
+const floor=viewH-2;
+for(const f of ['lFoot','rFoot']){BODY.pts[f].y=floor;BODY.pts[f].py=floor;}
+}
+bodyUpdateFace();
+}
+}
+
 function startLockTransition(){
 // Bring ball up to top (or as far as scroll allows) over 1s while pausing trajectory
 const topY=circle.radius;
@@ -1018,8 +1468,18 @@ const cl=padX;
 const lBox=$('lB'),hBox=$('hB'),lvBox=$('lvB');
 if(lBox){lBox.style.left=cl+'px';lBox.style.right='auto';}
 if(hBox){hBox.style.right=padX+'px';hBox.style.left='auto';}
-if(lvBox){lvBox.style.left=(cl+viewW/2)+'px';lvBox.style.top=top+'px';lvBox.style.transform='translateX(-50%)';}
-if(cd){cd.style.left=(cl+viewW/2)+'px';cd.style.top=(top+viewH/6)+'px';cd.style.transform='translate(-50%,-50%)';}
+if(lvBox&&!(homeTrans||homeAway||window._homeFreeze)){lvBox.style.left=(cl+viewW/2)+'px';lvBox.style.top=top+'px';lvBox.style.transform='translateX(-50%)';}
+if(cd){
+// Integer pixel box (no % translate) — avoids subpixel blur; Home freeze was making it look sharp by accident
+const cdFs=parseFloat(getComputedStyle(cd).fontSize)||64;
+const cdW=Math.ceil(cdFs*1.2), cdH=Math.ceil(cdFs*1.2);
+const cdL=Math.round(cl+viewW/2-cdW/2);
+const cdT=Math.round(top+viewH/6-cdH/2);
+cd.style.width=cdW+'px';cd.style.height=cdH+'px';
+cd.style.left=cdL+'px';cd.style.top=cdT+'px';
+cd.style.transform='none';
+cd.style.textAlign='center';cd.style.lineHeight=cdH+'px';
+}
 if(lCh){lCh.style.left=(cl+48)+'px';}
 if(lvCh){lvCh.style.left=(cl+viewW/2+42)+'px';}
 if(cCh){cCh.style.left=(cl+viewW-44)+'px';cCh.style.right='auto';}
@@ -1028,43 +1488,68 @@ diaX=viewW/2;diaY=Math.max(40,viewH-80);
 gold.hx=viewW/2;gold.hy=viewH/2;
 if(!gold.drag){gold.x=gold.hx;gold.y=gold.hy}
 // Hints: same vertical band as lives/hi-score squares, stretch between them
+// Overlay hints sit in the lives/hi-score band; equation sits above that, under the title
 let hintLeft=cl+8, hintRight=cl+viewW-8, hintTop=48, hintH=50;
-if(lBox){const r=lBox.getBoundingClientRect();hintLeft=r.right+8;hintTop=r.top;hintH=r.height}
-if(hBox){const r=hBox.getBoundingClientRect();hintRight=r.left-6;if(!lBox){hintTop=r.top;hintH=r.height}}
+if(lBox){const r=lBox.getBoundingClientRect();hintLeft=r.right+18;hintTop=r.top-6;hintH=Math.max(28,r.height-4)}
+if(hBox){const r=hBox.getBoundingClientRect();hintRight=r.left-16;if(!lBox){hintTop=r.top-6;hintH=Math.max(28,r.height-4)}}
 const hintW=Math.max(40,hintRight-hintLeft);
 const fs=Math.max(10,Math.floor(hintH*0.42));
+// Equation band: centered between MEGA BOUNCE title and the lives/hint row
+// Equation: just ABOVE the map top border, under the lives/hint row
+let eqTop=8, eqH=24;
+const mapTopY=top; // canvas top (map border) in viewport px
+const hintBot=lBox?lBox.getBoundingClientRect().bottom:(mapTopY-30);
+const gapTop=hintBot, gapBot=mapTopY;
+const gap=gapBot-gapTop;
+if(gap>=14){
+eqH=Math.max(16,Math.min(28,gap-4));
+eqTop=gapTop+(gap-eqH)/2+3;
+}else{
+// Boxes sit on the map edge — park equation a few px above the map border
+eqH=22;
+eqTop=Math.max(4,mapTopY-eqH-1);
+}
+const eqFs=Math.max(15,Math.floor(eqH*0.75));
+const eqLeft=hintLeft, eqW=hintW;
 function layoutHint(el){
 if(!el)return;
+const isFormula=el.id==='eqHint'||el.classList.contains('hi-formula');
+if(isFormula){
+el.style.left=eqLeft+'px';
+el.style.width=eqW+'px';
+el.style.top=eqTop+'px';
+el.style.height=eqH+'px';
+el.style.fontSize=eqFs+'px';
+el.style.lineHeight=eqH+'px';
+el.style.letterSpacing='0.02em';
+}else{
 el.style.left=hintLeft+'px';
 el.style.width=hintW+'px';
 el.style.top=hintTop+'px';
 el.style.height=hintH+'px';
 el.style.fontSize=fs+'px';
 el.style.lineHeight=hintH+'px';
+el.style.letterSpacing='0.08em';
+}
 el.style.transformOrigin='center center';
-el.style.letterSpacing=el.classList.contains('hi-formula')?'0.04em':'0.08em';
 el.style.whiteSpace='nowrap';
-el.style.transform='scaleX(1)';
+el.style.transform='none';
 const txt=(el.textContent||'').trim()||'NEXT TOUCH SUBMITS!';
-const isFormula=el.classList.contains('hi-formula');
 let tw=0;
+const useFs=isFormula?eqFs:fs;
+const useW=isFormula?eqW:hintW;
 try{
 const mctx=document.createElement('canvas').getContext('2d');
-mctx.font=isFormula?(fs+"px 'Caveat',cursive"):(fs+"px 'Press Start 2P',monospace");
-tw=mctx.measureText(txt).width*(isFormula?1.05:1.08);
-}catch(e){tw=el.scrollWidth||hintW}
-// Formula: mild stretch toward the gap (not full-width); other hints shrink if too wide
+mctx.font=isFormula?(useFs+"px 'Permanent Marker',cursive"):(useFs+"px 'Press Start 2P',monospace");
+tw=mctx.measureText(txt).width*(isFormula?1.04:1.08);
+}catch(e){tw=el.scrollWidth||useW}
 if(tw>0){
-if(isFormula){
-const target=hintW*0.88;
-const sx=Math.min(1.35,Math.max(1,target/tw));
-el.style.transform=sx>1.02?'scaleX('+sx.toFixed(4)+')':'none';
-}else if(tw>hintW)el.style.transform='scaleX('+(hintW/tw).toFixed(4)+')';
+if(tw>useW)el.style.transform='scaleX('+(useW/tw).toFixed(4)+')';
 else el.style.transform='none';
 }
 }
-layoutHint($('subHint'));
-layoutHint($('pauseHint'));
+if(!(homeTrans||homeAway)){layoutHint($('eqHint'));layoutHint($('subHint'));layoutHint($('pauseHint'));}
+else if(window._homeFreeze)applyHomeUIScroll((homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+90):0));
 
 if($('tO')&&$('tO').classList.contains('open'))setTutHighlights(true);
 constrain();
@@ -1072,20 +1557,20 @@ constrain();
 
 function updateHint(){
 const el=$('subHint');if(!el)return;
+// During home cinematic, keep overlay text frozen (no reflow/rescale)
+if(homeTrans||homeAway){
+if(eq){/* equation may still update numbers but not layout */}
+return;
+}
+const eq=$('eqHint');
 const waitingBegin=(postGame||!circle.hasBeenTouched)&&!isPaused;
 const waitingSubmit=!isCD&&isTrack&&circle.hasBeenTouched;
 const matchDuringCD=isCD&&wallHits===level&&wallHits>0;
 const showSubmit=!isPaused&&!postGame&&(waitingSubmit||matchDuringCD);
-// TIME BACK is active when crosshair is on an unused white band and bounces are still under the level
-// (during or after countdown) — same rules as handleTap whiteTimeBackCD / whiteTimeBackAfter
 let timeBackAvail=false;
 if(!isPaused&&!postGame&&circle.hasBeenTouched&&mode==='survival'&&map==='rectangle'&&wallHits<level){
-try{
-const z=zoneAt(circle.y,viewH);
-timeBackAvail=!!(z&&z.isWhite);
-}catch(e){}
+try{const z=zoneAt(circle.y,viewH);timeBackAvail=!!(z&&z.isWhite);}catch(e){}
 }
-el.classList.remove('show','hi-match','hi-over','hi-under','hi-formula');
 function crossZoneKind(){
 let zoneKind='black';
 if(mode==='survival'&&map==='rectangle'){
@@ -1101,12 +1586,25 @@ else zoneKind='black';
 }
 return zoneKind;
 }
+// Always update equation text
+if(eq){
+const lv=lives===Infinity?'\u221e':String(lives);
+const mul=Math.max(0,level-1);
+const prod=(lives===Infinity)?'\u221e':String(lives*mul);
+const lvCls=formLGlow>0?'fx fx-up':(formLGlow<0?'fx fx-down':'fx');
+const mCls=formMGlow>0?'fx fx-up':(formMGlow<0?'fx fx-down':'fx');
+eq.innerHTML='<span class="'+lvCls+'">'+lv+'</span>&nbsp;x&nbsp;<span class="'+mCls+'">'+mul+'</span>&nbsp;=&nbsp;<span class="fx fx-prod">'+prod+'</span>';
+}
+el.classList.remove('show','hi-match','hi-over','hi-under','hi-formula');
+let overlay=false;
 if(waitingBegin){
 el.textContent='NEXT TOUCH BEGINS';
 el.classList.add('show','hi-under');
+overlay=true;
 }else if(timeBackAvail){
 el.textContent='TOUCH FOR TIME!';
-el.classList.add('show','hi-under'); // white LED
+el.classList.add('show','hi-under');
+overlay=true;
 }else if(showSubmit){
 el.classList.add('show');
 const zoneKind=crossZoneKind();
@@ -1114,9 +1612,8 @@ if(wallHits===level){
 if(zoneKind==='green')el.textContent='NEXT TOUCH SUBMITS:)';
 else if(zoneKind==='red')el.textContent='NEXT TOUCH SUBMITS:(';
 else el.textContent='NEXT TOUCH SUBMITS:/';
-el.classList.add('hi-match'); // all match texts green
+el.classList.add('hi-match');
 }else if(wallHits>level){
-// Over: :( only on red; otherwise :/ — both red
 if(zoneKind==='red')el.textContent='NEXT TOUCH SUBMITS:(';
 else el.textContent='NEXT TOUCH SUBMITS:/';
 el.classList.add('hi-over');
@@ -1124,50 +1621,54 @@ el.classList.add('hi-over');
 el.textContent='NEXT TOUCH SUBMITS!';
 el.classList.add('hi-under');
 }
-}else if(!isPaused&&circle.hasBeenTouched&&!postGame){
-// Formula appears after life loss / level clear — apply pending glow flags
-const lv=lives===Infinity?'∞':String(lives);
-const mul=Math.max(0,level-1);
-const prod=(lives===Infinity)?'∞':String(lives*mul);
-const lvCls=formLGlow>0?'fx fx-up':(formLGlow<0?'fx fx-down':'fx');
-const mCls=formMGlow>0?'fx fx-up':(formMGlow<0?'fx fx-down':'fx');
-el.innerHTML='<span class="'+lvCls+'">'+lv+'</span>&nbsp;x&nbsp;<span class="'+mCls+'">'+mul+'</span>&nbsp;=&nbsp;<span class="fx fx-prod">'+prod+'</span>';
-el.classList.add('show','hi-formula');
+overlay=true;
 }
 const ph=$('pauseHint');
-if(ph){if(isPaused)ph.classList.add('show');else ph.classList.remove('show');}
-// Re-fit pixel text between lives / hi-score after text change
+if(ph){if(isPaused){ph.classList.add('show');overlay=true;}else ph.classList.remove('show');}
+// Re-fit pixel / equation text between lives / hi-score after text change
 try{
-const lB2=$('lB'),hB2=$('hB');
+const lB2=$('lB'),hB2=$('hB'),tb=document.getElementById('topBar')||document.getElementById('title');
 let hL=8,hR=window.innerWidth-8,hT=48,hH=50;
-if(lB2){const r=lB2.getBoundingClientRect();hL=r.right+8;hT=r.top;hH=r.height}
-if(hB2){const r=hB2.getBoundingClientRect();hR=r.left-6}
+if(lB2){const r=lB2.getBoundingClientRect();hL=r.right+18;hT=r.top-6;hH=Math.max(28,r.height-4)}
+if(hB2){const r=hB2.getBoundingClientRect();hR=r.left-16}
 const hW=Math.max(40,hR-hL),f2=Math.max(10,Math.floor(hH*0.42));
-function fit(el){
+let eqTop=8,eqH=24;
+const cnv=$('canvas');
+const mapTopY=cnv?cnv.getBoundingClientRect().top:((typeof top==='number'?top:98));
+const hintBot=lB2?lB2.getBoundingClientRect().bottom:(mapTopY-30);
+const gap=mapTopY-hintBot;
+if(gap>=14){
+eqH=Math.max(16,Math.min(28,gap-4));
+eqTop=hintBot+(gap-eqH)/2+3;
+}else{
+eqH=22;
+eqTop=Math.max(4,mapTopY-eqH-1);
+}
+const eqFs=Math.max(15,Math.floor(eqH*0.75));
+function fit(el,isEq){
 if(!el)return;
+if(isEq){
+el.style.left=hL+'px';el.style.width=hW+'px';el.style.top=eqTop+'px';el.style.height=eqH+'px';
+el.style.fontSize=eqFs+'px';el.style.lineHeight=eqH+'px';el.style.letterSpacing='0.02em';
+}else{
 el.style.left=hL+'px';el.style.width=hW+'px';el.style.top=hT+'px';el.style.height=hH+'px';
-el.style.fontSize=f2+'px';el.style.lineHeight=hH+'px';el.style.transformOrigin='center center';
-const isFormula=el.classList.contains('hi-formula');
-el.style.letterSpacing=isFormula?'0.04em':'0.08em';
+el.style.fontSize=f2+'px';el.style.lineHeight=hH+'px';el.style.letterSpacing='0.08em';
+}
+el.style.transformOrigin='center center';
+const useFs=isEq?eqFs:f2;
 const txt=(el.textContent||'').trim()||'NEXT TOUCH SUBMITS!';
 let tw=0;
 try{
 const c=document.createElement('canvas').getContext('2d');
-c.font=isFormula?(f2+"px 'Caveat',cursive"):(f2+"px 'Press Start 2P',monospace");
-tw=c.measureText(txt).width*(isFormula?1.05:1.08);
+c.font=isEq?(useFs+"px 'Permanent Marker',cursive"):(useFs+"px 'Press Start 2P',monospace");
+tw=c.measureText(txt).width*(isEq?1.04:1.08);
 }catch(e){tw=hW}
-if(tw>0){
-if(isFormula){
-const target=hW*0.88;
-const sx=Math.min(1.35,Math.max(1,target/tw));
-el.style.transform=sx>1.02?'scaleX('+sx.toFixed(4)+')':'none';
-}else if(tw>hW)el.style.transform='scaleX('+(hW/tw).toFixed(4)+')';
-else el.style.transform='none';
+el.style.transform=(tw>hW&&tw>0)?'scaleX('+(hW/tw).toFixed(4)+')':'none';
 }
-}
-fit(el);fit(ph);
+fit(eq,true);fit(el,false);fit(ph,false);
 }catch(e){}
 }
+
 
 function placeFloat(el, anchor, side){
 // side: 'left' | 'right' — place beside the anchor number box
@@ -1254,8 +1755,8 @@ else{gSec=rSec=pgSec=prSec=ngSec=nrSec=pLand=null}
 if(st.circle&&st.circle.x!==undefined){Object.assign(circle,{x:st.circle.x,y:st.circle.y,radius:st.circle.radius||INIT_R,dx:st.circle.dx,dy:st.circle.dy,isDragging:false,dragTouchId:null,lastX:st.circle.lastX,lastY:st.circle.lastY,lastTime:st.circle.lastTime||Date.now(),hasBeenTouched:st.circle.hasBeenTouched||false})}
 else{const w=viewW||400,h=viewH||400;circle.x=w/2;circle.y=h/2;circle.radius=INIT_R;circle.dx=circle.dy=0;circle.hasBeenTouched=false}
 constrain();trail.length=0;if(st.trail&&st.trail.length)trail.push(...st.trail);
-mode=md;map=mp;btnAct={play:false,power:false,bouncy:false,lock:false,slow:false};holdT={play:null,mode:null,map:null,store:null,help:null};
-[pB,pwrB,bncB,lckB,slwB].forEach(b=>{if(b)b.classList.remove('gG','gR','gW','rc')});
+mode=md;map=mp;btnAct={play:false,home:false,bouncy:false,lock:false,slow:false};holdT={play:null,mode:null,map:null,store:null,help:null};
+[pB,homeB,bncB,lckB,slwB].forEach(b=>{if(b)b.classList.remove('gG','gR','gW','rc')});
 active=true;canvas.style.pointerEvents='auto';
 curInc=st.curInc!==undefined?st.curInc:14;nextCO=st.nextCO!==undefined?st.nextCO:16;cashAvail=st.cashAvail===true;if(nextCO<16&&level<16&&!cashAvail){nextCO=16;curInc=14}
 resetGold();mergeA=0;updTM();updDisp();suppress=false;draw();
@@ -1310,10 +1811,12 @@ if(mode==='survival'&&map==='rectangle'){
 const gL=startL<=3?startL+1:(lives>2?lives+1:4),rL=startL<=3?Math.max(startL-1,1):(lives>2?Math.max(lives-1,1):2);
 const bS=[0,1,2].find(s=>s!==gSec&&s!==rSec),bL=startL<=3?startL:(lives>2?lives:3);
 const period=4*sH; // 3 color bands + 1 white TIME BACK
+const homeSX=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+80):0);
 const off=((zoneScroll%period)+period)%period;
 // Repeating life zones — scroll downward when ball presses the top
 ctx.save();
 ctx.beginPath();ctx.rect(SSW,0,pw,h);ctx.clip();
+ctx.translate(homeSX,0);
 for(let k=-6;k<=3;k++){
 for(let sec=0;sec<4;sec++){
 const y=k*period+sec*sH+off;
@@ -1426,33 +1929,38 @@ ctx.fillText(t2,SSW+30,y2);ctx.fillText(t2,w-SSW-30,y2);
 ctx.shadowBlur=0;
 ctx.restore();
 // Side strips stay fixed (previous / next level preview) — color bands only
-if(pgSec!==null){ctx.fillStyle='rgba(0,180,90,0.5)';ctx.fillRect(0,pgSec*sH,SSW,sH)}
-if(prSec!==null){ctx.fillStyle='rgba(180,30,50,0.5)';ctx.fillRect(0,prSec*sH,SSW,sH)}
-if(pLand!==null&&pLand!==3){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(1,pLand*sH+1,SSW-2,sH-2)}
-if(ngSec!==null){ctx.fillStyle='rgba(0,180,90,0.5)';ctx.fillRect(w-SSW,ngSec*sH,SSW,sH)}
-if(nrSec!==null){ctx.fillStyle='rgba(180,30,50,0.5)';ctx.fillRect(w-SSW,nrSec*sH,SSW,sH)}
+const _hs2=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+80):0);
+if(pgSec!==null){ctx.fillStyle='rgba(0,180,90,0.5)';ctx.fillRect(_hs2+0,pgSec*sH,SSW,sH)}
+if(prSec!==null){ctx.fillStyle='rgba(180,30,50,0.5)';ctx.fillRect(_hs2+0,prSec*sH,SSW,sH)}
+if(pLand!==null&&pLand!==3){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(_hs2+1,pLand*sH+1,SSW-2,sH-2)}
+if(ngSec!==null){ctx.fillStyle='rgba(0,180,90,0.5)';ctx.fillRect(_hs2+w-SSW,ngSec*sH,SSW,sH)}
+if(nrSec!==null){ctx.fillStyle='rgba(180,30,50,0.5)';ctx.fillRect(_hs2+w-SSW,nrSec*sH,SSW,sH)}
 }
 
-ctx.strokeStyle='rgba(0,240,255,0.7)';ctx.lineWidth=BW*2;ctx.shadowColor='rgba(0,240,255,0.4)';ctx.shadowBlur=8;
+const homeScrolling=!!((homeTrans&&homeTrans.scrollX)||homeAway);
+ctx.strokeStyle='rgba(0,240,255,0.7)';ctx.lineWidth=BW*2;
+if(homeScrolling){ctx.shadowBlur=0;ctx.shadowColor='transparent';}
+else{ctx.shadowColor='rgba(0,240,255,0.4)';ctx.shadowBlur=8;}
 if(map==='rectangle')ctx.strokeRect(SSW,0,pw,h);else{ctx.beginPath();ctx.arc(w/2,h/2,Math.min(pw,h)/2-BW,0,Math.PI*2);ctx.stroke()}
 ctx.shadowBlur=0;
 // Bounce progress meter — clockwise from top-left along the play border
-(function drawBounceMeter(){
+// Drawn as a function so it can be re-stroked after gold border (keeps thickness stable)
+function drawBounceMeter(){
+const _hm=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+90):0);
 const tgt=Math.max(1,level);
 const ratio=Math.max(0,Math.min(1,wallHits/tgt));
 const over=wallHits>level;
 const col=over?'#ff3355':'#00ff88';
-const x0=SSW,y0=0,bw=pw,bh=h;
+const x0=SSW+_hm,y0=0,bw=pw,bh=h;
 const peri=2*(bw+bh);
 const fillLen=peri*ratio;
-const lw=5;
+const lw=5; // fixed — never change during Home/cashout
 ctx.save();
 ctx.lineWidth=lw;
 ctx.lineCap='butt';
 ctx.strokeStyle=col;
 ctx.shadowColor=col;
 ctx.shadowBlur=over?12:10;
-// Track path segments: top → right → bottom → left (clockwise from top-left)
 const segs=[
 {x1:x0,y1:y0,x2:x0+bw,y2:y0,len:bw},
 {x1:x0+bw,y1:y0,x2:x0+bw,y2:y0+bh,len:bh},
@@ -1472,57 +1980,126 @@ left-=s.len;
 }
 ctx.stroke();
 ctx.restore();
-})();
-
-
-if(cashAvail&&mode==='survival'){
-const pulse=0.5+0.5*Math.sin((Date.now()%1600)/1600*Math.PI*2);ctx.save();
-if(isPaused){ctx.fillStyle='rgba(0,180,255,0.07)';ctx.fillRect(0,0,w,h);ctx.strokeStyle=`rgba(255,215,0,${0.7+pulse*0.3})`;ctx.lineWidth=6;ctx.shadowBlur=24+pulse*16}
-else{ctx.strokeStyle=`rgba(255,215,0,${0.45+pulse*0.5})`;ctx.lineWidth=5+pulse*2;ctx.shadowBlur=28+pulse*24}
-ctx.shadowColor='#ffd700';
-if(map==='rectangle')ctx.strokeRect(SSW+2,2,pw-4,h-4);else{ctx.beginPath();ctx.arc(w/2,h/2,Math.min(pw,h)/2-BW-2,0,Math.PI*2);ctx.stroke()}
-ctx.restore();
 }
+drawBounceMeter();
 
-holes.forEach(bh=>{ctx.save();ctx.globalAlpha=bh.op;ctx.beginPath();ctx.arc(bh.x,bh.y,5,0,Math.PI*2);ctx.fillStyle=bh.bg;ctx.fill();ctx.restore()});
+
+const _hsx=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+90):0);
+holes.forEach(bh=>{ctx.save();ctx.globalAlpha=bh.op;ctx.beginPath();ctx.arc(bh.x+_hsx,bh.y,5,0,Math.PI*2);ctx.fillStyle=bh.bg;ctx.fill();ctx.restore()});
 
 const sk=skinC();
 if(trail.length>1){for(let i=0;i<trail.length-1;i++){const a=trail[i],b=trail[i+1],op=a.op*(1-i/trail.length)*0.4;ctx.beginPath();
 let col='rgba(255,255,255,'+op+')';if(sk.g.startsWith('#')&&sk.g.length>=7){const r=parseInt(sk.g.slice(1,3),16),g=parseInt(sk.g.slice(3,5),16),bl=parseInt(sk.g.slice(5,7),16);col=`rgba(${r},${g},${bl},${op})`}
 ctx.strokeStyle=col;ctx.lineWidth=circle.radius*1.5;ctx.lineCap='round';
 const ay=a.y+(zoneScroll-(a.zs||0)),by=b.y+(zoneScroll-(b.zs||0));
-ctx.moveTo(a.x,ay);ctx.lineTo(b.x,by);ctx.stroke()}}
+const _hst=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+90):0);
+ctx.moveTo(a.x+_hst,ay);ctx.lineTo(b.x+_hst,by);ctx.stroke()}}
 
-// soft glow
-let gr='rgba(255,255,255,0.18)';
-if(sk.g.startsWith('#')){let hex=sk.g.slice(1);if(hex.length===3)hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];const hr=parseInt(hex.slice(0,2),16)||255,hg=parseInt(hex.slice(2,4),16)||255,hb=parseInt(hex.slice(4,6),16)||255;gr=`rgba(${hr},${hg},${hb},0.2)`}
-const softR=circle.radius+30,sg=ctx.createRadialGradient(circle.x,circle.y,circle.radius*0.9,circle.x,circle.y,softR);
-sg.addColorStop(0,gr);sg.addColorStop(0.55,gr.replace(/[\d.]+\)$/,'0.08)'));sg.addColorStop(1,'rgba(0,0,0,0)');
+const homeCine=!!(homeTrans||homeAway);
+const _hmTint=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+90):0);
+
+// Always-on blue tint over the background including side strips (scrolls with the world during Home)
+ctx.fillStyle='rgba(0,180,255,0.14)';
+ctx.fillRect(_hmTint,0,w,h);
+
+// Cashout pause dim: only inside the map border (not side strips, not outside the playfield).
+// Must be drawn under the cashout circles/UI so those stay fully lit.
+function drawCashoutDim(sx){
+if(!(isPaused&&cashAvail&&mode==='survival'&&mergeA<=0))return;
+const x=sx+SSW, bw=w-2*SSW;
+ctx.fillStyle='rgba(5,6,12,0.58)';ctx.fillRect(x,0,bw,h);
+ctx.fillStyle='rgba(0,180,255,0.16)';ctx.fillRect(x,0,bw,h);
+}
+
+// soft glow + body + ball
+function drawGuy(){
+const skG=skinC();
+let gr='rgba(0,229,255,0.32)';
+if(skG.g.startsWith('#')){
+let hex=skG.g.slice(1);if(hex.length===3)hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+const hr=parseInt(hex.slice(0,2),16)||0,hg=parseInt(hex.slice(2,4),16)||229,hb=parseInt(hex.slice(4,6),16)||255;
+gr=`rgba(${hr},${hg},${hb},0.32)`;
+}else{
+const m=String(skG.g).match(/[\d.]+/g);
+if(m&&m.length>=3)gr=`rgba(${m[0]},${m[1]},${m[2]},0.32)`;
+}
+const softR=circle.radius+34,sg=ctx.createRadialGradient(circle.x,circle.y,circle.radius*0.75,circle.x,circle.y,softR);
+sg.addColorStop(0,gr);sg.addColorStop(0.5,gr.replace(/[\d.]+\)$/,'0.14)'));sg.addColorStop(1,'rgba(0,0,0,0)');
 ctx.beginPath();ctx.arc(circle.x,circle.y,softR,0,Math.PI*2);ctx.fillStyle=sg;ctx.fill();
-
-// Body behind the ball on the z-order
 bodyDraw(ctx);
-ctx.beginPath();ctx.shadowColor=sk.g;ctx.shadowBlur=16;ctx.arc(circle.x,circle.y,circle.radius,0,Math.PI*2);ctx.fillStyle=sk.f;ctx.fill();ctx.strokeStyle=sk.s;ctx.lineWidth=2.5;ctx.stroke();ctx.shadowBlur=0;
-const bang=bodyAngle();
-drawAngryFace(ctx,circle.x,circle.y,circle.radius,bang);
-
+ctx.beginPath();
+ctx.shadowColor=skG.g;ctx.shadowBlur=22;
+ctx.arc(circle.x,circle.y,circle.radius,0,Math.PI*2);
+ctx.fillStyle=skG.f;ctx.fill();
+ctx.shadowBlur=10;
+ctx.strokeStyle=skG.s;ctx.lineWidth=2.5;ctx.stroke();
+ctx.shadowBlur=0;
+drawAngryFace(ctx,circle.x,circle.y,circle.radius,bodyAngle());
+}
+if(!homeCine)drawGuy();
 
 if(map==='rectangle'){ctx.save();ctx.beginPath();ctx.rect(SSW+2,2,pw-4,h-4);ctx.clip()}
 const holdShow=(!isPaused&&circle.isDragging)||(isPaused&&circle.wasDraggingWhenPaused);
-if(holdShow)orbitText(circle.x,circle.y,circle.radius+55,'HOLDING','#fff',20);
+if(holdShow||(window._homeHead&&window._homeHead.hold&&(homeTrans||homeAway))){
+const _hh=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+90):0);
+const hx=(window._homeHead&&(homeTrans||homeAway))?window._homeHead.x:circle.x;
+const hy=(window._homeHead&&(homeTrans||homeAway))?window._homeHead.y:circle.y;
+const hr=(window._homeHead&&(homeTrans||homeAway))?window._homeHead.r:circle.radius;
+orbitText(hx+_hh,hy,hr+55,'HOLDING','#fff',20);
+}
 
-const off=circle.radius+26;ctx.font="bold 24px 'Orbitron',sans-serif";ctx.textAlign='center';ctx.textBaseline='middle';
-let cc='#e8f0ff';if(wallHits===level)cc='#00ff88';else if(wallHits>level)cc='#ff3355';
+{
+const _hh=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+90):0);
+const hx=(window._homeHead&&(homeTrans||homeAway))?window._homeHead.x:circle.x;
+const hy=(window._homeHead&&(homeTrans||homeAway))?window._homeHead.y:circle.y;
+const hr=(window._homeHead&&(homeTrans||homeAway))?window._homeHead.r:circle.radius;
+const hits=(window._homeHead&&(homeTrans||homeAway))?window._homeHead.hits:wallHits;
+const lv=(window._homeHead&&(homeTrans||homeAway))?window._homeHead.lv:level;
+const off=hr+26;ctx.font="bold 24px 'Orbitron',sans-serif";ctx.textAlign='center';ctx.textBaseline='middle';
+let cc='#e8f0ff';if(hits===lv)cc='#00ff88';else if(hits>lv)cc='#ff3355';
 ctx.fillStyle=cc;ctx.shadowColor=cc;ctx.shadowBlur=8;
-[[0,-off],[0,off],[-off,0],[off,0]].forEach(([ox,oy])=>ctx.fillText(wallHits,circle.x+ox,circle.y+oy));
+[[0,-off],[0,off],[-off,0],[off,0]].forEach(([ox,oy])=>ctx.fillText(hits,hx+_hh+ox,hy+oy));
 ctx.fillStyle='#00ff88';ctx.shadowColor='#00ff88';const d=off*0.707;
-[[d,-d],[-d,-d],[-d,d],[d,d]].forEach(([ox,oy])=>ctx.fillText(level,circle.x+ox,circle.y+oy));ctx.shadowBlur=0;
+[[d,-d],[-d,-d],[-d,d],[d,d]].forEach(([ox,oy])=>ctx.fillText(lv,hx+_hh+ox,hy+oy));ctx.shadowBlur=0;
+}
 
-// Dim the play area first so gold/blue stay bright on top
-if(isPaused&&cashAvail&&mode==='survival'&&mergeA<=0){ctx.fillStyle='rgba(5,6,12,0.45)';ctx.fillRect(0,0,w,h)}
-particles.forEach(p=>{ctx.globalAlpha=p.life;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill()});
+// Frozen crosshair scrolls with world; drawn here so cashout dim can cover it during Home
+if(homeCine){
+const _hc=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+90):0);
+const hx=(window._homeHead)?window._homeHead.x:circle.x;
+const hy=(window._homeHead)?window._homeHead.y:circle.y;
+const hr=(window._homeHead)?window._homeHead.r:circle.radius;
+drawCrosshair(ctx,hx+_hc,hy,hr);
+}
+
+// Dim only inside map border — after guy/numbers, before cashout UI (so circles stay bright)
+drawCashoutDim(homeCine?_hmTint:0);
+
+// Gold cashout border — freeze pulse thickness during Home so meter doesn't look thinner
+if(cashAvail&&mode==='survival'){
+const _hm2=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+90):0);
+const pulseT=(homeTrans||homeAway)&&(window._homeAnim)?window._homeAnim.pulseT:(Date.now()%1600);
+const pulse=0.5+0.5*Math.sin(pulseT/1600*Math.PI*2);ctx.save();
+ctx.globalAlpha=1;
+ctx.strokeStyle=`rgba(255,215,0,${0.55+pulse*0.4})`;
+// Keep line width stable during Home (no pulse thickness change)
+const glw=(homeTrans||homeAway)?6:(5+pulse*2);
+ctx.lineWidth=glw;ctx.shadowBlur=(homeTrans||homeAway)?20:(24+pulse*16);
+ctx.shadowColor='#ffd700';
+if(map==='rectangle')ctx.strokeRect(SSW+2+_hm2,2,pw-4,h-4);else{ctx.beginPath();ctx.arc(w/2+_hm2,h/2,Math.min(pw,h)/2-BW-2,0,Math.PI*2);ctx.stroke()}
+ctx.restore();
+// Re-draw meter on top so thickness stays exact vs gold border
+drawBounceMeter();
+}
+
+const _hsp=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+90):0);
+particles.forEach(p=>{ctx.globalAlpha=p.life;ctx.beginPath();ctx.arc(p.x+_hsp,p.y,p.size,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill()});
 if(cashAvail&&mode==='survival'&&(isPaused||mergeA>0)){
-const gx=gold.x,gy=gold.y,gr=gold.r,over=isPaused&&Math.hypot(gx-diaX,gy-diaY)<gr+DIA_R-6;
+const _hsg=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+90):0);
+const homeCine2=!!(homeTrans||homeAway);
+const cashAlpha=homeCine2?0.28:1;
+const gx=gold.x+_hsg,gy=gold.y,gr=gold.r,over=isPaused&&!homeCine2&&Math.hypot(gold.x-diaX,gold.y-diaY)<gr+DIA_R-6;
+ctx.save();ctx.globalAlpha=cashAlpha;
 const maxDist=Math.hypot(gold.hx-diaX,gold.hy-diaY)||1;
 const curDist=Math.hypot(gx-diaX,gy-diaY);
 const prox=isPaused?Math.max(0,Math.min(1,2*(1-curDist/maxDist))):0; // 0 at home, 1 by halfway to blue
@@ -1533,7 +2110,7 @@ const gAlpha=1-prox;
 if(gAlpha>0.02){
 ctx.save();
 ctx.shadowBlur=0;ctx.shadowColor='transparent';
-ctx.globalAlpha=gAlpha;
+ctx.globalAlpha=cashAlpha*gAlpha;
 ctx.font="bold "+Math.floor(gr*0.55)+"px 'Orbitron',sans-serif";ctx.textAlign='center';ctx.textBaseline='middle';
 ctx.fillStyle='rgba(26,18,0,'+gAlpha+')';ctx.fillText(String(potential),gx,gy+1);
 ctx.fillStyle='rgba(255,248,224,'+gAlpha+')';ctx.fillText(String(potential),gx,gy);
@@ -1544,37 +2121,55 @@ if(isPaused&&mergeA<=0&&!over)orbitText(gx,gy,gr+16,'C A S H   O U T  ','#fff',1
 if(isPaused&&mergeA<=0){
 if(over)orbitText(gx,gy,gr+22,'LET GO  ','#00e5ff',15);
 // Wobble intensifies with proximity
-const wobble=Math.sin(Date.now()/90*(1+prox*4))*(1.5+prox*5);
-const bx=diaX+wobble,by=diaY;
-ctx.beginPath();ctx.arc(bx,by,DIA_R,0,Math.PI*2);ctx.fillStyle='rgba(0,190,220,0.95)';ctx.shadowColor='#00e5ff';ctx.shadowBlur=20;ctx.fill();ctx.strokeStyle='#00e5ff';ctx.lineWidth=2.5;ctx.stroke();ctx.shadowBlur=0;
+const wobble=(homeTrans||homeAway)?0:Math.sin(Date.now()/90*(1+prox*4))*(1.5+prox*5);
+const bx=diaX+_hsg+wobble,by=diaY;
+const ba=cashAlpha;
+ctx.save();
+ctx.globalAlpha=1;
+ctx.beginPath();ctx.arc(bx,by,DIA_R,0,Math.PI*2);
+ctx.fillStyle=`rgba(0,190,220,${0.95*ba})`;
+ctx.shadowColor=`rgba(0,229,255,${0.55*ba})`;
+ctx.shadowBlur=homeCine2?4:20;
+ctx.fill();
+ctx.shadowBlur=homeCine2?0:8;
+ctx.strokeStyle=`rgba(0,229,255,${0.95*ba})`;ctx.lineWidth=2.5;ctx.stroke();
+ctx.shadowBlur=0;
+ctx.restore();
 
 // Crossfade: current $ out, final sum in
 const sum=coins+potential;
 const fontSz=sum>=1000||coins>=1000?18:(sum>=100||coins>=100?22:26);
 ctx.font="bold "+fontSz+"px 'Orbitron',sans-serif";ctx.textAlign='center';ctx.textBaseline='middle';
 if(prox<0.98){
-ctx.globalAlpha=1-prox;
-ctx.fillStyle='#fff';
+ctx.save();
+ctx.globalAlpha=1;
+ctx.fillStyle=`rgba(255,255,255,${ba*(1-prox)})`;
 ctx.fillText(String(coins),bx,by);
+ctx.restore();
 }
 if(prox>0.02){
-ctx.globalAlpha=prox;
-ctx.fillStyle='#ffe566';
-ctx.fillText(String(sum),bx,by);
-}
+ctx.save();
 ctx.globalAlpha=1;
-arrP=(Date.now()/2500)%1;
-if(!over){const dx=diaX-gx,dy=diaY-gy,dist=Math.hypot(dx,dy)||1,ux=dx/dist,uy=dy/dist,ang=Math.atan2(dy,dx);
+ctx.fillStyle=`rgba(255,229,102,${ba*prox})`;
+ctx.fillText(String(sum),bx,by);
+ctx.restore();
+}
+ctx.globalAlpha=cashAlpha;
+if(!(homeTrans||homeAway))arrP=(Date.now()/2500)%1;else if(window._homeAnim)arrP=window._homeAnim.arrP;
+if(!over){const dx=diaX-(gx-_hsg),dy=diaY-gy,dist=Math.hypot(dx,dy)||1,ux=dx/dist,uy=dy/dist,ang=Math.atan2(dy,dx);
 for(let i=0;i<4;i++){let t=((i/4)+arrP)%1;const fade=Math.sin(t*Math.PI),ax=gx+ux*dist*t,ay=gy+uy*dist*t;
-ctx.save();ctx.translate(ax,ay);ctx.rotate(ang-Math.PI/2);ctx.globalAlpha=0.35+0.55*fade;ctx.fillStyle='#ffd700';ctx.beginPath();ctx.moveTo(0,10);ctx.lineTo(6,-4);ctx.lineTo(2,-4);ctx.lineTo(2,-12);ctx.lineTo(-2,-12);ctx.lineTo(-2,-4);ctx.lineTo(-6,-4);ctx.closePath();ctx.fill();ctx.restore()}}
+ctx.save();ctx.translate(ax,ay);ctx.rotate(ang-Math.PI/2);ctx.globalAlpha=(0.35+0.55*fade)*cashAlpha;ctx.fillStyle='#ffd700';ctx.beginPath();ctx.moveTo(0,10);ctx.lineTo(6,-4);ctx.lineTo(2,-4);ctx.lineTo(2,-12);ctx.lineTo(-2,-12);ctx.lineTo(-2,-4);ctx.lineTo(-6,-4);ctx.closePath();ctx.fill();ctx.restore()}}
 }
+ctx.restore(); // end cashAlpha
 }
-if(mergeA>0){const cx=w/2,cy=h/2,t=1-mergeA,fr=30+t*100;ctx.beginPath();ctx.arc(cx,cy,fr,0,Math.PI*2);ctx.fillStyle=`rgba(255,230,100,${0.5*mergeA})`;ctx.fill();
+if(mergeA>0){const cx=w/2+_hsg,cy=h/2,t=1-mergeA,fr=30+t*100;ctx.beginPath();ctx.arc(cx,cy,fr,0,Math.PI*2);ctx.fillStyle=`rgba(255,230,100,${0.5*mergeA})`;ctx.fill();
 ctx.beginPath();ctx.arc(cx,cy,fr*0.5,0,Math.PI*2);ctx.fillStyle=`rgba(0,230,255,${0.4*mergeA})`;ctx.fill();
-mergeP.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life);ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill()});ctx.globalAlpha=1}
+mergeP.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life);ctx.beginPath();ctx.arc(p.x+_hsg,p.y,p.size,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill()});ctx.globalAlpha=1}
 
 if(map==='rectangle')ctx.restore();
 ctx.globalAlpha=1;
+// During Home: only the guy is lit on top of the scrolled dim (numbers/crosshair stay dimmed underneath)
+if(homeCine)drawGuy();
 }
 
 
@@ -1589,36 +2184,35 @@ if(gold.wob){gold.wT+=0.09;const damp=Math.exp(-gold.wT*2.2),amp=gold.wA*damp;go
 if(lockTrans){
 const u=Math.min(1,(Date.now()-lockTrans.t0)/lockTrans.dur);
 const e=u*u*(3-2*u); // smoothstep
+const prevY=circle.y, prevScroll=zoneScroll;
 zoneScroll=lockTrans.fromScroll+(lockTrans.toScroll-lockTrans.fromScroll)*e;
-const prevX=circle.x,prevY=circle.y;
 circle.y=lockTrans.fromY+(lockTrans.toY-lockTrans.fromY)*e;
 circle.x=lockTrans.fromX+(lockTrans.toX-lockTrans.fromX)*e;
+// Frame velocity so body pose / virtual scroll / faces react during the glide
+circle.dx=0;
+circle.dy=circle.y-prevY;
+bodyUpdate(); // borders, dangle poses, faces while rising to the top
 circle.dx=0;circle.dy=0;
-// Move body with ball; freeze limb momentum during transition
-if(BODY.ready&&BODY.pts){
-const mdx=circle.x-prevX,mdy=circle.y-prevY;
-if(mdx||mdy){
-for(const k of Object.keys(BODY.pts)){
-const p=BODY.pts[k];
-p.x+=mdx;p.y+=mdy;p.px=p.x;p.py=p.y; // zero relative velocity
-}
-}
-BODY.lastBallX=circle.x;BODY.lastBallY=circle.y;
-bodyPinNeck();
-}
 if(u>=1){
 circle.dx=lockTrans.savedDx;circle.dy=lockTrans.savedDy;
 lockTrans=null;scrollUnlocked=true;updLockBtn();
 }
 return;
 }
-if(isPaused){if(circle.isDragging){circle.dx=0;circle.dy=0;bodyUpdate()}return}
+if(homeTrans||homeAway){homeUpdate();return}
+if(isPaused){
+// Keep body in sync while paused: holding, resizing, or held-at-pause state
+if(circle.isDragging||circle.isResizing||circle.wasDraggingWhenPaused){
+circle.dx=0;circle.dy=0;bodyUpdate();
+}
+return;
+}
 const w=viewW,h=viewH,pw=w-2*SSW,now=Date.now();
 const slowF=slowOn?SLOW_SCALE:1;
 if(!circle.isDragging){
 circle.dy+=GRAV*slowF;
 // Clamp velocity BEFORE integrating; power mode allows much higher speed
-const MAX_V=powerOn?110:52;
+const MAX_V=52+58*Math.min(2,Math.max(0,level-1)/99);
 if(circle.dx>MAX_V)circle.dx=MAX_V;else if(circle.dx<-MAX_V)circle.dx=-MAX_V;
 if(circle.dy>MAX_V)circle.dy=MAX_V;else if(circle.dy<-MAX_V)circle.dy=-MAX_V;
 circle.x+=circle.dx*slowF;
@@ -1678,7 +2272,7 @@ if(Math.abs(circle.dx)<0.12)circle.dx=0;
 else{const cx=w/2,cy=h/2,rad=Math.min(pw,h)/2-BW,d=Math.hypot(circle.x-cx,circle.y-cy);if(d+circle.radius>=rad){const a=Math.atan2(circle.y-cy,circle.x-cx);circle.x=cx+Math.cos(a)*(rad-circle.radius);circle.y=cy+Math.sin(a)*(rad-circle.radius);const sp=Math.hypot(circle.dx,circle.dy);circle.dx=-Math.cos(a)*sp*0.75;circle.dy=-Math.sin(a)*sp*0.75}}
 }
 holes.forEach(bh=>{bh.op=Math.max(0,1-(now-bh.st)/2000)});holes=holes.filter(bh=>bh.op>0);
-particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.life-=0.025});particles=particles.filter(p=>p.life>0);
+if(!(homeTrans||homeAway)){particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.life-=0.025});particles=particles.filter(p=>p.life>0);}
 bodyUpdate();
 if(circle.hasBeenTouched&&!postGame)updateHint();
 }
@@ -1747,8 +2341,15 @@ circle.wasDraggingWhenPaused=false;trail.length=0;resetZones();
 cashAvail=false;curInc=14;nextCO=16;resetGold();mergeA=0;mergeP=[];
 pgSec=prSec=pLand=null;asCur();asNext();
 active=true;postGame=true; // waiting for a fresh tap to start
+canvas.style.pointerEvents='auto';potential=0;prevPot=-1;saveSt();
+// Reset display without treating lives/level restore as an in-run change
+suppress=true;
+formLGlow=0;formMGlow=0;prevFormL=null;prevFormM=null;
+updDisp();
+suppress=false;
+formLGlow=0;formMGlow=0; // keep white after end-of-run reset
 updateHint();
-canvas.style.pointerEvents='auto';potential=0;prevPot=-1;saveSt();updDisp();draw();
+draw();
 }
 
 function startMerge(){mergeA=1;gold.drag=false;gold.tid=null;gold.wob=false;gold.phase='fling';
@@ -1834,6 +2435,21 @@ let maxR;
 if(map==='rectangle'){maxR=Math.min(circle.x-SSW,w-SSW-circle.x,circle.y,h-circle.y)}
 else{const cx=w/2,cy=h/2,rad=Math.min(pw,h)/2-BW;maxR=Math.max(DEF_R,rad-Math.hypot(circle.x-cx,circle.y-cy))}
 circle.radius=Math.min(newR,maxR);constrain();
+// Rebuild body to current radius immediately (works while paused / resize-only)
+if(BODY.ready){
+bodyPinNeck();
+bodyApplyPose(BODY.pose||'super');
+bodyAccordionBorders();
+const floor=viewH-2;
+const ballBottom=circle.y+circle.radius;
+const bodyLen=Math.max(20,circle.radius*2.15);
+if(ballBottom<=floor+circle.radius*0.2){
+const gap=Math.max(0,floor-ballBottom);
+BODY.landT=1-Math.min(1,gap/bodyLen);
+}else BODY.landT=0;
+bodyApplyLandingSplits(BODY.landT);
+bodyUpdateFace();
+}
 }
 function dropBall(){
 // Release ball with zero velocity so it falls straight down
@@ -1855,7 +2471,8 @@ if(!didResize&&circle.isDragging&&!isPaused){dropBall();draw()}
 function handleTap(e){
 if(uiLocked)return;
 if(isPaused)return;
-if(lockTrans)return; // no map taps during lock transition
+if(lockTrans)return;
+if(homeTrans||homeAway)return; // no play during home walk
 const pos=getPos(e);const w=viewW,h=viewH;
 if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
 const ox=circle.x,oy=circle.y;if(circle.isDragging)return;
@@ -1918,13 +2535,14 @@ circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updateHint();
 function startDrag(e){
 if(uiLocked)return;
 if(lockTrans)return;
+if(homeTrans||homeAway)return;
 if(postGame)return; // don't grab the ball on the death tap
 const pos=getPos(e,e.touches?e.touches[0].identifier:null);const tid=e.touches?e.touches[0].identifier:null;
 if(isPaused&&cashAvail&&mode==='survival'&&mergeA<=0){if(Math.hypot(pos.x-gold.x,pos.y-gold.y)<=gold.r+12){e.preventDefault();gold.drag=true;gold.tid=tid;gold.ox=pos.x-gold.x;gold.oy=pos.y-gold.y;draw();return}}
 if(isPaused&&!circle.wasDraggingWhenPaused)return;
 const w=viewW;if(pos.x<SSW||pos.x>w-SSW)return;e.preventDefault();
 circle.isDragging=true;circle.dragTouchId=tid;circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0;circle.x=pos.x;circle.y=pos.y;constrain();
-if(!isPaused)trail.length=0;btnAct={play:false,power:false,bouncy:false,lock:false,slow:false};draw();
+if(!isPaused)trail.length=0;btnAct={play:false,home:false,bouncy:false,lock:false,slow:false};draw();
 }
 
 function drag(e){
@@ -1941,19 +2559,20 @@ if(gold.drag){const pos=getPos(e,gold.tid);gold.x=Math.max(gold.r,Math.min(w-gol
 if(circle.isDragging&&!circle.isResizing){const pos=getPos(e,circle.dragTouchId);
 if(map==='rectangle'){pos.x=Math.max(SSW+circle.radius,Math.min(w-SSW-circle.radius,pos.x));pos.y=Math.max(circle.radius,Math.min(h-circle.radius,pos.y))}
 else{const cx=w/2,cy=h/2,mr=Math.min(pw,h)/2-BW-circle.radius;const dx=pos.x-cx,dy=pos.y-cy,d=Math.hypot(dx,dy);if(d>mr){const a=Math.atan2(dy,dx);pos.x=cx+Math.cos(a)*mr;pos.y=cy+Math.sin(a)*mr}}
-circle.x=pos.x;circle.y=pos.y;if(!isPaused){const dt=(now-circle.lastTime)/1000;if(dt>0){const tm=throwMul*(powerOn?POWER_MUL:1);circle.dx=((pos.x-circle.lastX)/dt)*tm;circle.dy=((pos.y-circle.lastY)/dt)*tm;
-// Soft cap only — power throws can go much higher
-const MAX_THROW=powerOn?140:60;const sp=Math.hypot(circle.dx,circle.dy);if(sp>MAX_THROW){const s=MAX_THROW/sp;circle.dx*=s;circle.dy*=s;}
+circle.x=pos.x;circle.y=pos.y;if(!isPaused){const dt=(now-circle.lastTime)/1000;if(dt>0){const pMul=1+(HOME_POWER_AT_100-1)*Math.max(0,level-1)/99;
+const tm=throwMul*pMul;circle.dx=((pos.x-circle.lastX)/dt)*tm;circle.dy=((pos.y-circle.lastY)/dt)*tm;
+const MAX_THROW=60+80*Math.min(2,Math.max(0,level-1)/99);
+const sp=Math.hypot(circle.dx,circle.dy);if(sp>MAX_THROW){const s=MAX_THROW/sp;circle.dx*=s;circle.dy*=s;}
 }circle.lastTime=now}circle.lastX=pos.x;circle.lastY=pos.y}
 const scr=getScr(e,circle.dragTouchId);const target=document.elementFromPoint(scr.x,scr.y);
 const chk=(btn,key,fn)=>{if(target===btn){if(!holdT[key]&&!btnAct[key]){btn.classList.remove('gG','gR','gW','rc');if(key==='play')btn.classList.add(isPaused?'gG':'gR');else btn.classList.add('gW');
 holdT[key]=setTimeout(()=>{if(circle.isDragging&&document.elementFromPoint(scr.x,scr.y)===btn){btn.classList.remove('gG','gR','gW');btn.classList.add('rc');fn();btnAct[key]=true}holdT[key]=null},HOLD_THR)}}
 else{if(holdT[key]){clearTimeout(holdT[key]);holdT[key]=null;btn.classList.remove('gG','gR','gW');btn.classList.add('rc')}if(btnAct[key]&&target!==btn)btnAct[key]=false}};
-chk(pB,'play',()=>{if(isPaused){isPaused=false;resumeCD();resetGold();circle.lastX=getPos(e,circle.dragTouchId).x;circle.lastY=getPos(e,circle.dragTouchId).y;circle.lastTime=Date.now();circle.dx=circle.dy=0;/* CD already resumed via resumeCD */}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updateHint()}updDisp();draw()});
-chk(pwrB,'power',()=>{if(!lockTrans){powerOn=!powerOn;setModBtn(pwrB,powerOn)}});
-chk(bncB,'bouncy',()=>{if(!lockTrans){bouncyOn=!bouncyOn;setModBtn(bncB,bouncyOn)}});
-chk(lckB,'lock',()=>{if(!isPaused&&!lockTrans&&!circle.isDragging)lckB.onclick()});
-chk(slwB,'slow',()=>{if(!lockTrans){slowOn=!slowOn;setModBtn(slwB,slowOn)}});
+chk(pB,'play',()=>{if(homeTrans||homeAway)return;if(isPaused){isPaused=false;resumeCD();resetGold();circle.lastX=getPos(e,circle.dragTouchId).x;circle.lastY=getPos(e,circle.dragTouchId).y;circle.lastTime=Date.now();circle.dx=circle.dy=0;/* CD already resumed via resumeCD */}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updateHint()}updDisp();draw()});
+chk(homeB,'home',()=>{toggleHome();});
+chk(bncB,'bouncy',()=>{if(!lockTrans&&!homeTrans&&!homeAway){bouncyOn=!bouncyOn;setModBtn(bncB,bouncyOn)}});
+chk(lckB,'lock',()=>{if(!isPaused&&!lockTrans&&!circle.isDragging&&!homeTrans&&!homeAway)lckB.onclick()});
+chk(slwB,'slow',()=>{if(!lockTrans&&!homeTrans&&!homeAway){slowOn=!slowOn;setModBtn(slwB,slowOn)}});
 if(isPaused)saveSt();draw();
 }
 
@@ -1965,14 +2584,14 @@ if(e.changedTouches){let m=false;for(let i=0;i<e.changedTouches.length;i++)if(e.
 const scr=getScr(e,tid),target=document.elementFromPoint(scr.x,scr.y),rect=canvas.getBoundingClientRect();
 const over=scr.x>=rect.left&&scr.x<=rect.right&&scr.y>=rect.top&&scr.y<=rect.bottom;
 if(target===pB&&!btnAct.play)pB.click();
-else if(target===pwrB&&!btnAct.power)pwrB.click();
+else if(target===homeB&&!btnAct.home)homeB.click();
 else if(target===bncB&&!btnAct.bouncy)bncB.click();
 else if(target===lckB&&!btnAct.lock)lckB.click();
 else if(target===slwB&&!btnAct.slow)slwB.click();
 else if(over&&!circle.hasBeenTouched){circle.hasBeenTouched=true;startCD()}
 circle.isDragging=false;circle.dragTouchId=null;unfreezeZones();
-Object.keys(holdT).forEach(k=>{if(holdT[k]){clearTimeout(holdT[k]);holdT[k]=null;const btn=k==='play'?pB:k==='power'?pwrB:k==='bouncy'?bncB:k==='lock'?lckB:slwB;if(btn){btn.classList.remove('gG','gR','gW');btn.classList.add('rc')}}});
-btnAct={play:false,power:false,bouncy:false,lock:false,slow:false};if(isPaused)saveSt();draw();
+Object.keys(holdT).forEach(k=>{if(holdT[k]){clearTimeout(holdT[k]);holdT[k]=null;const btn=k==='play'?pB:k==='home'?homeB:k==='bouncy'?bncB:k==='lock'?lckB:slwB;if(btn){btn.classList.remove('gG','gR','gW');btn.classList.add('rc')}}});
+btnAct={play:false,home:false,bouncy:false,lock:false,slow:false};if(isPaused)saveSt();draw();
 }
 
 
@@ -2077,13 +2696,12 @@ function goPrev(){if(tutI>0){tutI--;showTut()}}
 tN.onclick=goNext;tNA.onclick=goNext;tP.onclick=goPrev;tSk.onclick=closeTut;
 
 
-// Power / Bouncy / Slow — toggles, only while unpaused
 function setModBtn(btn,on){if(btn)btn.classList.toggle('on',!!on)}
-pwrB.onclick=()=>{if(lockTrans)return;powerOn=!powerOn;setModBtn(pwrB,powerOn)};
-bncB.onclick=()=>{if(lockTrans)return;bouncyOn=!bouncyOn;setModBtn(bncB,bouncyOn)};
-slwB.onclick=()=>{if(lockTrans)return;slowOn=!slowOn;setModBtn(slwB,slowOn)};
+if(homeB)homeB.onclick=()=>toggleHome();
+bncB.onclick=()=>{if(lockTrans||homeTrans||homeAway)return;bouncyOn=!bouncyOn;setModBtn(bncB,bouncyOn)};
+slwB.onclick=()=>{if(lockTrans||homeTrans||homeAway)return;slowOn=!slowOn;setModBtn(slwB,slowOn)};
 lckB.onclick=()=>{
-if(lockTrans)return;
+if(lockTrans||homeTrans||homeAway)return;
 if(circle.isDragging||circle.wasDraggingWhenPaused)return; // not while holding
 if(scrollUnlocked){
 // already unlocked — tapping lock re-locks
@@ -2100,7 +2718,7 @@ startLockTransition(); // lift=0 effectively, still 1s then unlocks
 scrollUnlocked=true;updLockBtn();
 }
 };
-pB.onclick=e=>{if(isPaused){isPaused=false;resumeCD();resetGold();if(circle.isDragging){const pos=getPos(e);circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0}else if(circle.wasDraggingWhenPaused){circle.isDragging=false;circle.dragTouchId=null;constrain();circle.dx=circle.dy=0}circle.wasDraggingWhenPaused=false;updDisp();draw()}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updDisp();draw()}};
+pB.onclick=e=>{if(homeTrans||homeAway)return;if(isPaused){isPaused=false;resumeCD();resetGold();if(circle.isDragging){const pos=getPos(e);circle.lastX=pos.x;circle.lastY=pos.y;circle.lastTime=Date.now();circle.dx=circle.dy=0}else if(circle.wasDraggingWhenPaused){circle.isDragging=false;circle.dragTouchId=null;constrain();circle.dx=circle.dy=0}circle.wasDraggingWhenPaused=false;updDisp();draw()}else{circle.wasDraggingWhenPaused=circle.isDragging;pauseCD();isPaused=true;saveSt();updDisp();draw()}};
 sCl.onclick=closeStore;hCl.onclick=closeHelp;hCb.onclick=closeHelp;
 title.onclick=()=>{if(lockTrans)return;openHelp()};
 updLockBtn();
