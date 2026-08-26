@@ -1155,17 +1155,7 @@ return viewH-2-footReach;
 }
 function homeStandY(){return homeStandYFor(circle.radius);}
 function homeSquatY(){return homeSquatYFor(circle.radius);}
-function syncHomeButtonFreezeToView(){
-// When the window is resized during home, re-measure real #bB flex sizes so
-// fixed buttons match what CSS will use when they scroll back — no end snap.
-if(!window._homeFreeze||!window._homeBorderMeas)return;
-const scrW=document.documentElement.clientWidth||window.innerWidth||320;
-const padX=Math.max(8,scrW*0.025);
-if(window._homeBorderMeas.viewW===viewW&&window._homeBorderMeas.padX===padX)return;
-const els=[homeB,lckB,pB,bncB,slwB];
-const keys=['_home','_lck','_pB','_bnc','_slw'];
-// Drop fixed styles so flex layout in #bB computes true sizes for current viewW
-els.forEach(el=>{
+function clearFrozenElStyles(el){
 if(!el)return;
 el.style.visibility='hidden';
 el.style.position='';
@@ -1181,29 +1171,130 @@ el.style.flex='';
 el.style.margin='';
 el.style.padding='';
 el.style.transform='';
+el.style.transformOrigin='';
 el.style.boxSizing='';
 el.style.overflow='';
 el.style.zIndex='';
-});
-const bb=$('bB');
-if(bb){
-bb.style.left=padX+'px';
-bb.style.width=viewW+'px';
+el.style.fontSize='';
+el.style.lineHeight='';
+el.style.letterSpacing='';
 }
-if(bb)void bb.offsetWidth; // force reflow
-els.forEach((el,i)=>{
-if(!el)return;
+function snapFrozenEl(el){
+if(!el)return null;
 const r=el.getBoundingClientRect();
-window._homeFreeze[keys[i]]={
-left:r.left,
-top:r.top,
-width:Math.max(1,r.width),
-height:Math.max(1,r.height),
-transform:'none',
-origin:'center center'
+// Keep scaleX (text-fit) but drop translate so scroll can own position
+let t=el.style.transform||'none';
+t=t.replace(/translateX\([^)]*\)/g,'').replace(/translate\([^)]*\)/g,'').trim()||'none';
+const cs=window.getComputedStyle?getComputedStyle(el):null;
+return{
+left:r.left,top:r.top,
+width:Math.max(1,r.width),height:Math.max(1,r.height),
+transform:t,origin:el.style.transformOrigin||'center center',
+fontSize:el.style.fontSize||(cs&&cs.fontSize)||'',
+lineHeight:el.style.lineHeight||'',
+letterSpacing:el.style.letterSpacing||''
 };
+}
+function syncHomeUIFreezeToView(){
+// When the window is resized during home, re-layout + re-measure all frozen UI
+// (bottom buttons AND top chrome) so scroll-back matches live sizes — no end snap.
+if(!window._homeFreeze||!window._homeBorderMeas)return;
+const vp=getViewportSize();
+const padX=Math.max(8,vp.vw*0.025);
+if(window._homeBorderMeas.viewW===viewW&&window._homeBorderMeas.viewH===viewH&&window._homeBorderMeas.padX===padX)return;
+const topUI=['lB','hB','lvB','eqHint','subHint','pauseHint','cd','lCh','lvCh','cCh','hCh','pD','bcCall','bgCall','title'];
+const btnEls=[homeB,lckB,pB,bncB,slwB];
+const btnKeys=['_home','_lck','_pB','_bnc','_slw'];
+// 1) Drop fixed styles so natural layout can run
+topUI.forEach(id=>clearFrozenElStyles($(id)));
+btnEls.forEach(clearFrozenElStyles);
+// 2) Apply live layout for current viewW/viewH (same rules as setSize)
+const top=98;
+const cl=padX;
+const bb=$('bB'), tb=$('topBar');
+if(bb){bb.style.left=padX+'px';bb.style.width=viewW+'px';}
+if(tb){tb.style.left=padX+'px';tb.style.width=viewW+'px';}
+const lBox=$('lB'),hBox=$('hB'),lvBox=$('lvB');
+if(lBox){lBox.style.left=cl+'px';lBox.style.right='auto';}
+if(hBox){hBox.style.right=padX+'px';hBox.style.left='auto';}
+if(lvBox){
+lvBox.style.left=(cl+viewW/2)+'px';
+lvBox.style.top=top+'px';
+lvBox.style.transform='translateX(-50%)';
+lvBox.style.position='';
+}
+// Lives / hi-score must be measurable for hint band (unhide briefly for accurate rects)
+[lBox,hBox,lvBox].forEach(el=>{if(el)el.style.visibility='';});
+void document.body.offsetWidth;
+// Hints between lives / hi-score (mirror setSize layoutHint + scaleX text fit)
+let hintLeft=cl+8, hintRight=cl+viewW-8, hintTop=48, hintH=50;
+if(lBox){const r=lBox.getBoundingClientRect();hintLeft=r.right+18;hintTop=r.top-6;hintH=Math.max(28,r.height-4)}
+if(hBox){const r=hBox.getBoundingClientRect();hintRight=r.left-16;if(!lBox){hintTop=r.top-6;hintH=Math.max(28,r.height-4)}}
+const hintW=Math.max(40,hintRight-hintLeft);
+const fs=Math.max(10,Math.floor(hintH*0.42));
+let eqTop=8, eqH=24;
+const mapTopY=top;
+const hintBot=lBox?lBox.getBoundingClientRect().bottom:(mapTopY-30);
+const gapTop=hintBot, gapBot=mapTopY;
+const gap=gapBot-gapTop;
+if(gap>=14){eqH=Math.max(16,Math.min(28,gap-4));eqTop=gapTop+(gap-eqH)/2+3;}
+else{eqH=22;eqTop=Math.max(4,mapTopY-eqH-1);}
+const eqFs=Math.max(15,Math.floor(eqH*0.75));
+const eqLeft=hintLeft, eqW=hintW;
+function layoutHintLive(el){
+if(!el)return;
+const isFormula=el.id==='eqHint'||el.classList.contains('hi-formula');
+if(isFormula){
+el.style.left=eqLeft+'px';el.style.width=eqW+'px';el.style.top=eqTop+'px';
+el.style.height=eqH+'px';el.style.fontSize=eqFs+'px';el.style.lineHeight=eqH+'px';
+el.style.letterSpacing='0.02em';
+}else{
+el.style.left=hintLeft+'px';el.style.width=hintW+'px';el.style.top=hintTop+'px';
+el.style.height=hintH+'px';el.style.fontSize=fs+'px';el.style.lineHeight=hintH+'px';
+el.style.letterSpacing='0.08em';
+}
+el.style.position='fixed';
+el.style.transformOrigin='center center';
+el.style.whiteSpace='nowrap';
+el.style.visibility='hidden';
+// Same scaleX text-fit as layoutHint so size matches when scroll finishes
+const txt=(el.textContent||'').trim()||(isFormula?'0 x 0 = 0':'NEXT TOUCH SUBMITS!');
+const useFs=isFormula?eqFs:fs;
+const useW=isFormula?eqW:hintW;
+let tw=0;
+try{
+const mctx=document.createElement('canvas').getContext('2d');
+mctx.font=isFormula?(useFs+"px 'Permanent Marker',cursive"):(useFs+"px 'Press Start 2P',monospace");
+tw=mctx.measureText(txt).width*(isFormula?1.04:1.08);
+}catch(e){tw=el.scrollWidth||useW}
+if(tw>useW&&tw>0)el.style.transform='scaleX('+(useW/tw).toFixed(4)+')';
+else el.style.transform='none';
+}
+layoutHintLive($('eqHint'));layoutHintLive($('subHint'));layoutHintLive($('pauseHint'));
+if(cd){
+const cdFs=parseFloat(getComputedStyle(cd).fontSize)||64;
+const cdW=Math.ceil(cdFs*1.2), cdH=Math.ceil(cdFs*1.2);
+cd.style.width=cdW+'px';cd.style.height=cdH+'px';
+cd.style.left=Math.round(cl+viewW/2-cdW/2)+'px';
+cd.style.top=Math.round(top+viewH/6-cdH/2)+'px';
+cd.style.transform='none';
+}
+if($('lCh'))$('lCh').style.left=(cl+48)+'px';
+if($('lvCh'))$('lvCh').style.left=(cl+viewW/2+42)+'px';
+if($('cCh')){$('cCh').style.left=(cl+viewW-44)+'px';$('cCh').style.right='auto';}
+if($('hCh')){$('hCh').style.right=(padX+64)+'px';$('hCh').style.left='auto';}
+// Force reflow then measure everything at scroll-0 layout
+void document.body.offsetWidth;
+topUI.forEach(id=>{
+const el=$(id);if(!el)return;
+window._homeFreeze[id]=snapFrozenEl(el);
+});
+btnEls.forEach((el,i)=>{
+if(!el)return;
+window._homeFreeze[btnKeys[i]]=snapFrozenEl(el);
 });
 window._homeBorderMeas.viewW=viewW;
+window._homeBorderMeas.viewH=viewH;
 window._homeBorderMeas.padX=padX;
 }
 function applyHomeUIScroll(sx){
@@ -1211,13 +1302,14 @@ if(!window._homeFreeze)return;
 const sxn=sx||0;
 const scrW=document.documentElement.clientWidth||window.innerWidth||320;
 const padX=Math.max(8,scrW*0.025);
-// Keep freeze button metrics in sync with live flex layout on resize
-syncHomeButtonFreezeToView();
+// Keep all frozen UI metrics in sync with live layout on resize
+syncHomeUIFreezeToView();
 // Non-button UI: scroll with world (frozen absolute positions + sx)
 Object.keys(window._homeFreeze).forEach(key=>{
 if(key.startsWith('_'))return;
 const f=window._homeFreeze[key], el=$(key);
 if(!el||!f)return;
+el.style.visibility='';
 el.style.position='fixed';
 el.style.left=(f.left+sxn)+'px';
 el.style.top=f.top+'px';
@@ -1228,6 +1320,10 @@ el.style.bottom='auto';
 el.style.margin='0';
 el.style.transform=f.transform||'none';
 el.style.transformOrigin=f.origin||'center center';
+// Restore text metrics so hint/title sizes match live layout while scrolled
+if(f.fontSize)el.style.fontSize=f.fontSize;
+if(f.lineHeight)el.style.lineHeight=f.lineHeight;
+if(f.letterSpacing)el.style.letterSpacing=f.letterSpacing;
 });
 // $ coins stay in the top bar
 const cC=$('cC');
@@ -1288,22 +1384,14 @@ el.style.zIndex=i===0?'30':'25';
 
 function freezeHomeUI(){
 window._homeFreeze={};
-const snap=el=>{
-if(!el)return null;
-const r=el.getBoundingClientRect();
-// Keep only scale* from inline transform; drop translates
-let t=el.style.transform||'none';
-t=t.replace(/translateX\([^)]*\)/g,'').replace(/translate\([^)]*\)/g,'').trim()||'none';
-return{left:r.left,top:r.top,width:Math.max(1,r.width),height:Math.max(1,r.height),transform:t,origin:el.style.transformOrigin||'center center'};
-};
 ['lB','hB','lvB','eqHint','subHint','pauseHint','cd','lCh','lvCh','cCh','hCh','pD','bcCall','bgCall','title'].forEach(id=>{
 const el=$(id);if(!el)return;
-window._homeFreeze[id]=snap(el);
+window._homeFreeze[id]=snapFrozenEl(el);
 });
 [bncB,lckB,slwB,pB].forEach((el,i)=>{
-if(el)window._homeFreeze[['_bnc','_lck','_slw','_pB'][i]]=snap(el);
+if(el)window._homeFreeze[['_bnc','_lck','_slw','_pB'][i]]=snapFrozenEl(el);
 });
-if(homeB)window._homeFreeze._home=snap(homeB);
+if(homeB)window._homeFreeze._home=snapFrozenEl(homeB);
 // freeze animation clock + head text anchors
 window._homeAnim={arrP:arrP,t0:Date.now(),pulseT:Date.now()%1600};
 window._homeHead={x:circle.x,y:circle.y,r:circle.radius,hits:wallHits,lv:level,hold:(!isPaused&&circle.isDragging)||(isPaused&&circle.wasDraggingWhenPaused)};
@@ -1328,6 +1416,7 @@ dollarBottom=cr.bottom;
 const vp=getViewportSize();
 const measPad=Math.max(8,vp.vw*0.025);
 window._homeBorderMeas={bottomGap:bottomGap,dollarBottom:dollarBottom,canvasTop:canvasTop,viewH:viewH,viewW:viewW,padX:measPad};
+// viewH tracked so syncHomeUIFreezeToView remeasures on vertical resize too
 })();
 }
 
@@ -1335,8 +1424,10 @@ function clearHomeUIFreeze(){
 const ids=['lB','hB','lvB','eqHint','subHint','pauseHint','cd','lCh','lvCh','cCh','hCh','pD','bcCall','bgCall','title'];
 ids.forEach(id=>{
 const el=$(id);if(!el)return;
+el.style.visibility='';
 el.style.position='';el.style.left='';el.style.top='';el.style.width='';el.style.height='';
 el.style.right='';el.style.bottom='';el.style.margin='';el.style.transform='';el.style.transformOrigin='';
+el.style.fontSize='';el.style.lineHeight='';el.style.letterSpacing='';
 });
 window._homeFreeze=null;
 window._homeAnim=null;
