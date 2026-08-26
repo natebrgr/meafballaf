@@ -334,6 +334,8 @@ let homeAway=false;
 let homeTrans=null;
 let homeSaved=null; // ball/CD state frozen at home press
 const HOME_POWER_AT_100=16; // former power-on multiplier reached at level 100
+let mapBorderProg=0; // 0=normal play border, 1=9:16 home-size border
+let mapBorderFrom=null, mapBorderTo=null; // cached {l,t,w,h} in canvas coords (bottom fixed)
 
 let lockTrans=null; // {t0,dur,fromScroll,toScroll,fromY,toY,savedDx,savedDy}
 const usedTB=new Set(); // absolute white-band keys that have been consumed
@@ -1064,12 +1066,17 @@ homeTrans.glideFrom={x:circle.x,y:circle.y};
 function toggleHome(){
 if(homeTrans){
 reverseHomeTrans();
-if(homeB)homeB.classList.add('on');
+if(homeB){
+homeB.classList.add('on');
+if(homeTrans.dir==='leave'){homeB.innerHTML='&#127918;';homeB.title='Play';}
+else{homeB.innerHTML='&#127968;';homeB.title='Home';}
+}
 return;
 }
 if(homeAway){
 if(!window._homeFreeze)freezeHomeUI();
 homeTrans={dir:'return',phase:'squatIn',t0:Date.now(),scrollX:viewW+90,walkT:0,jumpT:0,saved:homeSaved||null};
+if(homeB){homeB.innerHTML='&#127968;';homeB.title='Home';}
 }else{
 if(isCD)pauseCD();
 isPaused=true;
@@ -1079,8 +1086,104 @@ isCD:isCD,cdVal:cdVal,cdOp:cdOp,cdRemain:cdRemain,isTrack:isTrack,wallHits:wallH
 homeTrans={dir:'leave',phase:'centerX',t0:Date.now(),scrollX:0,walkT:0,jumpT:0,saved:homeSaved,
 rFrom:circle.radius,rTo:INIT_R,glideFrom:{x:circle.x,y:circle.y}};
 circle.isDragging=false;
+mapBorderProg=0;mapBorderFrom={l:SSW,t:0,w:viewW-2*SSW,h:viewH};mapBorderTo=computeMapBorderTarget();
+if(homeB){homeB.innerHTML='&#127918;';homeB.title='Play';}
 }
 if(homeB)homeB.classList.add('on');
+}
+function computeMapBorderTarget(){
+// Bottom edge fixed at viewH. Top moves so the frame is exact 9:16, centered in viewW.
+// Desired: top gap (to $) matches bottom gap (to buttons). If width is too thin for that
+// height at 9:16, height shrinks (top moves down) so sides never clip.
+const canvasTop=98;
+let bottomGap=48, dollarBottom=46;
+if(window._homeBorderMeas){
+bottomGap=window._homeBorderMeas.bottomGap;
+dollarBottom=window._homeBorderMeas.dollarBottom;
+}else{
+const bb=$('bB');
+if(bb){
+const br=bb.getBoundingClientRect();
+bottomGap=Math.max(6,br.top-(canvasTop+viewH));
+}
+const curEl=cC&&cC.parentElement;
+if(curEl){
+const cr=curEl.getBoundingClientRect();
+dollarBottom=cr.bottom;
+}
+}
+const targetMapTopVP=dollarBottom+bottomGap;
+const desiredDelta=Math.max(0,canvasTop-targetMapTopVP); // how much taller we'd like
+const idealH=viewH+desiredDelta;
+// Available width for stroke (pad so lineWidth doesn't clip at canvas edges)
+const strokePad=Math.max(4,BW*2);
+const availW=Math.max(40,viewW-strokePad*2);
+// Hard max height that still fits 9:16 inside availW
+const maxHForWidth=availW*(16/9);
+const targetH=Math.max(40,Math.min(idealH,maxHForWidth));
+const targetW=targetH*(9/16);
+// Bottom fixed at viewH → top = viewH - targetH (negative = expand up, positive = shrink down)
+const targetT=viewH-targetH;
+const targetL=(viewW-targetW)/2;
+// deltaUp used by canvas expand: only the upward part
+const deltaUp=Math.max(0,-targetT);
+return{l:targetL,t:targetT,w:targetW,h:targetH,deltaUp:deltaUp,canvasTop:canvasTop};
+}
+function applyMapBorderCanvas(){
+// Expand canvas upward only when the 9:16 top is above the normal map top (never clip).
+// When the border is shorter than the map (thin screens), no canvas expand needed.
+const pr=Math.min(window.devicePixelRatio||1,2);
+const padX=Math.max(8,(document.documentElement.clientWidth||window.innerWidth||320)*0.025);
+const nomTop=98;
+if(mapBorderProg<=0.001||!mapBorderTo){
+if(window._mapBorderExpanded){
+canvas.style.top=nomTop+'px';
+canvas.style.height=viewH+'px';
+canvas.width=Math.floor(viewW*pr);
+canvas.height=Math.floor(viewH*pr);
+ctx.setTransform(pr,0,0,pr,0,0);
+window._mapBorderExpanded=false;
+window._mapBorderDelta=0;
+}
+return 0;
+}
+const u=Math.max(0,Math.min(1,mapBorderProg));
+const ease=u*u*(3-2*u);
+// Interpolate current top; only expand canvas for the upward portion
+const fromT=0;
+const toT=mapBorderTo.t||0;
+const curT=fromT+(toT-fromT)*ease;
+const delta=Math.max(0,-curT); // only positive upward expand
+if(delta<=0.5){
+if(window._mapBorderExpanded){
+canvas.style.top=nomTop+'px';
+canvas.style.height=viewH+'px';
+canvas.width=Math.floor(viewW*pr);
+canvas.height=Math.floor(viewH*pr);
+ctx.setTransform(pr,0,0,pr,0,0);
+window._mapBorderExpanded=false;
+window._mapBorderDelta=0;
+}
+return 0;
+}
+const newH=viewH+delta;
+const newTop=nomTop-delta;
+canvas.style.position='fixed';
+canvas.style.left=padX+'px';
+canvas.style.top=newTop+'px';
+canvas.style.width=viewW+'px';
+canvas.style.height=newH+'px';
+canvas.style.right='auto';
+canvas.style.bottom='auto';
+const bw=Math.floor(viewW*pr),bh=Math.floor(newH*pr);
+if(canvas.width!==bw||canvas.height!==bh){
+canvas.width=bw;canvas.height=bh;
+}
+ctx.setTransform(pr,0,0,pr,0,0);
+ctx.translate(0,delta);
+window._mapBorderExpanded=true;
+window._mapBorderDelta=delta;
+return delta;
 }
 function homeStandYFor(r){
 r=Math.max(12,r);
@@ -1094,9 +1197,65 @@ return viewH-2-footReach;
 }
 function homeStandY(){return homeStandYFor(circle.radius);}
 function homeSquatY(){return homeSquatYFor(circle.radius);}
+function syncHomeButtonFreezeToView(){
+// When the window is resized during home, re-measure real #bB flex sizes so
+// fixed buttons match what CSS will use when they scroll back — no end snap.
+if(!window._homeFreeze||!window._homeBorderMeas)return;
+const scrW=document.documentElement.clientWidth||window.innerWidth||320;
+const padX=Math.max(8,scrW*0.025);
+if(window._homeBorderMeas.viewW===viewW&&window._homeBorderMeas.padX===padX)return;
+const els=[homeB,lckB,pB,bncB,slwB];
+const keys=['_home','_lck','_pB','_bnc','_slw'];
+// Drop fixed styles so flex layout in #bB computes true sizes for current viewW
+els.forEach(el=>{
+if(!el)return;
+el.style.visibility='hidden';
+el.style.position='';
+el.style.left='';
+el.style.top='';
+el.style.bottom='';
+el.style.right='';
+el.style.width='';
+el.style.minWidth='';
+el.style.maxWidth='';
+el.style.height='';
+el.style.flex='';
+el.style.margin='';
+el.style.padding='';
+el.style.transform='';
+el.style.boxSizing='';
+el.style.overflow='';
+el.style.zIndex='';
+});
+const bb=$('bB');
+if(bb){
+bb.style.left=padX+'px';
+bb.style.width=viewW+'px';
+}
+if(bb)void bb.offsetWidth; // force reflow
+els.forEach((el,i)=>{
+if(!el)return;
+const r=el.getBoundingClientRect();
+window._homeFreeze[keys[i]]={
+left:r.left,
+top:r.top,
+width:Math.max(1,r.width),
+height:Math.max(1,r.height),
+transform:'none',
+origin:'center center'
+};
+});
+window._homeBorderMeas.viewW=viewW;
+window._homeBorderMeas.padX=padX;
+}
 function applyHomeUIScroll(sx){
 if(!window._homeFreeze)return;
 const sxn=sx||0;
+const scrW=document.documentElement.clientWidth||window.innerWidth||320;
+const padX=Math.max(8,scrW*0.025);
+// Keep freeze button metrics in sync with live flex layout on resize
+syncHomeButtonFreezeToView();
+// Non-button UI: scroll with world (frozen absolute positions + sx)
 Object.keys(window._homeFreeze).forEach(key=>{
 if(key.startsWith('_'))return;
 const f=window._homeFreeze[key], el=$(key);
@@ -1112,19 +1271,7 @@ el.style.margin='0';
 el.style.transform=f.transform||'none';
 el.style.transformOrigin=f.origin||'center center';
 });
-['_bnc','_lck','_slw','_pB'].forEach((k,i)=>{
-const el=[bncB,lckB,slwB,pB][i], f=window._homeFreeze[k];
-if(!el||!f)return;
-el.style.position='fixed';
-el.style.left=(f.left+sxn)+'px';
-el.style.top=f.top+'px';
-el.style.width=f.width+'px';
-el.style.height=f.height+'px';
-el.style.right='auto';
-el.style.margin='0';
-el.style.transform=f.transform||'none';
-});
-// $ coins stay in the top bar — never freeze/scroll them
+// $ coins stay in the top bar
 const cC=$('cC');
 if(cC&&cC.parentElement){
 cC.parentElement.style.position='';
@@ -1135,17 +1282,50 @@ cC.parentElement.style.height='';
 cC.parentElement.style.transform='';
 cC.parentElement.style.zIndex='80';
 }
-if(homeB){
-homeB.style.transform='none';
-if(window._homeFreeze&&window._homeFreeze._home){
-const f=window._homeFreeze._home;
-homeB.style.flex='0 0 auto';
-homeB.style.width=f.width+'px';
-homeB.style.minWidth=f.width+'px';
-homeB.style.maxWidth=f.width+'px';
-homeB.style.height=f.height+'px';
+// Bottom bar: freeze sizes are always true flex sizes for current viewW
+const order=[
+{el:homeB,f:window._homeFreeze._home},
+{el:lckB,f:window._homeFreeze._lck},
+{el:pB,f:window._homeFreeze._pB},
+{el:bncB,f:window._homeFreeze._bnc},
+{el:slwB,f:window._homeFreeze._slw}
+];
+const barRight=padX+viewW;
+order.forEach((item,i)=>{
+const el=item.el,f=item.f;
+if(!el||!f)return;
+const w=Math.max(24,f.width);
+const h=Math.max(24,f.height);
+const naturalLeft=f.left; // measured for current viewW at scroll 0
+let left;
+if(i===0){
+// Same scroll speed as the others: move with sx until the right edge of the bar,
+// then stop. On return, stays parked until the group catches up (when
+// naturalLeft+sxn drops back to parkLeft), so everyone arrives together.
+const parkLeft=Math.max(padX,Math.min(barRight-w,scrW-w-2));
+left=Math.min(naturalLeft+sxn,parkLeft);
+left=Math.max(padX,left);
+}else{
+left=naturalLeft+sxn;
 }
-}
+el.style.visibility='';
+el.style.position='fixed';
+el.style.left=left+'px';
+el.style.top='auto';
+el.style.bottom='6px';
+el.style.width=w+'px';
+el.style.minWidth=w+'px';
+el.style.maxWidth=w+'px';
+el.style.height=h+'px';
+el.style.boxSizing='border-box';
+el.style.right='auto';
+el.style.margin='0';
+el.style.padding='';
+el.style.flex='0 0 auto';
+el.style.transform='none';
+el.style.overflow='hidden';
+el.style.zIndex=i===0?'30':'25';
+});
 }
 
 function freezeHomeUI(){
@@ -1169,6 +1349,23 @@ if(homeB)window._homeFreeze._home=snap(homeB);
 // freeze animation clock + head text anchors
 window._homeAnim={arrP:arrP,t0:Date.now(),pulseT:Date.now()%1600};
 window._homeHead={x:circle.x,y:circle.y,r:circle.radius,hits:wallHits,lv:level,hold:(!isPaused&&circle.isDragging)||(isPaused&&circle.wasDraggingWhenPaused)};
+// Measure border gaps before UI moves (for 9:16 top spacing)
+(function(){
+const canvasTop=98;
+let bottomGap=48, dollarBottom=46;
+const bb=$('bB');
+if(bb){
+const br=bb.getBoundingClientRect();
+bottomGap=Math.max(6,br.top-(canvasTop+viewH));
+}
+const curEl=cC&&cC.parentElement;
+if(curEl){
+const cr=curEl.getBoundingClientRect();
+dollarBottom=cr.bottom;
+}
+const measPad=Math.max(8,(document.documentElement.clientWidth||window.innerWidth||320)*0.025);
+window._homeBorderMeas={bottomGap:bottomGap,dollarBottom:dollarBottom,canvasTop:canvasTop,viewH:viewH,viewW:viewW,padX:measPad};
+})();
 }
 
 function clearHomeUIFreeze(){
@@ -1181,15 +1378,31 @@ el.style.right='';el.style.bottom='';el.style.margin='';el.style.transform='';el
 window._homeFreeze=null;
 window._homeAnim=null;
 window._homeHead=null;
-[bncB,lckB,slwB,pB].forEach(el=>{
+window._homeBorderMeas=null;
+[homeB,bncB,lckB,slwB,pB].forEach(el=>{
 if(!el)return;
-el.style.position='';el.style.left='';el.style.top='';el.style.width='';el.style.height='';el.style.transform='';el.style.margin='';
+el.style.visibility='';
+el.style.position='';
+el.style.left='';
+el.style.top='';
+el.style.right='';
+el.style.bottom='';
+el.style.width='';
+el.style.minWidth='';
+el.style.maxWidth='';
+el.style.height='';
+el.style.transform='';
+el.style.margin='';
+el.style.padding='';
+el.style.flex='';
+el.style.boxSizing='';
+el.style.overflow='';
+el.style.zIndex='';
 });
-if(homeB){
-homeB.style.flex='';homeB.style.width='';homeB.style.minWidth='';homeB.style.maxWidth='';homeB.style.height='';homeB.style.transform='';
-}
 const cWrap=$('cC')&&$('cC').parentElement;
 if(cWrap){cWrap.style.position='';cWrap.style.left='';cWrap.style.top='';cWrap.style.width='';cWrap.style.height='';cWrap.style.transform='';}
+// Restore canvas if border expansion was active
+mapBorderProg=0;window._mapBorderExpanded=false;window._mapBorderDelta=0;
 try{setSize();updateHint();}catch(e){}
 }
 
@@ -1329,9 +1542,10 @@ circle.dx=homeTrans.restDx||0;circle.dy=homeTrans.restDy||0;
 // Final body frame while still in glideBack so pose/face/borders stick
 bodyUpdate();
 homeTrans=null;homeAway=false;
+mapBorderProg=0;mapBorderFrom=null;mapBorderTo=null;
 clearHomeUIFreeze();
 applyHomeUIScroll(0);
-if(homeB)homeB.classList.remove('on');
+if(homeB){homeB.classList.remove('on');homeB.innerHTML='&#127968;';homeB.title='Home';}
 isPaused=true;
 pauseCD();
 updDisp();updateHint();
@@ -1340,6 +1554,25 @@ return;
 }
 
 if(homeTrans&&homeTrans.phase!=='glideBack'&&homeTrans.phase!=='centerX'){circle.dx=0;circle.dy=0;}
+// Map border 9:16: continuous smooth progress toward 0 or 1 (no phase-edge snaps)
+(function(){
+const p=homeTrans?homeTrans.phase:(homeAway?'idleAway':null);
+const dir=homeTrans?homeTrans.dir:(homeAway?'leave':null);
+mapBorderTo=computeMapBorderTarget();
+mapBorderFrom={l:SSW,t:0,w:viewW-2*SSW,h:viewH,deltaUp:0};
+// Target: expanded while landed/standing at home; collapsed otherwise
+let targetProg=0;
+if(p==='landSquat'||p==='standUp'||p==='idleAway'||(homeAway&&!homeTrans))targetProg=1;
+else if(dir==='leave'&&(p==='centerX'||p==='squat'||p==='jump'))targetProg=0;
+else if(dir==='return'){
+// shrinking during whole return until fully back
+if(p==='squatIn'||p==='jumpIn'||p==='landInSquat'||p==='restore'||p==='glideBack')targetProg=0;
+}
+const BORDER_DUR=0.70; // seconds for full 0↔1
+const speed=(1/BORDER_DUR)*Math.max(0.001,dt||0.016);
+if(mapBorderProg<targetProg)mapBorderProg=Math.min(targetProg,mapBorderProg+speed);
+else if(mapBorderProg>targetProg)mapBorderProg=Math.max(targetProg,mapBorderProg-speed);
+})();
 if(homeTrans)applyHomeUIScroll(homeTrans.scrollX||0);
 else if(homeAway)applyHomeUIScroll(targetScroll);
 else applyHomeUIScroll(0);
@@ -1434,6 +1667,9 @@ const top=98, bot=54;
 viewW=Math.max(200, Math.floor(vw-padX*2));
 viewH=Math.max(220, Math.floor(vh-top-bot));
 const pr=Math.min(window.devicePixelRatio||1, 2);
+// During home border expansion, applyMapBorderCanvas owns canvas top/height — don't clobber
+const borderExpanding=mapBorderProg>0.001&&mapBorderTo&&(mapBorderTo.deltaUp||0)>0;
+if(!borderExpanding){
 // Position + size via explicit pixels only (no left+right+width conflict)
 canvas.style.position='fixed';
 canvas.style.left=padX+'px';
@@ -1446,6 +1682,10 @@ canvas.style.height=viewH+'px';
 canvas.width=Math.floor(viewW*pr);
 canvas.height=Math.floor(viewH*pr);
 ctx.setTransform(pr,0,0,pr,0,0);
+}else{
+canvas.style.left=padX+'px';
+canvas.style.width=viewW+'px';
+}
 // Buttons + top bar share exact same horizontal edges
 const bb=$('bB'), tb=$('topBar');
 if(bb){
@@ -1805,17 +2045,48 @@ for(let inst=0;inst<4;inst++)for(let i=0;i<text.length;i++){const a=starts[inst]
 
 function draw(){
 const w=viewW,h=viewH,pw=w-2*SSW,sH=h/3;
-ctx.clearRect(0,0,canvas.width,canvas.height);drawBg(w,h);
+// Animated map border rect (same values used for stroke later)
+let bL=SSW,bT=0,bW=pw,bH=h;
+if(mapBorderProg>0.001&&map==='rectangle'){
+mapBorderTo=computeMapBorderTarget();
+const from={l:SSW,t:0,w:pw,h:h};
+const u=Math.max(0,Math.min(1,mapBorderProg));
+// Smoothstep once for a continuous ease (no end snap)
+const ease=u*u*(3-2*u);
+bL=from.l+(mapBorderTo.l-from.l)*ease;
+bT=from.t+(mapBorderTo.t-from.t)*ease;
+bW=from.w+(mapBorderTo.w-from.w)*ease;
+bH=from.h+(mapBorderTo.h-from.h)*ease;
+}
+// Expand canvas upward when border top is above the normal map top
+const borderDelta=applyMapBorderCanvas();
+// Clear full buffer
+ctx.save();
+ctx.setTransform(1,0,0,1,0,0);
+ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.restore();
+const pr=Math.min(window.devicePixelRatio||1,2);
+ctx.setTransform(pr,0,0,pr,0,borderDelta||0);
+// Black (and themed bg) fills ONLY the current map-border rectangle — never outside
+ctx.save();
+ctx.beginPath();
+ctx.rect(bL,bT,bW,bH);
+ctx.clip();
+ctx.fillStyle='#050508';
+ctx.fillRect(bL,bT,bW,bH);
+drawBg(w,h);
+ctx.restore();
 
 if(mode==='survival'&&map==='rectangle'){
 const gL=startL<=3?startL+1:(lives>2?lives+1:4),rL=startL<=3?Math.max(startL-1,1):(lives>2?Math.max(lives-1,1):2);
-const bS=[0,1,2].find(s=>s!==gSec&&s!==rSec),bL=startL<=3?startL:(lives>2?lives:3);
+const bS=[0,1,2].find(s=>s!==gSec&&s!==rSec),baseLives=startL<=3?startL:(lives>2?lives:3);
 const period=4*sH; // 3 color bands + 1 white TIME BACK
 const homeSX=(homeTrans&&homeTrans.scrollX)||(homeAway?(viewW+80):0);
 const off=((zoneScroll%period)+period)%period;
 // Repeating life zones — scroll downward when ball presses the top
+// Clip to the animated map-border rect so zones stay inside the black frame
 ctx.save();
-ctx.beginPath();ctx.rect(SSW,0,pw,h);ctx.clip();
+ctx.beginPath();ctx.rect(bL,bT,bW,bH);ctx.clip();
 ctx.translate(homeSX,0);
 for(let k=-6;k<=3;k++){
 for(let sec=0;sec<4;sec++){
@@ -1912,7 +2183,7 @@ ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=6;
 ctx.fillText(t,SSW+30,y);ctx.fillText(t,w-SSW-30,y);ctx.shadowBlur=0;
 }
 };
-dD(gSec,gL,'#00ff88','g');dD(rSec,rL,'#ff3355','r');if(bS!==undefined)dD(bS,bL,'#8899aa','b');
+dD(gSec,gL,'#00ff88','g');dD(rSec,rL,'#ff3355','r');if(bS!==undefined)dD(bS,baseLives,'#8899aa','b');
 // Labels on consumed TIME BACK bands (as extra reds)
 ctx.fillStyle='#ff3355';ctx.shadowColor='#ff3355';ctx.shadowBlur=6;
 for(let k2=-8;k2<=4;k2++){
@@ -1941,7 +2212,8 @@ const homeScrolling=!!((homeTrans&&homeTrans.scrollX)||homeAway);
 ctx.strokeStyle='rgba(0,240,255,0.7)';ctx.lineWidth=BW*2;
 if(homeScrolling){ctx.shadowBlur=0;ctx.shadowColor='transparent';}
 else{ctx.shadowColor='rgba(0,240,255,0.4)';ctx.shadowBlur=8;}
-if(map==='rectangle')ctx.strokeRect(SSW,0,pw,h);else{ctx.beginPath();ctx.arc(w/2,h/2,Math.min(pw,h)/2-BW,0,Math.PI*2);ctx.stroke()}
+// Stroke uses the same bL/bT/bW/bH computed at the start of draw (matches black fill exactly)
+if(map==='rectangle')ctx.strokeRect(bL,bT,bW,bH);else{ctx.beginPath();ctx.arc(w/2,h/2,Math.min(pw,h)/2-BW,0,Math.PI*2);ctx.stroke()}
 ctx.shadowBlur=0;
 // Bounce progress meter — clockwise from top-left along the play border
 // Drawn as a function so it can be re-stroked after gold border (keeps thickness stable)
@@ -2755,9 +3027,13 @@ document.addEventListener('touchend',e=>{stopResizing(e);stopDrag(e)});
 
 function animate(){try{
 // Re-assert canvas buffer every frame — iOS/Snapchat often resets it
+// When border is expanded, height includes the upward delta so the top edge isn't clipped
 const pr=Math.min(window.devicePixelRatio||1,2);
-const bw=Math.floor(viewW*pr),bh=Math.floor(viewH*pr);
-if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh;ctx.setTransform(pr,0,0,pr,0,0)}
+const extra=(mapBorderProg>0.001&&mapBorderTo)?(mapBorderTo.deltaUp||0)*Math.max(0,Math.min(1,mapBorderProg)):0;
+const ease=extra>0?(function(u){u=Math.max(0,Math.min(1,mapBorderProg));return u*u*(3-2*u);})():0;
+const deltaH=(mapBorderTo&&mapBorderTo.deltaUp||0)*ease;
+const bw=Math.floor(viewW*pr),bh=Math.floor((viewH+deltaH)*pr);
+if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh;ctx.setTransform(pr,0,0,pr,0,deltaH)}
 phys();draw();
 }catch(err){console.error(err)}requestAnimationFrame(animate)}
 loadP();loadTut();
