@@ -1104,64 +1104,37 @@ offsetTop:0,offsetLeft:0
 };
 }
 function computeMapBorderTarget(){
-// Bottom edge fixed at viewH. Top moves so the frame is exact 9:16, centered in viewW.
-// Desired: top gap (to $) matches bottom gap (to buttons). Clamped so the top never
-// goes under the $ / top chrome or above the visible viewport (mobile URL bar safe).
-const nomTop=(window._homeBorderMeas&&window._homeBorderMeas.canvasTop!=null)
-?window._homeBorderMeas.canvasTop:98;
-let bottomGap=48, dollarBottom=46;
-if(window._homeBorderMeas){
-bottomGap=window._homeBorderMeas.bottomGap;
-dollarBottom=window._homeBorderMeas.dollarBottom;
-}else{
-const bb=$('bB');
-if(bb){
-const br=bb.getBoundingClientRect();
-bottomGap=Math.max(6,br.top-(nomTop+viewH));
-}
-const curEl=cC&&cC.parentElement;
-if(curEl){
-const cr=curEl.getBoundingClientRect();
-dollarBottom=cr.bottom;
-}
-}
-// Safe top: below the $ button, and inside the visible visual viewport
-const vp=getViewportSize();
-const safeTop=Math.max(vp.offsetTop+2, dollarBottom+4);
-const targetMapTopVP=Math.max(safeTop, dollarBottom+bottomGap);
-// How much we can grow upward without going above safeTop / viewport chrome
-const maxDeltaByChrome=Math.max(0,nomTop-safeTop);
-const desiredDelta=Math.max(0,Math.min(nomTop-targetMapTopVP,maxDeltaByChrome));
+// 9:16 frame entirely INSIDE the normal map (no canvas top/height changes).
+// Bottom fixed at viewH. Top stays >= 0 (never expands above the playfield — that
+// was jumping/clipping on mobile browser chrome). Sides inset for exact 9:16.
+// Prefer full map height; if width is too thin for viewH at 9:16, shrink height
+// (top moves down) so sides never clip.
 const strokePad=Math.max(4,BW*2);
 const availW=Math.max(40,viewW-strokePad*2);
 const maxHForWidth=availW*(16/9);
-// Ideal height from gaps, then clamp by width (9:16) and by chrome-safe upward room
-let targetH=Math.max(40,Math.min(viewH+desiredDelta,maxHForWidth));
-if(targetH>viewH){
-const up=Math.min(targetH-viewH,maxDeltaByChrome);
-targetH=viewH+up;
-}
-const targetW=targetH*(9/16);
-const targetT=viewH-targetH; // negative = expand up; positive = shrink (thin screens)
-const deltaUp=Math.max(0,-targetT);
+// Prefer full height when it fits at 9:16; otherwise shrink to what width allows
+let targetH=Math.max(40,Math.min(viewH,maxHForWidth));
+const targetW=Math.min(availW,targetH*(9/16));
+// Re-sync height to width so aspect is exact 9:16
+targetH=Math.min(viewH,targetW*(16/9));
+const targetT=Math.max(0,viewH-targetH); // always >= 0 — no upward canvas expand
 const targetL=(viewW-targetW)/2;
-return{l:targetL,t:targetT,w:targetW,h:targetH,deltaUp:deltaUp,canvasTop:nomTop};
+return{l:targetL,t:targetT,w:targetW,h:targetH,deltaUp:0,canvasTop:98};
 }
 function applyMapBorderCanvas(){
-// Expand canvas once to the full needed height (no per-frame top animation) so the
-// playfield doesn't drift upward on mobile while the border rect animates inside.
+// Canvas element stays fixed — no top/height animation (fixes mobile jump + clip).
+// Border rect animation is drawn inside the normal map bounds only.
+if(window._mapBorderExpanded){
 const pr=Math.min(window.devicePixelRatio||1,2);
 const vp=getViewportSize();
 const padX=Math.max(8,vp.vw*0.025);
-const nomTop=(window._homeBorderMeas&&window._homeBorderMeas.canvasTop!=null)
-?window._homeBorderMeas.canvasTop
-:((canvas.getBoundingClientRect&&mapBorderProg<=0.001)?canvas.getBoundingClientRect().top:98);
-const needExpand=mapBorderProg>0.001&&mapBorderTo&&(mapBorderTo.deltaUp||0)>0.5;
-const fullDelta=needExpand?(mapBorderTo.deltaUp||0):0;
-if(!needExpand){
-if(window._mapBorderExpanded){
-canvas.style.top=nomTop+'px';
+canvas.style.position='fixed';
+canvas.style.left=padX+'px';
+canvas.style.top='98px';
+canvas.style.width=viewW+'px';
 canvas.style.height=viewH+'px';
+canvas.style.right='auto';
+canvas.style.bottom='auto';
 canvas.width=Math.floor(viewW*pr);
 canvas.height=Math.floor(viewH*pr);
 ctx.setTransform(pr,0,0,pr,0,0);
@@ -1169,26 +1142,6 @@ window._mapBorderExpanded=false;
 window._mapBorderDelta=0;
 }
 return 0;
-}
-// Full expansion immediately — border stroke/fill still animate via mapBorderProg
-const newH=viewH+fullDelta;
-const newTop=nomTop-fullDelta;
-canvas.style.position='fixed';
-canvas.style.left=padX+'px';
-canvas.style.top=newTop+'px';
-canvas.style.width=viewW+'px';
-canvas.style.height=newH+'px';
-canvas.style.right='auto';
-canvas.style.bottom='auto';
-const bw=Math.floor(viewW*pr),bh=Math.floor(newH*pr);
-if(canvas.width!==bw||canvas.height!==bh){
-canvas.width=bw;canvas.height=bh;
-}
-// Translate so logical y=0 stays at the same screen position (old map top)
-ctx.setTransform(pr,0,0,pr,0,fullDelta);
-window._mapBorderExpanded=true;
-window._mapBorderDelta=fullDelta;
-return fullDelta;
 }
 function homeStandYFor(r){
 r=Math.max(12,r);
@@ -1677,10 +1630,8 @@ const top=98, bot=54;
 viewW=Math.max(200, Math.floor(vw-padX*2));
 viewH=Math.max(220, Math.floor(vh-top-bot));
 const pr=Math.min(window.devicePixelRatio||1, 2);
-// During home border expansion, applyMapBorderCanvas owns canvas top/height — don't clobber
-const borderExpanding=mapBorderProg>0.001&&mapBorderTo&&(mapBorderTo.deltaUp||0)>0;
-if(!borderExpanding){
 // Position + size via explicit pixels only (no left+right+width conflict)
+// Border 9:16 animates inside these bounds — canvas top/height never move
 canvas.style.position='fixed';
 canvas.style.left=padX+'px';
 canvas.style.top=top+'px';
@@ -1692,10 +1643,6 @@ canvas.style.height=viewH+'px';
 canvas.width=Math.floor(viewW*pr);
 canvas.height=Math.floor(viewH*pr);
 ctx.setTransform(pr,0,0,pr,0,0);
-}else{
-canvas.style.left=padX+'px';
-canvas.style.width=viewW+'px';
-}
 // Buttons + top bar share exact same horizontal edges
 const bb=$('bB'), tb=$('topBar');
 if(bb){
@@ -3037,11 +2984,9 @@ document.addEventListener('touchend',e=>{stopResizing(e);stopDrag(e)});
 
 function animate(){try{
 // Re-assert canvas buffer every frame — iOS/Snapchat often resets it
-// When border is expanded, use full deltaUp (canvas expands once; border rect animates inside)
 const pr=Math.min(window.devicePixelRatio||1,2);
-const fullDelta=(mapBorderProg>0.001&&mapBorderTo&&(mapBorderTo.deltaUp||0)>0.5)?(mapBorderTo.deltaUp||0):0;
-const bw=Math.floor(viewW*pr),bh=Math.floor((viewH+fullDelta)*pr);
-if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh;ctx.setTransform(pr,0,0,pr,0,fullDelta)}
+const bw=Math.floor(viewW*pr),bh=Math.floor(viewH*pr);
+if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh;ctx.setTransform(pr,0,0,pr,0,0)}
 phys();draw();
 }catch(err){console.error(err)}requestAnimationFrame(animate)}
 loadP();loadTut();
