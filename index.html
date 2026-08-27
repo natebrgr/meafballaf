@@ -270,8 +270,30 @@ filter:grayscale(1);
 #lckB.unlocked{color:#fff!important;border-color:rgba(255,255,255,.75)!important;filter:grayscale(1);}
 #title{cursor:pointer;pointer-events:auto}
 
-#homeB,#bncB,#slwB,#lckB{font-size:.95rem;letter-spacing:0;padding:8px 6px}
-@media(max-width:480px){#homeB,#bncB,#slwB,#lckB{font-size:.85rem;padding:8px 4px}#pB{font-size:.5rem}}
+#homeB,#bncB,#slwB,#lckB,#upB,#backB,#armB{font-size:.95rem;letter-spacing:0;padding:8px 6px}
+@media(max-width:480px){#homeB,#bncB,#slwB,#lckB,#upB,#backB,#armB{font-size:.85rem;padding:8px 4px}#pB,#homePB{font-size:.5rem}}
+#upB,#backB,#armB,#homePB{
+position:fixed;bottom:6px;left:-9999px;z-index:28;
+display:none;pointer-events:none;visibility:hidden;
+filter:grayscale(1);
+}
+#armB.armed{filter:none!important;}
+#homePB{
+font-size:.58rem;padding:7px 12px;text-transform:uppercase;white-space:pre-line;line-height:1.15;
+background:linear-gradient(135deg,rgba(0,240,255,.15),rgba(0,100,150,.1));
+text-align:center;
+}
+#armB .armDot{
+display:block;width:18px;height:18px;border-radius:50%;margin:0 auto;
+background:#888;box-shadow:0 0 0 2px rgba(255,255,255,.25) inset;
+transition:background .15s ease,box-shadow .15s ease;
+}
+#armB.armed .armDot{background:#ff3355;box-shadow:0 0 10px rgba(255,51,85,.65),0 0 0 2px rgba(255,255,255,.3) inset;}
+#homeCd{
+position:fixed;left:50%;top:0;transform:none;font-family:'Orbitron',sans-serif;font-weight:800;font-size:4rem;
+z-index:15;pointer-events:none;color:#fff;text-shadow:0 0 20px rgba(0,240,255,.7);opacity:0;
+-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;text-align:center;
+}
 </style>
 </head>
 <body>
@@ -291,6 +313,11 @@ filter:grayscale(1);
 <button id="homeB" title="Home">&#127968;</button><button id="lckB" title="Scroll lock">&#128274;</button><button id="pB">PAUSE</button>
 <button id="bncB" title="Extra bounce">&#8597;</button><button id="slwB" title="Slow motion">&#9201;</button>
 </div>
+<button id="upB" title="Upload" type="button">&#11014;</button>
+<button id="backB" title="Back" type="button">&#8592;</button>
+<button id="homePB" title="Pause" type="button">PAUSE</button>
+<button id="armB" title="Arm" type="button"><span class="armDot"></span></button>
+<div id="homeCd"></div>
 <div class="ov" id="sO"><div class="s-sticky"><div class="oh"><div class="ot" style="background:linear-gradient(90deg,var(--gold),#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent">STORE</div><button class="oc" id="sCl">X</button></div>
 <div style="font-family:Orbitron;color:var(--cyan)"><span id="sHS">HS 0</span> · <span id="sCC">0</span> $</div>
 <div style="font-family:Exo 2,sans-serif;font-size:.72rem;color:rgba(200,210,230,.75);margin-top:6px;padding:0 12px">Items unlock with Survival high scores.</div>
@@ -315,6 +342,10 @@ const lN=$('lN'),cd=$('cd'),wH=$('wH'),lC=$('lC'),lB=$('lB'),hC=$('hC'),hB=$('hB
 const cC=$('cC'),pC=$('pC'),pD=$('pD'),title=$('title'),pB=$('pB');
 const sO=$('sO'),sCl=$('sCl'),sCC=$('sCC'),skG=$('skG'),bgG=$('bgG');
 const homeB=$('homeB'),bncB=$('bncB'),lckB=$('lckB'),slwB=$('slwB');
+const upB=$('upB'),backB=$('backB'),homePB=$('homePB'),armB=$('armB'),homeCd=$('homeCd');
+let homeDockProg=0; // 0=hidden below, 1=docked on screen
+let homeArmed=false;
+let homeArmCD=false,homeArmCdVal=3,homeArmCdRemain=1000,homeArmCdOp=0;
 const lCh=$('lCh'),lvCh=$('lvCh'),cCh=$('cCh'),hCh=$('hCh'),hO=$('hO'),hCl=$('hCl'),hCb=$('hCb'),hCo=$('hCo');
 const tO=$('tO'),tS=$('tS'),tT=$('tT'),tB=$('tB'),tN=$('tN'),tSk=$('tSk'),tP=$('tP'),tNA=$('tNA');
 
@@ -1066,6 +1097,7 @@ homeTrans.glideFrom={x:circle.x,y:circle.y};
 function toggleHome(){
 if(homeTrans){
 reverseHomeTrans();
+if(homeTrans.dir==='return')cancelHomeArmCD();
 if(homeB){
 homeB.classList.add('on');
 if(homeTrans.dir==='leave'){homeB.innerHTML='&#127918;';homeB.title='Play';}
@@ -1074,6 +1106,7 @@ else{homeB.innerHTML='&#127968;';homeB.title='Home';}
 return;
 }
 if(homeAway){
+cancelHomeArmCD();
 if(!window._homeFreeze)freezeHomeUI();
 homeTrans={dir:'return',phase:'squatIn',t0:Date.now(),scrollX:viewW+90,walkT:0,jumpT:0,saved:homeSaved||null};
 if(homeB){homeB.innerHTML='&#127968;';homeB.title='Home';}
@@ -1380,6 +1413,125 @@ el.style.transform='none';
 el.style.overflow='hidden';
 el.style.zIndex=i===0?'30':'25';
 });
+// Home dock buttons (upload / back / pause / arm) — slide up after scroll finishes
+applyHomeDock(sxn,padX);
+}
+function cancelHomeArmCD(){
+homeArmCD=false;homeArmCdVal=3;homeArmCdRemain=1000;homeArmCdOp=0;
+if(homeCd){homeCd.style.opacity='0';homeCd.textContent='';}
+homeArmed=false;
+if(armB)armB.classList.remove('armed');
+}
+function startHomeArmCD(){
+homeArmed=true;
+if(armB)armB.classList.add('armed');
+homeArmCD=true;homeArmCdVal=3;homeArmCdRemain=1000;homeArmCdOp=1;
+if(homeCd){
+homeCd.textContent='3';
+homeCd.style.opacity='1';
+}
+layoutHomeCd();
+}
+function layoutHomeCd(){
+if(!homeCd)return;
+// Same placement as the in-game #cd (center-upper area of the map)
+const top=98;
+const padX=Math.max(8,(getViewportSize().vw)*0.025);
+const cl=padX;
+const cdFs=parseFloat(getComputedStyle(homeCd).fontSize)||64;
+const cdW=Math.ceil(cdFs*1.2), cdH=Math.ceil(cdFs*1.2);
+homeCd.style.width=cdW+'px';
+homeCd.style.height=cdH+'px';
+homeCd.style.left=Math.round(cl+viewW/2-cdW/2)+'px';
+homeCd.style.top=Math.round(top+viewH/6-cdH/2)+'px';
+homeCd.style.lineHeight=cdH+'px';
+homeCd.style.transform='none';
+}
+function tickHomeArmCD(dtMs){
+if(!homeArmCD)return;
+homeArmCdRemain-=dtMs;
+if(homeArmCdRemain<=0){
+homeArmCdVal--;
+homeArmCdRemain+=1000;
+if(homeArmCdVal<=0){
+homeArmCD=false;homeArmCdOp=0;
+if(homeCd){homeCd.style.opacity='0';homeCd.textContent='';}
+// Stay armed (red) after countdown ends — user can click to disarm
+return;
+}
+if(homeCd){homeCd.textContent=String(homeArmCdVal);homeCd.style.opacity='1';}
+}
+}
+function hideHomeDock(){
+[upB,backB,homePB,armB].forEach(el=>{
+if(!el)return;
+el.style.display='none';
+el.style.visibility='hidden';
+el.style.pointerEvents='none';
+el.style.left='-9999px';
+});
+}
+function applyHomeDock(sxn,padX){
+if(!upB||!armB)return;
+// Show only once the play UI has fully scrolled off (or idle at home)
+const fullScroll=Math.max(1,viewW+90);
+const sx=sxn||0;
+const atHome=!!(homeAway||(homeTrans&&homeTrans.dir==='leave'&&(homeTrans.phase==='idleAway'||homeTrans.phase==='standUp')));
+const scrolledOut=(sx>=fullScroll*0.92)||(atHome&&sx>=fullScroll*0.5);
+const targetDock=(scrolledOut&&window._homeFreeze)?1:0;
+const dockSpeed=0.1;
+if(homeDockProg<targetDock)homeDockProg=Math.min(targetDock,homeDockProg+dockSpeed);
+else if(homeDockProg>targetDock)homeDockProg=Math.max(targetDock,homeDockProg-dockSpeed);
+if(homeDockProg<=0.001||!window._homeFreeze){
+homeDockProg=0;
+hideHomeDock();
+if(targetDock<=0){
+if(homeArmCD||homeArmed)cancelHomeArmCD();
+if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
+}
+return;
+}
+// Same slots as the five play-mode buttons → identical spacing
+const F=window._homeFreeze;
+const slots=[F._home,F._lck,F._pB,F._bnc];
+const fallbackW=44,fallbackH=44;
+const positions=[
+{el:upB,f:slots[0]},
+{el:backB,f:slots[1]},
+{el:homePB,f:slots[2]},
+{el:armB,f:slots[3]}
+];
+const iconH=Math.max(28,(slots[0]&&slots[0].height)||fallbackH);
+const ease=homeDockProg*homeDockProg*(3-2*homeDockProg);
+const slide=(1-ease)*(iconH+24);
+positions.forEach(({el,f},idx)=>{
+if(!el)return;
+const w=Math.max(28,f?f.width:fallbackW);
+const h=Math.max(28,f?f.height:fallbackH);
+const left=f&&isFinite(f.left)?f.left:(padX+idx*(w+12));
+el.style.display='flex';
+el.style.alignItems='center';
+el.style.justifyContent='center';
+el.style.textAlign='center';
+el.style.visibility='visible';
+el.style.position='fixed';
+el.style.left=left+'px';
+el.style.width=w+'px';
+el.style.minWidth=w+'px';
+el.style.maxWidth=w+'px';
+el.style.height=h+'px';
+el.style.boxSizing='border-box';
+el.style.bottom=(6-slide)+'px';
+el.style.top='auto';
+el.style.right='auto';
+el.style.margin='0';
+el.style.zIndex='28';
+el.style.pointerEvents=ease>0.85?'auto':'none';
+if(el===armB)el.style.filter=homeArmed?'none':'grayscale(1)';
+else if(el===homePB)el.style.filter='none';
+else el.style.filter='grayscale(1)';
+});
+if(homeArmCD)layoutHomeCd();
 }
 
 function freezeHomeUI(){
@@ -1452,6 +1604,19 @@ el.style.flex='';
 el.style.boxSizing='';
 el.style.overflow='';
 el.style.zIndex='';
+});
+homeDockProg=0;
+cancelHomeArmCD();
+if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
+[upB,backB,homePB,armB].forEach(el=>{
+if(!el)return;
+el.style.display='none';
+el.style.visibility='hidden';
+el.style.left='';
+el.style.bottom='';
+el.style.width='';
+el.style.height='';
+el.style.filter='';
 });
 const cWrap=$('cC')&&$('cC').parentElement;
 if(cWrap){cWrap.style.position='';cWrap.style.left='';cWrap.style.top='';cWrap.style.width='';cWrap.style.height='';cWrap.style.transform='';}
@@ -3018,6 +3183,25 @@ tN.onclick=goNext;tNA.onclick=goNext;tP.onclick=goPrev;tSk.onclick=closeTut;
 
 function setModBtn(btn,on){if(btn)btn.classList.toggle('on',!!on)}
 if(homeB)homeB.onclick=()=>toggleHome();
+if(armB)armB.onclick=()=>{
+if(homeDockProg<0.85)return;
+if(homeArmed||homeArmCD){
+// Red / mid-countdown → cancel countdown and go gray
+cancelHomeArmCD();
+}else{
+startHomeArmCD();
+}
+};
+// Upload / back — no function yet
+if(upB)upB.onclick=e=>{e.preventDefault();};
+if(backB)backB.onclick=e=>{e.preventDefault();};
+if(homePB)homePB.onclick=e=>{
+e.preventDefault();
+if(homeDockProg<0.85)return;
+const resuming=/resume/i.test(homePB.textContent||'');
+homePB.textContent=resuming?'PAUSE':'RESUME';
+homePB.title=resuming?'Pause':'Resume';
+};
 bncB.onclick=()=>{if(lockTrans||homeTrans||homeAway)return;bouncyOn=!bouncyOn;setModBtn(bncB,bouncyOn)};
 slwB.onclick=()=>{if(lockTrans||homeTrans||homeAway)return;slowOn=!slowOn;setModBtn(slwB,slowOn)};
 lckB.onclick=()=>{
@@ -3073,11 +3257,15 @@ canvas.addEventListener('touchmove',e=>{e.preventDefault();drag(e)},{passive:fal
 canvas.addEventListener('touchend',e=>{stopResizing(e);stopDrag(e)});
 document.addEventListener('touchend',e=>{stopResizing(e);stopDrag(e)});
 
+let _homeArmLast=Date.now();
 function animate(){try{
 // Re-assert canvas buffer every frame — iOS/Snapchat often resets it
 const pr=Math.min(window.devicePixelRatio||1,2);
 const bw=Math.floor(viewW*pr),bh=Math.floor(viewH*pr);
 if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh;ctx.setTransform(pr,0,0,pr,0,0)}
+const nowA=Date.now();
+const dtArm=Math.min(100,nowA-_homeArmLast);_homeArmLast=nowA;
+tickHomeArmCD(dtArm);
 phys();draw();
 }catch(err){console.error(err)}requestAnimationFrame(animate)}
 loadP();loadTut();
@@ -3088,6 +3276,8 @@ window.visualViewport.addEventListener('scroll',()=>{setSize();draw();});
 }
 
 function boot(){
+hideHomeDock();
+homeDockProg=0;
 setSize();updateHint();asCur();asNext();
 const w=viewW||400,h=viewH||400;
 circle.x=w/2;circle.y=h/2;hiScore=gHS();prevHS=hiScore;updTM();updDisp();draw();
