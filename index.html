@@ -300,15 +300,18 @@ transform:translateX(-50%);
 width:min(92vw,520px);height:56px;
 background:#0a1520;border:1px solid rgba(0,240,255,.55);border-radius:8px;
 box-shadow:0 0 16px rgba(0,240,255,.25);overflow:hidden;
+box-sizing:border-box;max-width:calc(100vw - 8px);
 }
 #waveWrap.show{display:block;pointer-events:auto;}
 #waveBars{
-position:absolute;inset:4px;display:flex;align-items:center;justify-content:space-between;
-gap:1px;z-index:1;pointer-events:none;
+position:absolute;left:4px;right:4px;top:4px;bottom:4px;
+display:flex;align-items:center;justify-content:flex-start;
+gap:0;z-index:1;pointer-events:none;overflow:hidden;
 }
 #waveBars i{
-display:block;flex:1 1 0;min-width:1px;max-width:6px;height:10%;
-background:#00e5ff;border-radius:1px;opacity:0.22;align-self:center;
+display:block;flex:1 1 0;min-width:0;height:10%;
+background:#00e5ff;border-radius:1px;opacity:0.4;align-self:center;
+margin:0 0.4px;box-sizing:border-box;
 }
 #waveBars i.on{opacity:1;}
 #waveHead{
@@ -390,6 +393,10 @@ let homeDockProg=0; // 0=hidden below, 1=docked on screen
 let homeArmed=false;
 let homeArmCD=false,homeArmCdVal=3,homeArmCdRemain=1000,homeArmCdOp=0;
 let homeMouthOpen=false; // hold-to-open mouth while arm is red in home mode
+let homeMouthTrack=null; // [{t, open}, ...] full timeline (kept across takes)
+let homeMouthRecording=false;
+let homeMouthRecordBuffer=null; // current take only
+let homeMouthRecordStart=0;
 // Home audio + waveform (builds left→right in real time while playing)
 let homeAudio=null; // HTMLAudioElement
 let homeAudioUrl=null;
@@ -1484,10 +1491,98 @@ applyHomeDock(sxn,padX);
 function cancelHomeArmCD(){
 homeArmCD=false;homeArmCdVal=3;homeArmCdRemain=1000;homeArmCdOp=0;
 if(homeCd){homeCd.style.opacity='0';homeCd.textContent='';}
+// Stop recording: commit this take (overwrites only the time range covered)
+if(homeMouthRecording){
+recordMouthEvent(false);
+commitMouthRecording();
+if(homeAudioPlaying)stopHomeAudio(false);
+}
 homeArmed=false;
 homeMouthOpen=false;
 if(armB)armB.classList.remove('armed');
 if(homeWaveProg>0.5)layoutHomeWave();
+}
+function recordMouthEvent(open){
+if(!homeMouthRecording||!homeAudio)return;
+const t=Math.max(0,homeAudio.currentTime||0);
+if(!homeMouthRecordBuffer)homeMouthRecordBuffer=[];
+const buf=homeMouthRecordBuffer;
+if(buf.length){
+const last=buf[buf.length-1];
+if(last.open===open)return;
+if(Math.abs(last.t-t)<0.015){last.t=t;last.open=!!open;return;}
+}
+buf.push({t:t,open:!!open});
+}
+function commitMouthRecording(){
+// Merge current take into the full track — only replace [start, end]
+if(!homeMouthRecording){
+homeMouthRecordBuffer=null;
+return;
+}
+const start=homeMouthRecordStart;
+const end=homeAudio?Math.max(start,homeAudio.currentTime||start):start;
+let buf=(homeMouthRecordBuffer||[]).slice();
+// Only force a close at stop-time if they were STILL holding when recording ended.
+// Never move an earlier release close forward — that made the mouth hang open until stop.
+if(!buf.length||buf[buf.length-1].open){
+buf.push({t:end,open:false});
+}
+const old=homeMouthTrack||[];
+const before=old.filter(e=>e.t<start-0.0005);
+const after=old.filter(e=>e.t>end+0.0005);
+// If the first "after" event assumes an open state from a deleted middle, 
+// leave it — mouthOpenAtAudioTime walks in order.
+homeMouthTrack=before.concat(buf).concat(after);
+homeMouthTrack.sort((a,b)=>a.t-b.t);
+// Drop redundant consecutive same-state events (keep earliest time for a state)
+const cleaned=[];
+for(let i=0;i<homeMouthTrack.length;i++){
+const e=homeMouthTrack[i];
+if(!cleaned.length||cleaned[cleaned.length-1].open!==e.open)cleaned.push({t:e.t,open:!!e.open});
+}
+homeMouthTrack=cleaned;
+homeMouthRecordBuffer=null;
+homeMouthRecording=false;
+}
+function mouthOpenAtAudioTime(t){
+if(!homeMouthTrack||!homeMouthTrack.length)return false;
+let open=false;
+for(let i=0;i<homeMouthTrack.length;i++){
+if(homeMouthTrack[i].t<=t)open=!!homeMouthTrack[i].open;
+else break;
+}
+return open;
+}
+function updateMouthFromTrack(){
+// During live recording, hold state is owned by pointer handlers
+if(homeMouthRecording)return;
+// Always closed when paused / not playing
+if(!homeAudio||!homeAudioPlaying||homeAudio.paused){
+homeMouthOpen=false;
+return;
+}
+if(!homeMouthTrack||!homeMouthTrack.length){
+homeMouthOpen=false;
+return;
+}
+homeMouthOpen=mouthOpenAtAudioTime(homeAudio.currentTime||0);
+}
+function beginMouthRecordingSession(){
+// Do NOT clear prior takes — this take only overwrites the time range covered
+homeMouthRecordStart=homeAudio?Math.max(0,homeAudio.currentTime||0):0;
+homeMouthRecordBuffer=[{t:homeMouthRecordStart,open:false}];
+homeMouthRecording=true;
+homeMouthOpen=false;
+// Auto-start audio for the take
+if(homeAudio){
+if(homeACtx&&homeACtx.state==='suspended'){try{homeACtx.resume();}catch(e){}}
+const p=homeAudio.play();
+if(p&&p.then)p.catch(()=>{});
+homeAudioPlaying=true;
+if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
+drawHomeWave();
+}
 }
 function stopHomeAudio(resetTime){
 if(homeAudio){
@@ -1495,6 +1590,7 @@ try{homeAudio.pause();}catch(e){}
 if(resetTime){try{homeAudio.currentTime=0;}catch(e){}}
 }
 homeAudioPlaying=false;
+if(!homeMouthRecording)homeMouthOpen=false;
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
 }
 function teardownHomeGraph(){
@@ -1510,29 +1606,153 @@ if(homeAudioUrl){try{URL.revokeObjectURL(homeAudioUrl);}catch(e){}}
 homeAudioUrl=null;homeAudio=null;
 homePeaks=null;homePeakFilled=null;homeWaveLoading=false;
 homeWaveProg=0;homeWaveDragging=false;
+homeMouthTrack=null;homeMouthRecording=false;homeMouthRecordBuffer=null;homeMouthRecordStart=0;homeMouthOpen=false;
 if(waveWrap){waveWrap.classList.remove('show');waveWrap.style.display='none';}
 }
-function initHomePeaks(){
-homePeaks=new Float32Array(HOME_WAVE_BINS);
-homePeakFilled=new Uint8Array(HOME_WAVE_BINS);
-// Stable pseudo-heights so the wave looks like a waveform as it reveals
-for(let i=0;i<HOME_WAVE_BINS;i++){
-const h=0.18+0.82*Math.abs(Math.sin(i*0.37)*Math.cos(i*0.11))*Math.abs(Math.sin(i*0.019+1.7));
-homePeaks[i]=Math.max(0.12,Math.min(1,h));
+function normalizePeaks(peaks){
+let peakMax=1e-6;
+for(let i=0;i<peaks.length;i++)if(peaks[i]>peakMax)peakMax=peaks[i];
+for(let i=0;i<peaks.length;i++){
+peaks[i]=Math.pow(peaks[i]/peakMax,0.7);
+if(peaks[i]<0.04)peaks[i]=0.04;
+}
+return peaks;
+}
+// Fully offline WAV parser — no Web Audio API
+function peaksFromWavArrayBuffer(ab){
+const view=new DataView(ab);
+if(ab.byteLength<44)throw new Error('Too small');
+const riff=String.fromCharCode(view.getUint8(0),view.getUint8(1),view.getUint8(2),view.getUint8(3));
+const wave=String.fromCharCode(view.getUint8(8),view.getUint8(9),view.getUint8(10),view.getUint8(11));
+if(riff!=='RIFF'||wave!=='WAVE')throw new Error('Not WAV');
+let offset=12;
+let channels=1,bits=16,byteRate=0,dataOffset=-1,dataSize=0;
+while(offset+8<=view.byteLength){
+const id=String.fromCharCode(view.getUint8(offset),view.getUint8(offset+1),view.getUint8(offset+2),view.getUint8(offset+3));
+const size=view.getUint32(offset+4,true);
+const start=offset+8;
+if(id==='fmt '){
+channels=view.getUint16(start+2,true);
+bits=view.getUint16(start+14,true);
+byteRate=view.getUint32(start+8,true);
+}else if(id==='data'){
+dataOffset=start;
+dataSize=size;
+break;
+}
+offset=start+size+(size%2); // chunks are word-aligned
+}
+if(dataOffset<0)throw new Error('No data chunk');
+const bytesPerSample=bits/8;
+if(bytesPerSample!==1&&bytesPerSample!==2&&bytesPerSample!==3&&bytesPerSample!==4)throw new Error('Unsupported bit depth');
+const totalSamples=Math.floor(dataSize/(bytesPerSample*channels));
+if(totalSamples<1)throw new Error('Empty');
+const bins=HOME_WAVE_BINS;
+const peaks=new Float32Array(bins);
+const block=Math.max(1,Math.floor(totalSamples/bins));
+for(let i=0;i<bins;i++){
+const s0=i*block;
+const s1=i===bins-1?totalSamples:Math.min(totalSamples,s0+block);
+let max=0;
+const step=Math.max(1,Math.floor((s1-s0)/1500));
+for(let s=s0;s<s1;s+=step){
+const base=dataOffset+s*bytesPerSample*channels;
+for(let ch=0;ch<channels;ch++){
+const o=base+ch*bytesPerSample;
+if(o+bytesPerSample>view.byteLength)continue;
+let v=0;
+if(bits===8){v=(view.getUint8(o)-128)/128;}
+else if(bits===16){v=view.getInt16(o,true)/32768;}
+else if(bits===24){
+const b0=view.getUint8(o),b1=view.getUint8(o+1),b2=view.getUint8(o+2);
+let t=(b2<<16)|(b1<<8)|b0;if(t&0x800000)t|=~0xffffff;v=t/8388608;
+}else if(bits===32){v=view.getInt32(o,true)/2147483648;}
+const a=v<0?-v:v;if(a>max)max=a;
+}
+}
+peaks[i]=max;
+}
+return normalizePeaks(peaks);
+}
+function readFileAsArrayBuffer(file){
+return new Promise((resolve,reject)=>{
+const fr=new FileReader();
+fr.onload=()=>resolve(fr.result);
+fr.onerror=()=>reject(fr.error||new Error('FileReader failed'));
+fr.readAsArrayBuffer(file);
+});
+}
+function withTimeout(promise,ms,label){
+return new Promise((resolve,reject)=>{
+const t=setTimeout(()=>reject(new Error(label||'timeout')),ms);
+promise.then(v=>{clearTimeout(t);resolve(v);},e=>{clearTimeout(t);reject(e);});
+});
+}
+// Offline analysis: WAV parsed in pure JS; other formats try browser decode with a hard timeout
+async function analyzeAudioFile(file){
+const ab=await readFileAsArrayBuffer(file);
+const name=(file.name||'').toLowerCase();
+const isWav=name.endsWith('.wav')||(file.type&&file.type.indexOf('wav')>=0);
+// 1) Pure offline WAV path
+try{
+if(isWav||(ab.byteLength>12&&String.fromCharCode.apply(null,new Uint8Array(ab,0,4))==='RIFF')){
+return peaksFromWavArrayBuffer(ab);
+}
+}catch(e){
+if(isWav)throw e; // real wav that failed
+}
+// 2) Browser decode with 5s timeout (never hang on "Analyzing…")
+const AC=window.AudioContext||window.webkitAudioContext;
+if(!AC)throw new Error('No decoder available — use a .wav file');
+const actx=new AC();
+try{
+if(actx.state==='suspended'){
+try{await withTimeout(actx.resume(),1500,'resume timeout');}catch(e){}
+}
+const decode=new Promise((resolve,reject)=>{
+let done=false;
+const ok=b=>{if(!done){done=true;resolve(b);}};
+const bad=e=>{if(!done){done=true;reject(e||new Error('decode failed'));}};
+try{
+const copy=ab.slice(0);
+const ret=actx.decodeAudioData(copy,ok,bad);
+if(ret&&typeof ret.then==='function')ret.then(ok,bad);
+}catch(e){bad(e);}
+});
+const audioBuffer=await withTimeout(decode,5000,'decode timeout');
+const bins=HOME_WAVE_BINS;
+const peaks=new Float32Array(bins);
+const numCh=audioBuffer.numberOfChannels|0;
+const len=audioBuffer.length|0;
+const block=Math.max(1,Math.floor(len/bins));
+for(let i=0;i<bins;i++){
+const start=i*block,end=i===bins-1?len:Math.min(len,start+block);
+let max=0;
+const step=Math.max(1,Math.floor((end-start)/2000));
+for(let ch=0;ch<numCh;ch++){
+const data=audioBuffer.getChannelData(ch);
+for(let j=start;j<end;j+=step){const a=Math.abs(data[j]);if(a>max)max=a;}
+}
+peaks[i]=max;
+}
+return normalizePeaks(peaks);
+}finally{
+try{actx.close();}catch(e){}
 }
 }
 function buildWaveBarDOM(){
 if(!waveBars)return;
 waveBars.innerHTML='';
-for(let i=0;i<HOME_WAVE_BINS;i++){
+const n=HOME_WAVE_BINS;
+for(let i=0;i<n;i++){
 const el=document.createElement('i');
-const h=homePeaks?homePeaks[i]:0.3;
-el.style.height=Math.round(10+h*80)+'%';
+const h=homePeaks?homePeaks[i]:0.15;
+el.style.height=Math.round(8+h*84)+'%';
+if(homePeakFilled&&homePeakFilled[i])el.classList.add('on');
 waveBars.appendChild(el);
 }
 }
 function sampleHomeWaveAtPlayhead(){
-// Reveal bars from left up to current play position
 if(!homeAudio||!homePeakFilled)return;
 const dur=homeAudio.duration;
 if(!(dur>0)||!isFinite(dur))return;
@@ -1547,11 +1767,22 @@ waveWrap.style.display='block';
 waveWrap.style.visibility='visible';
 waveWrap.style.opacity='1';
 homeWaveProg=Math.max(homeWaveProg,0.25);
-if(waveBars&&!waveBars.children.length)buildWaveBarDOM();
 layoutHomeWave();
 drawHomeWave();
 }
-function loadHomeAudioFile(file){
+function finishWaveformPeaks(peaks){
+homePeaks=peaks;
+homePeakFilled=new Uint8Array(HOME_WAVE_BINS);
+homeWaveLoading=false;
+if(waveHint){waveHint.textContent='';waveHint.classList.add('hide');}
+buildWaveBarDOM();
+for(let i=0;i<HOME_WAVE_BINS;i++){
+const el=waveBars&&waveBars.children[i];
+if(el)el.style.opacity='0.55';
+}
+drawHomeWave();
+}
+async function loadHomeAudioFile(file){
 if(!file)return;
 clearHomeAudio();
 homeAudioUrl=URL.createObjectURL(file);
@@ -1559,16 +1790,34 @@ homeAudio=new Audio();
 homeAudio.preload='auto';
 homeAudio.src=homeAudioUrl;
 homeAudio.addEventListener('ended',()=>{
+if(homeMouthRecording){
+recordMouthEvent(false);
+commitMouthRecording();
+}
 homeAudioPlaying=false;
+homeMouthOpen=false;
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
-// Fill all bars when track ends
 if(homePeakFilled)for(let i=0;i<HOME_WAVE_BINS;i++)homePeakFilled[i]=1;
 drawHomeWave();
 });
-initHomePeaks();
-buildWaveBarDOM();
+homeWaveLoading=true;
+homePeaks=null;
+homePeakFilled=null;
+if(waveBars)waveBars.innerHTML='';
+if(waveHint){waveHint.textContent='ANALYZING AUDIO…';waveHint.classList.remove('hide');}
 homeWaveProg=1;
 showWaveShell();
+try{
+const peaks=await analyzeAudioFile(file);
+finishWaveformPeaks(peaks);
+}catch(err){
+console.warn('Audio analyze failed',err);
+homeWaveLoading=false;
+const msg=(err&&err.message&&err.message.indexOf('timeout')>=0)
+?'ANALYSIS TIMED OUT — TRY A .WAV FILE'
+:'USE A .WAV FILE FOR WAVEFORM';
+if(waveHint){waveHint.textContent=msg;waveHint.classList.remove('hide');}
+}
 }
 function layoutHomeWave(){
 if(!waveWrap)return;
@@ -1595,17 +1844,20 @@ else if(F&&F._home)right=padX+viewW;
 }else if(F&&F._home){
 right=padX+viewW;
 }
-// Keep fully on-screen when the window shrinks
+// Keep fully on-screen; width compresses instead of clipping the right edge
 const vv=getViewportSize();
-const maxR=Math.max(left+40,(vv.vw||window.innerWidth)-4);
-left=Math.max(4,left);
-right=Math.max(left+40,Math.min(right,maxR));
+const vw=vv.vw||window.innerWidth||320;
+left=Math.max(4,Math.min(left,vw-44));
+right=Math.max(left+40,Math.min(right,vw-4));
 const w=Math.max(40,right-left);
 waveWrap.style.left=left+'px';
 waveWrap.style.width=w+'px';
+waveWrap.style.maxWidth=(vw-8)+'px';
 waveWrap.style.height=h+'px';
 waveWrap.style.transform='none';
 waveWrap.style.right='auto';
+waveWrap.style.boxSizing='border-box';
+waveWrap.style.overflow='hidden';
 const ease=homeWaveProg*homeWaveProg*(3-2*homeWaveProg);
 const slide=(1-ease)*(h+top+28);
 waveWrap.style.top=(top-slide)+'px';
@@ -1621,21 +1873,17 @@ let ratio=0;
 if(homeAudio&&homeAudio.duration&&isFinite(homeAudio.duration)&&homeAudio.duration>0){
 ratio=homeWaveDragging?homeWaveDragRatio:Math.max(0,Math.min(1,homeAudio.currentTime/homeAudio.duration));
 }
-// Reveal bars for every position that has been reached while playing
-const revealBin=Math.min(n-1,Math.floor(ratio*n));
-if(homeAudioPlaying||ratio>0){
-for(let i=0;i<=revealBin;i++){
-if(homePeakFilled)homePeakFilled[i]=1;
-}
-}
-let any=false;
+// Lit strictly left of the gold playhead; dim strictly to the right
 for(let i=0;i<kids.length;i++){
-const on=homePeakFilled&&homePeakFilled[i];
-kids[i].classList.toggle('on',!!on);
-if(on)any=true;
+const on=(i+0.5)/n<=ratio;
+kids[i].classList.toggle('on',on);
+if(homePeaks)kids[i].style.opacity=on?'1':'0.35';
 }
-if(waveHead)waveHead.style.left=(ratio*100)+'%';
-if(waveHint)waveHint.classList.toggle('hide',any);
+if(waveHead)waveHead.style.left=(Math.max(0,Math.min(100,ratio*100)))+'%';
+if(waveHint){
+if(homeWaveLoading){waveHint.classList.remove('hide');}
+else if(homePeaks){waveHint.classList.add('hide');}
+}
 }
 function updateHomeWaveAnim(){
 // Only stay visible while the home dock is up (slides away when controller is pressed)
@@ -1752,7 +2000,8 @@ homeArmCdRemain+=1000;
 if(homeArmCdVal<=0){
 homeArmCD=false;homeArmCdOp=0;
 if(homeCd){homeCd.style.opacity='0';homeCd.textContent='';}
-// Stay armed (red) after countdown ends — user can click to disarm
+// Countdown done while armed → start audio + mouth recording
+beginMouthRecordingSession();
 return;
 }
 if(homeCd){homeCd.textContent=String(homeArmCdVal);homeCd.style.opacity='1';}
@@ -3319,10 +3568,11 @@ function startDrag(e){
 if(uiLocked)return;
 if(lockTrans)return;
 if(homeTrans||homeAway){
-// Home mode: with arm button red, hold anywhere on the map to open the mouth
+// Home mode: while armed (recording), hold to open mouth and log the event
 if(homeArmed&&(homeAway||(homeTrans&&homeTrans.phase==='idleAway'))){
 e.preventDefault();
 homeMouthOpen=true;
+if(homeMouthRecording)recordMouthEvent(true);
 draw();
 }
 return;
@@ -3371,7 +3621,11 @@ function stopDrag(e){
 if(homeMouthOpen){
 // Keep mouth open if another finger is still down; otherwise close
 if(e.touches&&e.touches.length>0){/* still holding */}
-else{homeMouthOpen=false;draw();}
+else{
+homeMouthOpen=false;
+if(homeMouthRecording)recordMouthEvent(false);
+draw();
+}
 }
 if(gold.drag){let tid=gold.tid;if(e.changedTouches){let m=false;for(let i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===tid)m=true;if(!m&&e.touches&&e.touches.length>0)return}
 const dist=Math.hypot(gold.x-diaX,gold.y-diaY);if(dist<gold.r+DIA_R-6)startMerge();else springBack(gold.x,gold.y);draw();return}
@@ -3591,6 +3845,7 @@ const nowA=Date.now();
 const dtArm=Math.min(100,nowA-_homeArmLast);_homeArmLast=nowA;
 tickHomeArmCD(dtArm);
 updateHomeWaveAnim();
+updateMouthFromTrack();
 phys();draw();
 }catch(err){console.error(err)}requestAnimationFrame(animate)}
 loadP();loadTut();
