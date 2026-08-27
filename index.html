@@ -294,6 +294,18 @@ position:fixed;left:50%;top:0;transform:none;font-family:'Orbitron',sans-serif;f
 z-index:15;pointer-events:none;color:#fff;text-shadow:0 0 20px rgba(0,240,255,.7);opacity:0;
 -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;text-align:center;
 }
+#waveWrap{
+position:fixed;left:50%;z-index:27;display:none;pointer-events:none;
+transform:translateX(-50%);
+width:min(92vw,520px);height:52px;
+background:rgba(8,12,20,.82);border:1px solid rgba(0,240,255,.35);border-radius:8px;
+box-shadow:0 0 16px rgba(0,240,255,.15);overflow:hidden;
+}
+#waveWrap.show{display:block;pointer-events:auto;}
+#waveCan{display:block;width:100%;height:100%;cursor:ew-resize;touch-action:none;}
+#waveCan.locked{cursor:default;}
+#upB .waveIcon{display:block;width:22px;height:14px;margin:0 auto;}
+input#audioFile{position:fixed;left:-9999px;width:1px;height:1px;opacity:0;}
 </style>
 </head>
 <body>
@@ -313,11 +325,13 @@ z-index:15;pointer-events:none;color:#fff;text-shadow:0 0 20px rgba(0,240,255,.7
 <button id="homeB" title="Home">&#127968;</button><button id="lckB" title="Scroll lock">&#128274;</button><button id="pB">PAUSE</button>
 <button id="bncB" title="Extra bounce">&#8597;</button><button id="slwB" title="Slow motion">&#9201;</button>
 </div>
-<button id="upB" title="Upload" type="button">&#11014;</button>
-<button id="backB" title="Back" type="button">&#8592;</button>
-<button id="homePB" title="Pause" type="button">PAUSE</button>
+<button id="upB" title="Upload" type="button"><svg class="waveIcon" viewBox="0 0 24 14" aria-hidden="true"><rect x="1" y="5" width="2" height="4" rx="0.5" fill="currentColor"/><rect x="4" y="2" width="2" height="10" rx="0.5" fill="currentColor"/><rect x="7" y="4" width="2" height="6" rx="0.5" fill="currentColor"/><rect x="10" y="1" width="2" height="12" rx="0.5" fill="currentColor"/><rect x="13" y="3" width="2" height="8" rx="0.5" fill="currentColor"/><rect x="16" y="2" width="2" height="10" rx="0.5" fill="currentColor"/><rect x="19" y="5" width="2" height="4" rx="0.5" fill="currentColor"/></svg></button>
+<button id="backB" title="Back 5s" type="button">&#8592;</button>
+<button id="homePB" title="Play" type="button">PLAY</button>
 <button id="armB" title="Arm" type="button"><span class="armDot"></span></button>
 <div id="homeCd"></div>
+<input type="file" id="audioFile" accept="audio/*">
+<div id="waveWrap"><canvas id="waveCan"></canvas></div>
 <div class="ov" id="sO"><div class="s-sticky"><div class="oh"><div class="ot" style="background:linear-gradient(90deg,var(--gold),#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent">STORE</div><button class="oc" id="sCl">X</button></div>
 <div style="font-family:Orbitron;color:var(--cyan)"><span id="sHS">HS 0</span> · <span id="sCC">0</span> $</div>
 <div style="font-family:Exo 2,sans-serif;font-size:.72rem;color:rgba(200,210,230,.75);margin-top:6px;padding:0 12px">Items unlock with Survival high scores.</div>
@@ -343,10 +357,19 @@ const cC=$('cC'),pC=$('pC'),pD=$('pD'),title=$('title'),pB=$('pB');
 const sO=$('sO'),sCl=$('sCl'),sCC=$('sCC'),skG=$('skG'),bgG=$('bgG');
 const homeB=$('homeB'),bncB=$('bncB'),lckB=$('lckB'),slwB=$('slwB');
 const upB=$('upB'),backB=$('backB'),homePB=$('homePB'),armB=$('armB'),homeCd=$('homeCd');
+const audioFile=$('audioFile'),waveWrap=$('waveWrap'),waveCan=$('waveCan');
 let homeDockProg=0; // 0=hidden below, 1=docked on screen
 let homeArmed=false;
 let homeArmCD=false,homeArmCdVal=3,homeArmCdRemain=1000,homeArmCdOp=0;
 let homeMouthOpen=false; // hold-to-open mouth while arm is red in home mode
+// Home audio + waveform
+let homeAudio=null; // HTMLAudioElement
+let homeAudioUrl=null;
+let homePeaks=null; // Float32Array of 0..1 peak levels
+let homeWaveProg=0; // 0=off-screen above, 1=docked under $
+let homeWaveDragging=false;
+let homeWaveDragRatio=0;
+let homeAudioPlaying=false;
 const lCh=$('lCh'),lvCh=$('lvCh'),cCh=$('cCh'),hCh=$('hCh'),hO=$('hO'),hCl=$('hCl'),hCb=$('hCb'),hCo=$('hCo');
 const tO=$('tO'),tS=$('tS'),tT=$('tT'),tB=$('tB'),tN=$('tN'),tSk=$('tSk'),tP=$('tP'),tNA=$('tNA');
 
@@ -1430,9 +1453,206 @@ if(homeCd){homeCd.style.opacity='0';homeCd.textContent='';}
 homeArmed=false;
 homeMouthOpen=false;
 if(armB)armB.classList.remove('armed');
+if(homeWaveProg>0.5)layoutHomeWave();
+}
+function stopHomeAudio(resetTime){
+if(homeAudio){
+try{homeAudio.pause();}catch(e){}
+if(resetTime){try{homeAudio.currentTime=0;}catch(e){}}
+}
+homeAudioPlaying=false;
+if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
+}
+function clearHomeAudio(){
+stopHomeAudio(true);
+if(homeAudioUrl){try{URL.revokeObjectURL(homeAudioUrl);}catch(e){}}
+homeAudioUrl=null;homeAudio=null;homePeaks=null;
+homeWaveProg=0;homeWaveDragging=false;
+if(waveWrap){waveWrap.classList.remove('show');waveWrap.style.display='none';}
+}
+async function loadHomeAudioFile(file){
+if(!file)return;
+clearHomeAudio();
+homeAudioUrl=URL.createObjectURL(file);
+homeAudio=new Audio();
+homeAudio.preload='auto';
+homeAudio.src=homeAudioUrl;
+homeAudio.addEventListener('ended',()=>{
+homeAudioPlaying=false;
+if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
+drawHomeWave();
+});
+homeAudio.addEventListener('timeupdate',()=>{if(!homeWaveDragging)drawHomeWave();});
+// Decode for waveform peaks
+try{
+const buf=await file.arrayBuffer();
+const actx=new(window.AudioContext||window.webkitAudioContext)();
+const decoded=await actx.decodeAudioData(buf.slice(0));
+const ch=decoded.getChannelData(0);
+const bins=256;
+const peaks=new Float32Array(bins);
+const block=Math.floor(ch.length/bins)||1;
+for(let i=0;i<bins;i++){
+let peak=0;
+const start=i*block,end=Math.min(ch.length,start+block);
+for(let j=start;j<end;j++){const v=Math.abs(ch[j]);if(v>peak)peak=v;}
+peaks[i]=peak;
+}
+let max=0.001;for(let i=0;i<bins;i++)if(peaks[i]>max)max=peaks[i];
+for(let i=0;i<bins;i++)peaks[i]/=max;
+homePeaks=peaks;
+try{actx.close();}catch(e){}
+}catch(err){
+console.warn('Waveform decode failed',err);
+homePeaks=null;
+}
+homeWaveProg=0.001; // start slide-in
+if(waveWrap){waveWrap.classList.add('show');waveWrap.style.display='block';}
+layoutHomeWave();
+drawHomeWave();
+}
+function layoutHomeWave(){
+if(!waveWrap)return;
+// Centered under $ / above map top (canvas top ≈ 98)
+const padX=Math.max(8,(getViewportSize().vw)*0.025);
+const mapTop=98;
+let dollarBottom=46;
+const curEl=cC&&cC.parentElement;
+if(curEl){const cr=curEl.getBoundingClientRect();dollarBottom=cr.bottom;}
+const gap=Math.max(8,mapTop-dollarBottom);
+const h=52;
+const top=dollarBottom+Math.max(4,(gap-h)/2);
+const w=Math.min(viewW*0.92,Math.max(180,viewW-16));
+waveWrap.style.width=w+'px';
+waveWrap.style.height=h+'px';
+waveWrap.style.left=(padX+viewW/2)+'px';
+waveWrap.style.transform='translateX(-50%)';
+// Slide: prog 0 = above screen, 1 = resting top
+const ease=homeWaveProg*homeWaveProg*(3-2*homeWaveProg);
+const slide=(1-ease)*(h+top+20);
+waveWrap.style.top=(top-slide)+'px';
+waveWrap.style.opacity=String(Math.min(1,ease*1.2));
+waveWrap.style.pointerEvents=(ease>0.85&&!homeArmed)?'auto':'none';
+if(waveCan){
+waveCan.classList.toggle('locked',!!homeArmed);
+const pr=Math.min(window.devicePixelRatio||1,2);
+const cssW=waveWrap.clientWidth||w,cssH=waveWrap.clientHeight||h;
+waveCan.width=Math.floor(cssW*pr);
+waveCan.height=Math.floor(cssH*pr);
+waveCan.style.width=cssW+'px';
+waveCan.style.height=cssH+'px';
+}
+}
+function drawHomeWave(){
+if(!waveCan||!waveWrap)return;
+const ctx2=waveCan.getContext('2d');
+if(!ctx2)return;
+const W=waveCan.width,H=waveCan.height;
+if(W<2||H<2)return;
+ctx2.clearRect(0,0,W,H);
+const mid=H/2;
+const peaks=homePeaks;
+const n=peaks?peaks.length:64;
+const barW=W/n;
+// Waveform bars
+for(let i=0;i<n;i++){
+const amp=peaks?peaks[i]:(0.15+0.1*Math.sin(i*0.4));
+const bh=Math.max(2,amp*(H*0.85));
+const x=i*barW;
+ctx2.fillStyle='rgba(0,240,255,0.35)';
+ctx2.fillRect(x+barW*0.15,mid-bh/2,Math.max(1,barW*0.7),bh);
+}
+// Played region tint
+let ratio=0;
+if(homeAudio&&homeAudio.duration&&isFinite(homeAudio.duration)&&homeAudio.duration>0){
+ratio=homeWaveDragging?homeWaveDragRatio:Math.max(0,Math.min(1,homeAudio.currentTime/homeAudio.duration));
+}
+if(ratio>0){
+ctx2.fillStyle='rgba(0,240,255,0.18)';
+ctx2.fillRect(0,0,W*ratio,H);
+}
+// Playhead
+const px=W*ratio;
+ctx2.strokeStyle='#ffd700';
+ctx2.lineWidth=Math.max(2,W*0.004);
+ctx2.beginPath();
+ctx2.moveTo(px,0);ctx2.lineTo(px,H);
+ctx2.stroke();
+}
+function updateHomeWaveAnim(){
+// Slide in when peaks/audio exist and we're at home dock; slide out when leaving
+const want=!!(homePeaks||homeAudio)&&(homeDockProg>0.5||(homeAway&&homeWaveProg>0));
+const target=want?1:0;
+const sp=0.08;
+if(homeWaveProg<target)homeWaveProg=Math.min(target,homeWaveProg+sp);
+else if(homeWaveProg>target)homeWaveProg=Math.max(target,homeWaveProg-sp);
+if(homeWaveProg<=0.001){
+if(waveWrap){waveWrap.classList.remove('show');waveWrap.style.display='none';}
+homeWaveProg=0;
+return;
+}
+if(waveWrap){waveWrap.classList.add('show');waveWrap.style.display='block';}
+layoutHomeWave();
+drawHomeWave();
+}
+function homeAudioSeek(deltaSec){
+if(!homeAudio||!isFinite(homeAudio.duration))return;
+const t=Math.max(0,Math.min(homeAudio.duration,(homeAudio.currentTime||0)+deltaSec));
+try{homeAudio.currentTime=t;}catch(e){}
+drawHomeWave();
+}
+function homeAudioTogglePlay(){
+if(!homeAudio)return;
+if(homeAudioPlaying){
+try{homeAudio.pause();}catch(e){}
+homeAudioPlaying=false;
+if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
+}else{
+const p=homeAudio.play();
+if(p&&p.then)p.catch(()=>{});
+homeAudioPlaying=true;
+if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
+}
+drawHomeWave();
+}
+function setupWavePointer(){
+if(!waveCan)return;
+const ratioFromEvent=(e)=>{
+const rect=waveCan.getBoundingClientRect();
+const clientX=(e.touches&&e.touches[0]?e.touches[0].clientX:(e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientX:e.clientX));
+return Math.max(0,Math.min(1,(clientX-rect.left)/Math.max(1,rect.width)));
+};
+const onDown=(e)=>{
+if(homeArmed||!homeAudio||!homeAudio.duration)return;
+e.preventDefault();
+homeWaveDragging=true;
+homeWaveDragRatio=ratioFromEvent(e);
+drawHomeWave();
+};
+const onMove=(e)=>{
+if(!homeWaveDragging)return;
+e.preventDefault();
+homeWaveDragRatio=ratioFromEvent(e);
+drawHomeWave();
+};
+const onUp=(e)=>{
+if(!homeWaveDragging)return;
+homeWaveDragging=false;
+if(homeArmed||!homeAudio||!homeAudio.duration)return;
+const r=ratioFromEvent(e);
+try{homeAudio.currentTime=r*homeAudio.duration;}catch(err){}
+drawHomeWave();
+};
+waveCan.addEventListener('mousedown',onDown);
+window.addEventListener('mousemove',onMove);
+window.addEventListener('mouseup',onUp);
+waveCan.addEventListener('touchstart',onDown,{passive:false});
+window.addEventListener('touchmove',onMove,{passive:false});
+window.addEventListener('touchend',onUp);
 }
 function startHomeArmCD(){
 homeArmed=true;
+homeWaveDragging=false;
 if(armB)armB.classList.add('armed');
 homeArmCD=true;homeArmCdVal=3;homeArmCdRemain=1000;homeArmCdOp=1;
 if(homeCd){
@@ -1440,6 +1660,7 @@ homeCd.textContent='3';
 homeCd.style.opacity='1';
 }
 layoutHomeCd();
+if(homeWaveProg>0.5)layoutHomeWave();
 }
 function layoutHomeCd(){
 if(!homeCd)return;
@@ -1496,7 +1717,8 @@ homeDockProg=0;
 hideHomeDock();
 if(targetDock<=0){
 if(homeArmCD||homeArmed)cancelHomeArmCD();
-if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
+stopHomeAudio(false);
+if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
 }
 return;
 }
@@ -1616,7 +1838,8 @@ el.style.zIndex='';
 });
 homeDockProg=0;
 cancelHomeArmCD();
-if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
+stopHomeAudio(false);
+if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
 [upB,backB,homePB,armB].forEach(el=>{
 if(!el)return;
 el.style.display='none';
@@ -3214,16 +3437,29 @@ cancelHomeArmCD();
 startHomeArmCD();
 }
 };
-// Upload / back — no function yet
-if(upB)upB.onclick=e=>{e.preventDefault();};
-if(backB)backB.onclick=e=>{e.preventDefault();};
+if(upB)upB.onclick=e=>{
+e.preventDefault();
+if(homeDockProg<0.85)return;
+if(audioFile)audioFile.click();
+};
+if(audioFile)audioFile.addEventListener('change',()=>{
+const f=audioFile.files&&audioFile.files[0];
+if(f)loadHomeAudioFile(f);
+try{audioFile.value='';}catch(err){}
+});
+if(backB)backB.onclick=e=>{
+e.preventDefault();
+if(homeDockProg<0.85)return;
+if(homeArmed)return; // only while circle is gray
+homeAudioSeek(-5);
+};
 if(homePB)homePB.onclick=e=>{
 e.preventDefault();
 if(homeDockProg<0.85)return;
-const resuming=/resume/i.test(homePB.textContent||'');
-homePB.textContent=resuming?'PAUSE':'RESUME';
-homePB.title=resuming?'Pause':'Resume';
+if(!homeAudio)return;
+homeAudioTogglePlay();
 };
+setupWavePointer();
 bncB.onclick=()=>{if(lockTrans||homeTrans||homeAway)return;bouncyOn=!bouncyOn;setModBtn(bncB,bouncyOn)};
 slwB.onclick=()=>{if(lockTrans||homeTrans||homeAway)return;slowOn=!slowOn;setModBtn(slwB,slowOn)};
 lckB.onclick=()=>{
@@ -3288,6 +3524,7 @@ if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh;ctx.s
 const nowA=Date.now();
 const dtArm=Math.min(100,nowA-_homeArmLast);_homeArmLast=nowA;
 tickHomeArmCD(dtArm);
+updateHomeWaveAnim();
 phys();draw();
 }catch(err){console.error(err)}requestAnimationFrame(animate)}
 loadP();loadTut();
