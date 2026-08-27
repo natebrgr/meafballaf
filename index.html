@@ -346,6 +346,7 @@ const upB=$('upB'),backB=$('backB'),homePB=$('homePB'),armB=$('armB'),homeCd=$('
 let homeDockProg=0; // 0=hidden below, 1=docked on screen
 let homeArmed=false;
 let homeArmCD=false,homeArmCdVal=3,homeArmCdRemain=1000,homeArmCdOp=0;
+let homeMouthOpen=false; // hold-to-open mouth while arm is red in home mode
 const lCh=$('lCh'),lvCh=$('lvCh'),cCh=$('cCh'),hCh=$('hCh'),hO=$('hO'),hCl=$('hCl'),hCb=$('hCb'),hCo=$('hCo');
 const tO=$('tO'),tS=$('tS'),tT=$('tT'),tB=$('tB'),tN=$('tN'),tSk=$('tSk'),tP=$('tP'),tNA=$('tNA');
 
@@ -887,9 +888,16 @@ ctx.moveTo(-s*0.5,browY);ctx.lineTo(-s*0.16,browY);
 ctx.moveTo(s*0.5,browY);ctx.lineTo(s*0.16,browY);
 ctx.stroke();
 ctx.lineWidth=Math.max(2.3,s*0.08);
+if(homeMouthOpen){
+// Talking mouth — a bit longer than the closed line (-0.22s…0.22s), still only slightly open
+ctx.beginPath();
+ctx.ellipse(0,mouthY+s*0.015,s*0.28,s*0.055,0,0,Math.PI*2);
+ctx.fill();
+}else{
 ctx.beginPath();
 ctx.moveTo(-s*0.22,mouthY);ctx.lineTo(s*0.22,mouthY);
 ctx.stroke();
+}
 }else if(dir===0||dir===2||dir===4){
 // Forward face; dir 2 = eyes up; dir 4 = angrier brows (brief side-hit flash)
 ctx.lineWidth=Math.max(2.2,s*0.075);
@@ -1420,6 +1428,7 @@ function cancelHomeArmCD(){
 homeArmCD=false;homeArmCdVal=3;homeArmCdRemain=1000;homeArmCdOp=0;
 if(homeCd){homeCd.style.opacity='0';homeCd.textContent='';}
 homeArmed=false;
+homeMouthOpen=false;
 if(armB)armB.classList.remove('armed');
 }
 function startHomeArmCD(){
@@ -3020,7 +3029,15 @@ circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updateHint();
 function startDrag(e){
 if(uiLocked)return;
 if(lockTrans)return;
-if(homeTrans||homeAway)return;
+if(homeTrans||homeAway){
+// Home mode: with arm button red, hold anywhere on the map to open the mouth
+if(homeArmed&&(homeAway||(homeTrans&&homeTrans.phase==='idleAway'))){
+e.preventDefault();
+homeMouthOpen=true;
+draw();
+}
+return;
+}
 if(postGame)return; // don't grab the ball on the death tap
 const pos=getPos(e,e.touches?e.touches[0].identifier:null);const tid=e.touches?e.touches[0].identifier:null;
 if(isPaused&&cashAvail&&mode==='survival'&&mergeA<=0){if(Math.hypot(pos.x-gold.x,pos.y-gold.y)<=gold.r+12){e.preventDefault();gold.drag=true;gold.tid=tid;gold.ox=pos.x-gold.x;gold.oy=pos.y-gold.y;draw();return}}
@@ -3062,6 +3079,11 @@ if(isPaused)saveSt();draw();
 }
 
 function stopDrag(e){
+if(homeMouthOpen){
+// Keep mouth open if another finger is still down; otherwise close
+if(e.touches&&e.touches.length>0){/* still holding */}
+else{homeMouthOpen=false;draw();}
+}
 if(gold.drag){let tid=gold.tid;if(e.changedTouches){let m=false;for(let i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===tid)m=true;if(!m&&e.touches&&e.touches.length>0)return}
 const dist=Math.hypot(gold.x-diaX,gold.y-diaY);if(dist<gold.r+DIA_R-6)startMerge();else springBack(gold.x,gold.y);draw();return}
 if(!circle.isDragging)return;let tid=circle.dragTouchId;if(e.touches&&e.touches.length>0)return;
