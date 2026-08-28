@@ -1622,6 +1622,12 @@ function updateMouthFromTrack(){
 // While circle is red (countdown OR recording), pointer hold owns the mouth —
 // do not overwrite homeMouthOpen (this was killing mouth during the 3-2-1).
 if(homeArmed||homeMouthRecording)return;
+// During video export, drive mouth from the export clock element
+if(homeExporting&&window._exportClockEl){
+if(!homeMouthTrack||!homeMouthTrack.length){homeMouthOpen=false;return;}
+homeMouthOpen=mouthOpenAtAudioTime(window._exportClockEl.currentTime||0);
+return;
+}
 // Always closed when paused / not playing
 if(!homeAudio||!homeAudioPlaying||homeAudio.paused){
 homeMouthOpen=false;
@@ -2076,12 +2082,15 @@ function hasVisibleWaveform(){
 return !!(homeAudio&&homePeaks&&homeWaveProg>0.5&&waveWrap&&waveWrap.style.display!=='none');
 }
 function pickBestRecorderMime(){
+// Prefer VP9/WebM for browser encoding quality; MP4/AVC is often much softer here.
+// .mov is not available via MediaRecorder in browsers.
 const types=[
-'video/mp4;codecs=avc1,mp4a.40.2',
-'video/mp4',
 'video/webm;codecs=vp9,opus',
+'video/webm;codecs=vp9',
 'video/webm;codecs=vp8,opus',
-'video/webm'
+'video/webm',
+'video/mp4;codecs=avc1,mp4a.40.2',
+'video/mp4'
 ];
 if(typeof MediaRecorder==='undefined')return '';
 for(let i=0;i<types.length;i++){
@@ -2143,18 +2152,15 @@ try{homeAudio.currentTime=0;}catch(e){}
 await new Promise(r=>setTimeout(r,120));
 draw();
 const crop=getHomeExportCrop();
-// Match on-screen sharpness: use full device pixels, min ~1080p on the long edge
-const srcPr=Math.min(window.devicePixelRatio||1,3);
-const srcW=Math.max(2,crop.w*srcPr);
-const srcH=Math.max(2,crop.h*srcPr);
-let outW=Math.round(srcW),outH=Math.round(srcH);
-const minLong=Math.max(outW,outH)<1280?1280/Math.max(outW,outH):1;
-if(minLong>1){outW=Math.round(outW*minLong);outH=Math.round(outH*minLong);}
+// Export at native canvas resolution (no soft upscale) — 1:1 with what's drawn
+const mainPr=Math.min(window.devicePixelRatio||1,3);
+const outW=Math.max(2,Math.round(crop.w*mainPr));
+const outH=Math.max(2,Math.round(crop.h*mainPr));
 const exp=document.createElement('canvas');
 exp.width=outW;exp.height=outH;
 const expCtx=exp.getContext('2d',{alpha:false,desynchronized:true});
-expCtx.imageSmoothingEnabled=true;
-expCtx.imageSmoothingQuality='high';
+// Pixel-perfect copy from game canvas (same DPR) — avoid smoothing blur
+expCtx.imageSmoothingEnabled=false;
 const fps=60;
 let expStream;
 try{expStream=exp.captureStream(fps);}catch(e){
@@ -2203,10 +2209,10 @@ audioTracks=homeAudio.captureStream().getAudioTracks();
 const outStream=new MediaStream([...vTracks,...audioTracks]);
 const chunks=[];
 let rec;
-const recOpts={mimeType:mime,videoBitsPerSecond:12000000,audioBitsPerSecond:192000};
+const recOpts={mimeType:mime,videoBitsPerSecond:20000000,audioBitsPerSecond:256000};
 try{rec=new MediaRecorder(outStream,recOpts);}
 catch(e){
-try{rec=new MediaRecorder(outStream,{mimeType:mime,videoBitsPerSecond:8000000});}
+try{rec=new MediaRecorder(outStream,{mimeType:mime,videoBitsPerSecond:14000000,audioBitsPerSecond:192000});}
 catch(e2){
 try{rec=new MediaRecorder(outStream);}catch(e3){
 setExportLock(false);mapBorderProg=prevBorderProg;
@@ -2217,8 +2223,7 @@ return;
 }
 rec.ondataavailable=ev=>{if(ev.data&&ev.data.size>0)chunks.push(ev.data);};
 const stopped=new Promise(resolve=>{rec.onstop=()=>resolve();});
-rec.start(100);
-const mainPr=Math.min(window.devicePixelRatio||1,3);
+rec.start(50);
 let copyRaf=0;
 const paintExportFrame=()=>{
 try{
@@ -2236,25 +2241,15 @@ paintExportFrame();
 copyRaf=requestAnimationFrame(copyLoop);
 };
 copyRaf=requestAnimationFrame(copyLoop);
-// Play export audio (drives the recorded soundtrack); keep homeAudio in sync for mouth track
+// Play export audio for the file; mouth uses _exportClockEl
 const playEl=exportAudioEl||homeAudio;
+window._exportClockEl=playEl;
 homeAudioPlaying=true;
 if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
 try{playEl.currentTime=0;}catch(e){}
-try{homeAudio.currentTime=0;}catch(e){}
-// Sync homeAudio clock to export element for mouth playback
-let syncRaf=0;
-const syncClocks=()=>{
-if(!homeExporting)return;
-if(exportAudioEl){
-try{homeAudio.currentTime=exportAudioEl.currentTime;}catch(e){}
-}
-syncRaf=requestAnimationFrame(syncClocks);
-};
-syncRaf=requestAnimationFrame(syncClocks);
 try{await playEl.play();}catch(e){console.warn('export play failed',e);}
+// Keep homeAudio paused so it doesn't fight the export element
 if(exportAudioEl){try{homeAudio.pause();}catch(e){}}
-else{try{await homeAudio.play();}catch(e){}}
 await new Promise(resolve=>{
 let done=false;
 const finish=()=>{if(done)return;done=true;playEl.removeEventListener('ended',finish);resolve();};
@@ -2265,9 +2260,10 @@ setTimeout(finish,dur*1000);
 try{playEl.pause();}catch(e){}
 try{homeAudio.pause();}catch(e){}
 homeAudioPlaying=false;
+window._exportClockEl=null;
+homeMouthOpen=false;
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
 cancelAnimationFrame(copyRaf);
-cancelAnimationFrame(syncRaf);
 paintExportFrame();
 if(rec.state!=='inactive'){
 try{rec.requestData();}catch(e){}
