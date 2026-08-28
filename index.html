@@ -331,6 +331,49 @@ position:absolute;inset:0;z-index:4;cursor:ew-resize;touch-action:none;backgroun
 #waveHit.locked{cursor:default;}
 #upB .waveIcon{display:block;width:22px;height:14px;margin:0 auto;}
 input#audioFile{position:fixed;left:-9999px;width:1px;height:1px;opacity:0;}
+#homeModal{
+position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
+background:rgba(2,4,10,.72);backdrop-filter:blur(6px);
+}
+#homeModal.open{display:flex;}
+#homeModal .hm-box{
+background:rgba(12,16,28,.96);border:1px solid rgba(0,240,255,.4);border-radius:12px;
+padding:22px 24px 18px;min-width:min(300px,90vw);max-width:360px;text-align:center;
+box-shadow:0 0 28px rgba(0,240,255,.15);position:relative;
+}
+#homeModal .hm-x{
+position:absolute;top:8px;right:10px;background:transparent;border:none;color:#fff;
+font-size:1.1rem;cursor:pointer;padding:4px 8px;line-height:1;opacity:.75;
+}
+#homeModal .hm-x:hover{opacity:1;}
+#homeModal .hm-msg{
+font-family:Orbitron,sans-serif;font-size:.72rem;color:rgba(220,230,245,.92);
+letter-spacing:.04em;margin:6px 0 16px;line-height:1.45;
+}
+#homeModal .hm-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+#homeModal .hm-row button{
+flex:1 1 110px;min-width:100px;font-family:Orbitron,sans-serif;font-size:.62rem;
+padding:10px 12px;cursor:pointer;border-radius:6px;text-transform:uppercase;
+border:1px solid rgba(0,240,255,.4);background:rgba(0,40,60,.5);color:#e8f0ff;
+}
+#homeModal .hm-row button:hover{border-color:#00e5ff;box-shadow:0 0 12px rgba(0,229,255,.25);}
+#homeModal .hm-row button.primary{background:rgba(0,240,255,.18);border-color:rgba(0,240,255,.65);}
+#homeRecBanner{
+position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:210;display:none;
+font-family:Orbitron,sans-serif;font-size:.7rem;letter-spacing:.08em;color:#ffd700;
+background:rgba(10,12,20,.9);border:1px solid rgba(255,215,0,.45);border-radius:8px;
+padding:8px 16px;pointer-events:none;
+}
+body.home-exporting,body.home-exporting *{cursor:none!important;}
+body.home-exporting #bB,
+body.home-exporting #topBar,
+body.home-exporting #waveWrap,
+body.home-exporting #upB,
+body.home-exporting #backB,
+body.home-exporting #homePB,
+body.home-exporting #armB,
+body.home-exporting #homeB,
+body.home-exporting #homeModal{pointer-events:none!important;}
 </style>
 </head>
 <body>
@@ -355,13 +398,21 @@ input#audioFile{position:fixed;left:-9999px;width:1px;height:1px;opacity:0;}
 <button id="homePB" title="Play" type="button">PLAY</button>
 <button id="armB" title="Arm" type="button"><span class="armDot"></span></button>
 <div id="homeCd"></div>
-<input type="file" id="audioFile" accept="audio/*">
+<input type="file" id="audioFile" accept="audio/*,video/*,.mp3,.wav,.ogg,.m4a,.aac,.flac,.mp4,.webm,.mov,.mkv,.m4v,.avi">
 <div id="waveWrap">
 <div id="waveBars"></div>
 <div id="waveHead"></div>
 <div id="waveHint">PRESS PLAY</div>
 <div id="waveHit"></div>
 </div>
+<div id="homeModal">
+<div class="hm-box">
+<button type="button" class="hm-x" id="hmX" title="Close">X</button>
+<div class="hm-msg" id="hmMsg"></div>
+<div class="hm-row" id="hmRow"></div>
+</div>
+</div>
+<div id="homeRecBanner">RENDERING VIDEO…</div>
 <div class="ov" id="sO"><div class="s-sticky"><div class="oh"><div class="ot" style="background:linear-gradient(90deg,var(--gold),#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent">STORE</div><button class="oc" id="sCl">X</button></div>
 <div style="font-family:Orbitron;color:var(--cyan)"><span id="sHS">HS 0</span> · <span id="sCC">0</span> $</div>
 <div style="font-family:Exo 2,sans-serif;font-size:.72rem;color:rgba(200,210,230,.75);margin-top:6px;padding:0 12px">Items unlock with Survival high scores.</div>
@@ -953,10 +1004,23 @@ ctx.moveTo(s*0.5,browY);ctx.lineTo(s*0.16,browY);
 ctx.stroke();
 ctx.lineWidth=Math.max(2.3,s*0.08);
 if(homeMouthOpen){
-// Talking mouth — a bit longer than the closed line (-0.22s…0.22s), still only slightly open
+// Casual talking mouth — open with top teeth only
+const mx=0,my=mouthY+s*0.04;
+const rx=s*0.26,ry=s*0.12;
 ctx.beginPath();
-ctx.ellipse(0,mouthY+s*0.015,s*0.28,s*0.055,0,0,Math.PI*2);
+ctx.ellipse(mx,my,rx,ry,0,0,Math.PI*2);
+ctx.fillStyle='#1a0a0c';
 ctx.fill();
+ctx.fillStyle='rgba(245,245,240,0.95)';
+ctx.beginPath();
+ctx.ellipse(mx,my-ry*0.38,rx*0.74,ry*0.3,0,0,Math.PI*2);
+ctx.fill();
+ctx.strokeStyle='#111';
+ctx.lineWidth=Math.max(1.5,s*0.05);
+ctx.beginPath();
+ctx.ellipse(mx,my,rx,ry,0,0,Math.PI*2);
+ctx.stroke();
+ctx.fillStyle='#111';
 }else{
 ctx.beginPath();
 ctx.moveTo(-s*0.22,mouthY);ctx.lineTo(s*0.22,mouthY);
@@ -1167,6 +1231,7 @@ homeTrans.glideFrom={x:circle.x,y:circle.y};
 }
 
 function toggleHome(){
+if(homeExporting)return;
 if(homeTrans){
 reverseHomeTrans();
 if(homeTrans.dir==='return')cancelHomeArmCD();
@@ -1555,8 +1620,9 @@ else break;
 return open;
 }
 function updateMouthFromTrack(){
-// During live recording, hold state is owned by pointer handlers
-if(homeMouthRecording)return;
+// While circle is red (countdown OR recording), pointer hold owns the mouth —
+// do not overwrite homeMouthOpen (this was killing mouth during the 3-2-1).
+if(homeArmed||homeMouthRecording)return;
 // Always closed when paused / not playing
 if(!homeAudio||!homeAudioPlaying||homeAudio.paused){
 homeMouthOpen=false;
@@ -1571,9 +1637,10 @@ homeMouthOpen=mouthOpenAtAudioTime(homeAudio.currentTime||0);
 function beginMouthRecordingSession(){
 // Do NOT clear prior takes — this take only overwrites the time range covered
 homeMouthRecordStart=homeAudio?Math.max(0,homeAudio.currentTime||0):0;
-homeMouthRecordBuffer=[{t:homeMouthRecordStart,open:false}];
+// If they were already holding through the countdown, start the take with mouth open
+const held=!!homeMouthOpen;
+homeMouthRecordBuffer=[{t:homeMouthRecordStart,open:held}];
 homeMouthRecording=true;
-homeMouthOpen=false;
 // Auto-start audio for the take
 if(homeAudio){
 if(homeACtx&&homeACtx.state==='suspended'){try{homeACtx.resume();}catch(e){}}
@@ -1602,6 +1669,10 @@ if(homeACtx){try{homeACtx.close();}catch(e){}homeACtx=null;}
 function clearHomeAudio(){
 stopHomeAudio(true);
 teardownHomeGraph();
+if(homeAudio){
+try{homeAudio.removeAttribute('src');homeAudio.load();}catch(e){}
+if(homeAudio.parentNode){try{homeAudio.parentNode.removeChild(homeAudio);}catch(e){}}
+}
 if(homeAudioUrl){try{URL.revokeObjectURL(homeAudioUrl);}catch(e){}}
 homeAudioUrl=null;homeAudio=null;
 homePeaks=null;homePeakFilled=null;homeWaveLoading=false;
@@ -1782,13 +1853,60 @@ if(el)el.style.opacity='0.55';
 }
 drawHomeWave();
 }
+function isVideoFile(file){
+if(!file)return false;
+if(file.type&&file.type.indexOf('video/')===0)return true;
+return /\.(mp4|webm|mov|mkv|m4v|avi|ogv)$/i.test(file.name||'');
+}
+function isAudioOrVideoFile(file){
+if(!file)return false;
+const t=file.type||'';
+if(t.indexOf('audio/')===0||t.indexOf('video/')===0)return true;
+return /\.(mp3|wav|ogg|m4a|aac|flac|opus|wma|mp4|webm|mov|mkv|m4v|avi|ogv|aiff|aif)$/i.test(file.name||'');
+}
+function createHomeMediaElement(file,url){
+// Video files: use a hidden <video> so we can play audio-only from the file
+if(isVideoFile(file)){
+const v=document.createElement('video');
+v.preload='auto';
+v.playsInline=true;
+v.setAttribute('playsinline','');
+v.setAttribute('webkit-playsinline','');
+v.controls=false;
+v.muted=false;
+v.volume=1;
+v.style.cssText='position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+v.src=url;
+document.body.appendChild(v);
+return v;
+}
+const a=new Audio();
+a.preload='auto';
+a.src=url;
+return a;
+}
+function dismissWaveAfterFail(){
+if(waveHint){waveHint.textContent='UPLOAD FAILED';waveHint.classList.remove('hide');}
+homeWaveLoading=false;
+setTimeout(()=>{
+homeWaveProg=0;
+if(waveWrap){waveWrap.classList.remove('show');waveWrap.style.display='none';}
+clearHomeAudio();
+},1000);
+}
 async function loadHomeAudioFile(file){
 if(!file)return;
+if(!isAudioOrVideoFile(file)){
+showWaveShell();
+if(waveHint){waveHint.textContent='UPLOAD FAILED';waveHint.classList.remove('hide');}
+homeWaveProg=1;
+showWaveShell();
+dismissWaveAfterFail();
+return;
+}
 clearHomeAudio();
 homeAudioUrl=URL.createObjectURL(file);
-homeAudio=new Audio();
-homeAudio.preload='auto';
-homeAudio.src=homeAudioUrl;
+homeAudio=createHomeMediaElement(file,homeAudioUrl);
 homeAudio.addEventListener('ended',()=>{
 if(homeMouthRecording){
 recordMouthEvent(false);
@@ -1812,11 +1930,15 @@ const peaks=await analyzeAudioFile(file);
 finishWaveformPeaks(peaks);
 }catch(err){
 console.warn('Audio analyze failed',err);
-homeWaveLoading=false;
-const msg=(err&&err.message&&err.message.indexOf('timeout')>=0)
-?'ANALYSIS TIMED OUT — TRY A .WAV FILE'
-:'USE A .WAV FILE FOR WAVEFORM';
-if(waveHint){waveHint.textContent=msg;waveHint.classList.remove('hide');}
+// Still allow playback even if peak analysis fails (common for some video containers)
+try{
+const bins=HOME_WAVE_BINS;
+const peaks=new Float32Array(bins);
+for(let i=0;i<bins;i++)peaks[i]=0.2+0.15*Math.abs(Math.sin(i*0.2));
+finishWaveformPeaks(normalizePeaks(peaks));
+}catch(e2){
+dismissWaveAfterFail();
+}
 }
 }
 function layoutHomeWave(){
@@ -1916,11 +2038,13 @@ try{homeAudio.currentTime=t;}catch(e){}
 drawHomeWave();
 }
 function homeAudioTogglePlay(){
-if(!homeAudio)return;
+if(homeExporting||!homeAudio)return;
 if(homeAudioPlaying){
 try{homeAudio.pause();}catch(e){}
 homeAudioPlaying=false;
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
+// Pausing while circle is red → turn it gray (end record/arm)
+if(homeArmed||homeArmCD)cancelHomeArmCD();
 }else{
 const p=homeAudio.play();
 if(p&&p.then)p.catch(err=>console.warn('play failed',err));
@@ -1928,6 +2052,210 @@ homeAudioPlaying=true;
 if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
 }
 drawHomeWave();
+}
+let homeExporting=false;
+function closeHomeModal(){
+const m=$('homeModal');
+if(m)m.classList.remove('open');
+}
+function openHomeModal(msg,buttons){
+const m=$('homeModal'),msgEl=$('hmMsg'),row=$('hmRow');
+if(!m||!msgEl||!row)return;
+msgEl.textContent=msg;
+row.innerHTML='';
+(buttons||[]).forEach(b=>{
+const btn=document.createElement('button');
+btn.type='button';
+btn.textContent=b.label;
+if(b.primary)btn.className='primary';
+btn.onclick=()=>{closeHomeModal();if(b.fn)b.fn();};
+row.appendChild(btn);
+});
+m.classList.add('open');
+}
+function hasVisibleWaveform(){
+return !!(homeAudio&&homePeaks&&homeWaveProg>0.5&&waveWrap&&waveWrap.style.display!=='none');
+}
+function pickBestRecorderMime(){
+const types=[
+'video/mp4;codecs=avc1,mp4a.40.2',
+'video/mp4',
+'video/webm;codecs=vp9,opus',
+'video/webm;codecs=vp8,opus',
+'video/webm'
+];
+if(typeof MediaRecorder==='undefined')return '';
+for(let i=0;i<types.length;i++){
+try{if(MediaRecorder.isTypeSupported(types[i]))return types[i];}catch(e){}
+}
+return '';
+}
+function getHomeExportCrop(){
+// Inner 9:16 playfield only (inside the border stroke, not including the border)
+const t=computeMapBorderTarget();
+const pad=Math.max(1,BW);
+return{
+l:t.l+pad,
+t:t.t+pad,
+w:Math.max(2,t.w-pad*2),
+h:Math.max(2,t.h-pad*2)
+};
+}
+function setExportLock(on){
+homeExporting=!!on;
+try{
+document.body.classList.toggle('home-exporting',homeExporting);
+document.body.style.cursor=homeExporting?'none':'';
+}catch(e){}
+const banner=$('homeRecBanner');
+if(banner)banner.style.display=homeExporting?'block':'none';
+}
+function triggerBlobDownload(blob,filename){
+try{
+if(window.navigator&&navigator.msSaveOrOpenBlob){
+navigator.msSaveOrOpenBlob(blob,filename);
+return;
+}
+}catch(e){}
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+a.download=filename;
+a.style.display='none';
+document.body.appendChild(a);
+a.click();
+setTimeout(()=>{try{URL.revokeObjectURL(url);a.remove();}catch(e){}},4000);
+}
+async function downloadHomeVideo(){
+if(homeExporting||!homeAudio||!hasVisibleWaveform())return;
+if(typeof MediaRecorder==='undefined'){
+openHomeModal('Video export is not supported in this browser.',[{label:'OK',primary:true,fn:null}]);
+return;
+}
+const mime=pickBestRecorderMime();
+if(!mime){
+openHomeModal('No supported video format in this browser.',[{label:'OK',primary:true,fn:null}]);
+return;
+}
+if(homeArmed||homeArmCD)cancelHomeArmCD();
+stopHomeAudio(false);
+setExportLock(true);
+// Force full 9:16 border for the duration of the export
+const prevBorderProg=mapBorderProg;
+mapBorderProg=1;
+const wasTime=homeAudio.currentTime||0;
+try{homeAudio.currentTime=0;}catch(e){}
+await new Promise(r=>setTimeout(r,100));
+draw(); // ensure current frame is painted
+const crop=getHomeExportCrop();
+const pr=Math.min(window.devicePixelRatio||1,2);
+const exp=document.createElement('canvas');
+exp.width=Math.max(2,Math.floor(crop.w*pr));
+exp.height=Math.max(2,Math.floor(crop.h*pr));
+const expCtx=exp.getContext('2d');
+const fps=30;
+let expStream;
+try{
+expStream=exp.captureStream(fps);
+}catch(e){
+setExportLock(false);
+mapBorderProg=prevBorderProg;
+openHomeModal('Could not capture video frames.',[{label:'OK',primary:true,fn:null}]);
+return;
+}
+const vTracks=expStream.getVideoTracks();
+let audioTracks=[];
+try{
+if(typeof homeAudio.captureStream==='function'){
+audioTracks=homeAudio.captureStream().getAudioTracks();
+}
+}catch(e){}
+const outStream=new MediaStream([...vTracks,...audioTracks]);
+const chunks=[];
+let rec;
+try{
+rec=new MediaRecorder(outStream,{mimeType:mime,videoBitsPerSecond:3500000});
+}catch(e){
+try{rec=new MediaRecorder(outStream);}catch(e2){
+setExportLock(false);
+mapBorderProg=prevBorderProg;
+openHomeModal('Could not start recorder.',[{label:'OK',primary:true,fn:null}]);
+return;
+}
+}
+rec.ondataavailable=ev=>{if(ev.data&&ev.data.size>0)chunks.push(ev.data);};
+const stopped=new Promise(resolve=>{rec.onstop=()=>resolve();});
+rec.start(100);
+// Copy cropped map area into export canvas every frame while audio plays
+let copyRaf=0;
+const copyLoop=()=>{
+if(!homeExporting)return;
+try{
+const srcX=crop.l*pr,srcY=crop.t*pr,srcW=crop.w*pr,srcH=crop.h*pr;
+expCtx.setTransform(1,0,0,1,0,0);
+expCtx.clearRect(0,0,exp.width,exp.height);
+expCtx.drawImage(canvas,srcX,srcY,srcW,srcH,0,0,exp.width,exp.height);
+const vt=vTracks[0];
+if(vt&&typeof vt.requestFrame==='function')vt.requestFrame();
+}catch(e){}
+copyRaf=requestAnimationFrame(copyLoop);
+};
+copyRaf=requestAnimationFrame(copyLoop);
+homeAudioPlaying=true;
+if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
+try{await homeAudio.play();}catch(e){}
+await new Promise(resolve=>{
+let done=false;
+const finish=()=>{if(done)return;done=true;homeAudio.removeEventListener('ended',finish);resolve();};
+homeAudio.addEventListener('ended',finish);
+const dur=(homeAudio.duration&&isFinite(homeAudio.duration)?homeAudio.duration:60)+2.5;
+setTimeout(finish,dur*1000);
+});
+try{homeAudio.pause();}catch(e){}
+homeAudioPlaying=false;
+if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
+cancelAnimationFrame(copyRaf);
+// One last frame
+try{
+expCtx.drawImage(canvas,crop.l*pr,crop.t*pr,crop.w*pr,crop.h*pr,0,0,exp.width,exp.height);
+}catch(e){}
+if(rec.state!=='inactive'){
+try{rec.requestData();}catch(e){}
+rec.stop();
+}
+await stopped;
+vTracks.forEach(t=>{try{t.stop();}catch(e){}});
+audioTracks.forEach(t=>{try{t.stop();}catch(e){}});
+mapBorderProg=prevBorderProg;
+const useMime=(rec.mimeType||mime||'video/webm').split(';')[0];
+const ext=useMime.indexOf('mp4')>=0?'mp4':'webm';
+if(!chunks.length){
+setExportLock(false);
+openHomeModal('Recording produced no data.',[{label:'OK',primary:true,fn:null}]);
+return;
+}
+const blob=new Blob(chunks,{type:useMime});
+triggerBlobDownload(blob,'mega-bounce-take.'+ext);
+try{homeAudio.currentTime=wasTime;}catch(e){}
+drawHomeWave();
+draw();
+setExportLock(false);
+}
+function onUploadButtonClick(){
+if(homeExporting)return;
+if(hasVisibleWaveform()){
+openHomeModal('What would you like to do?',[
+{label:'Upload',primary:true,fn:()=>{
+openHomeModal("Are you sure? Progress won't be saved!",[
+{label:'Yes',primary:true,fn:()=>{if(audioFile)audioFile.click();}},
+{label:'nvm',fn:null}
+]);
+}},
+{label:'Download',fn:()=>{downloadHomeVideo();}}
+]);
+}else{
+if(audioFile)audioFile.click();
+}
 }
 function setupWavePointer(){
 if(!waveHit)return;
@@ -1937,7 +2265,7 @@ const clientX=(e.touches&&e.touches[0]?e.touches[0].clientX:(e.changedTouches&&e
 return Math.max(0,Math.min(1,(clientX-rect.left)/Math.max(1,rect.width)));
 };
 const onDown=(e)=>{
-if(homeArmed||!homeAudio||!homeAudio.duration)return;
+if(homeExporting||homeArmed||!homeAudio||!homeAudio.duration)return;
 e.preventDefault();
 homeWaveDragging=true;
 homeWaveDragRatio=ratioFromEvent(e);
@@ -3565,10 +3893,12 @@ circle.x=pos.x;circle.y=pos.y;circle.dx=0;circle.dy=0;constrain();updateHint();
 }
 
 function startDrag(e){
+if(homeExporting)return;
 if(uiLocked)return;
 if(lockTrans)return;
 if(homeTrans||homeAway){
-// Home mode: while armed (recording), hold to open mouth and log the event
+// Home mode: while circle is red (countdown or recording), hold opens the mouth.
+// Events are only logged once recording has actually started (after countdown).
 if(homeArmed&&(homeAway||(homeTrans&&homeTrans.phase==='idleAway'))){
 e.preventDefault();
 homeMouthOpen=true;
@@ -3749,7 +4079,7 @@ tN.onclick=goNext;tNA.onclick=goNext;tP.onclick=goPrev;tSk.onclick=closeTut;
 function setModBtn(btn,on){if(btn)btn.classList.toggle('on',!!on)}
 if(homeB)homeB.onclick=()=>toggleHome();
 if(armB)armB.onclick=()=>{
-if(homeDockProg<0.85)return;
+if(homeExporting||homeDockProg<0.85)return;
 if(homeArmed||homeArmCD){
 // Red / mid-countdown → cancel countdown and go gray
 cancelHomeArmCD();
@@ -3759,23 +4089,26 @@ startHomeArmCD();
 };
 if(upB)upB.onclick=e=>{
 e.preventDefault();
-if(homeDockProg<0.85)return;
-if(audioFile)audioFile.click();
+if(homeExporting||homeDockProg<0.85)return;
+onUploadButtonClick();
 };
+if($('hmX'))$('hmX').onclick=()=>{if(!homeExporting)closeHomeModal();};
+if($('homeModal'))$('homeModal').addEventListener('click',e=>{if(!homeExporting&&e.target===$('homeModal'))closeHomeModal();});
 if(audioFile)audioFile.addEventListener('change',()=>{
+if(homeExporting)return;
 const f=audioFile.files&&audioFile.files[0];
 if(f)loadHomeAudioFile(f);
 try{audioFile.value='';}catch(err){}
 });
 if(backB)backB.onclick=e=>{
 e.preventDefault();
-if(homeDockProg<0.85)return;
+if(homeExporting||homeDockProg<0.85)return;
 if(homeArmed)return; // only while circle is gray
 homeAudioSeek(-5);
 };
 if(homePB)homePB.onclick=e=>{
 e.preventDefault();
-if(homeDockProg<0.85)return;
+if(homeExporting||homeDockProg<0.85)return;
 if(!homeAudio)return;
 homeAudioTogglePlay();
 };
