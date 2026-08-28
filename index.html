@@ -1622,14 +1622,9 @@ function updateMouthFromTrack(){
 // While circle is red (countdown OR recording), pointer hold owns the mouth —
 // do not overwrite homeMouthOpen (this was killing mouth during the 3-2-1).
 if(homeArmed||homeMouthRecording)return;
-// During video export, drive mouth from the export clock element
-if(homeExporting&&window._exportClockEl){
-if(!homeMouthTrack||!homeMouthTrack.length){homeMouthOpen=false;return;}
-homeMouthOpen=mouthOpenAtAudioTime(window._exportClockEl.currentTime||0);
-return;
-}
-// Always closed when paused / not playing
-if(!homeAudio||!homeAudioPlaying||homeAudio.paused){
+if(!homeAudio){homeMouthOpen=false;return;}
+// Normal play: closed when paused. Export: keep updating from homeAudio clock.
+if(!homeExporting&&(!homeAudioPlaying||homeAudio.paused)){
 homeMouthOpen=false;
 return;
 }
@@ -1637,7 +1632,9 @@ if(!homeMouthTrack||!homeMouthTrack.length){
 homeMouthOpen=false;
 return;
 }
-homeMouthOpen=mouthOpenAtAudioTime(homeAudio.currentTime||0);
+// Export: slight lookahead counters frame-copy lag so mouth matches the audio you hear
+const t=(homeAudio.currentTime||0)+(homeExporting?0.08:0);
+homeMouthOpen=mouthOpenAtAudioTime(t);
 }
 function beginMouthRecordingSession(){
 // Do NOT clear prior takes — this take only overwrites the time range covered
@@ -2177,42 +2174,28 @@ openHomeModal('Could not capture video frames.',[{label:'OK',primary:true,fn:nul
 return;
 }
 const vTracks=expStream.getVideoTracks();
-// Route audio through Web Audio → MediaStreamDestination (reliable vs element.captureStream)
+// Use the SAME homeAudio element as normal play so mouth timing matches what you hear.
+// Prefer element.captureStream; fall back to Web Audio tap on homeAudio.
 let audioTracks=[];
-let exportACtx=null,exportSrc=null,exportDest=null,exportAudioEl=null;
-try{
-const AC=window.AudioContext||window.webkitAudioContext;
-exportACtx=new AC();
-if(exportACtx.state==='suspended')await exportACtx.resume();
-exportDest=exportACtx.createMediaStreamDestination();
-// Dedicated element so we never fight an existing MediaElementSource
-exportAudioEl=document.createElement(homeAudio.tagName==='VIDEO'?'video':'audio');
-exportAudioEl.preload='auto';
-exportAudioEl.crossOrigin='anonymous';
-exportAudioEl.src=homeAudioUrl||homeAudio.currentSrc||homeAudio.src;
-if(exportAudioEl.tagName==='VIDEO'){
-exportAudioEl.playsInline=true;
-exportAudioEl.muted=false;
-exportAudioEl.style.cssText='position:fixed;left:-9999px;width:1px;height:1px;opacity:0;';
-document.body.appendChild(exportAudioEl);
-}
-await new Promise(resolve=>{
-const done=()=>{exportAudioEl.removeEventListener('canplay',done);resolve();};
-exportAudioEl.addEventListener('canplay',done);
-exportAudioEl.load();
-setTimeout(resolve,2000);
-});
-exportSrc=exportACtx.createMediaElementSource(exportAudioEl);
-exportSrc.connect(exportDest);
-exportSrc.connect(exportACtx.destination);
-audioTracks=exportDest.stream.getAudioTracks();
-}catch(err){
-console.warn('Export audio graph failed, trying element.captureStream',err);
+let exportACtx=null,exportSrc=null,exportDest=null;
 try{
 if(typeof homeAudio.captureStream==='function'){
 audioTracks=homeAudio.captureStream().getAudioTracks();
 }
-}catch(e2){}
+}catch(e){}
+if(!audioTracks.length){
+try{
+teardownHomeGraph();
+const AC=window.AudioContext||window.webkitAudioContext;
+exportACtx=new AC();
+if(exportACtx.state==='suspended')await exportACtx.resume();
+exportDest=exportACtx.createMediaStreamDestination();
+exportSrc=exportACtx.createMediaElementSource(homeAudio);
+exportSrc.connect(exportDest);
+exportSrc.connect(exportACtx.destination);
+homeACtx=exportACtx;homeMediaSrc=exportSrc;
+audioTracks=exportDest.stream.getAudioTracks();
+}catch(err){console.warn('Export audio setup failed',err);}
 }
 const outStream=new MediaStream([...vTracks,...audioTracks]);
 const chunks=[];
@@ -2235,7 +2218,6 @@ rec.start(40);
 let copyRaf=0;
 const paintExportFrame=()=>{
 try{
-// Draw mouth for this exact clock time, then capture — keeps lips with the audio
 updateMouthFromTrack();
 draw();
 const sx=crop.l*mainPr,sy=crop.t*mainPr,sw=crop.w*mainPr,sh=crop.h*mainPr;
@@ -2251,31 +2233,24 @@ if(!homeExporting)return;
 paintExportFrame();
 copyRaf=requestAnimationFrame(copyLoop);
 };
-// Warm up the video pipeline before audio so frames aren't behind the soundtrack
+// Start audio + frame capture together (same clock as normal PLAY — no second element)
 copyRaf=requestAnimationFrame(copyLoop);
-await new Promise(r=>setTimeout(r,180));
-const playEl=exportAudioEl||homeAudio;
-window._exportClockEl=playEl;
 homeAudioPlaying=true;
 if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
-try{playEl.currentTime=0;}catch(e){}
-try{await playEl.play();}catch(e){console.warn('export play failed',e);}
-if(exportAudioEl){try{homeAudio.pause();}catch(e){}}
+try{homeAudio.currentTime=0;}catch(e){}
+try{await homeAudio.play();}catch(e){console.warn('export play failed',e);}
 await new Promise(resolve=>{
 let done=false;
-const finish=()=>{if(done)return;done=true;playEl.removeEventListener('ended',finish);resolve();};
-playEl.addEventListener('ended',finish);
-const dur=(playEl.duration&&isFinite(playEl.duration)?playEl.duration:(homeAudio.duration||60))+2.5;
+const finish=()=>{if(done)return;done=true;homeAudio.removeEventListener('ended',finish);resolve();};
+homeAudio.addEventListener('ended',finish);
+const dur=(homeAudio.duration&&isFinite(homeAudio.duration)?homeAudio.duration:60)+2.5;
 setTimeout(finish,dur*1000);
 });
-try{playEl.pause();}catch(e){}
 try{homeAudio.pause();}catch(e){}
 homeAudioPlaying=false;
-window._exportClockEl=null;
 homeMouthOpen=false;
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
-// Short video tail so the last mouth frames aren't cut before audio ends in the mux
-await new Promise(r=>setTimeout(r,120));
+await new Promise(r=>setTimeout(r,80));
 cancelAnimationFrame(copyRaf);
 paintExportFrame();
 if(rec.state!=='inactive'){
@@ -2285,9 +2260,6 @@ rec.stop();
 await stopped;
 vTracks.forEach(t=>{try{t.stop();}catch(e){}});
 audioTracks.forEach(t=>{try{t.stop();}catch(e){}});
-try{if(exportSrc)exportSrc.disconnect();}catch(e){}
-try{if(exportACtx)exportACtx.close();}catch(e){}
-if(exportAudioEl&&exportAudioEl.parentNode){try{exportAudioEl.parentNode.removeChild(exportAudioEl);}catch(e){}}
 mapBorderProg=prevBorderProg;
 const useMime=(rec.mimeType||mime||'video/webm').split(';')[0];
 if(!chunks.length){
