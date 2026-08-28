@@ -2231,10 +2231,13 @@ return;
 }
 rec.ondataavailable=ev=>{if(ev.data&&ev.data.size>0)chunks.push(ev.data);};
 const stopped=new Promise(resolve=>{rec.onstop=()=>resolve();});
-rec.start(50);
+rec.start(40);
 let copyRaf=0;
 const paintExportFrame=()=>{
 try{
+// Draw mouth for this exact clock time, then capture — keeps lips with the audio
+updateMouthFromTrack();
+draw();
 const sx=crop.l*mainPr,sy=crop.t*mainPr,sw=crop.w*mainPr,sh=crop.h*mainPr;
 expCtx.setTransform(1,0,0,1,0,0);
 expCtx.clearRect(0,0,exp.width,exp.height);
@@ -2248,15 +2251,15 @@ if(!homeExporting)return;
 paintExportFrame();
 copyRaf=requestAnimationFrame(copyLoop);
 };
+// Warm up the video pipeline before audio so frames aren't behind the soundtrack
 copyRaf=requestAnimationFrame(copyLoop);
-// Play export audio for the file; mouth uses _exportClockEl
+await new Promise(r=>setTimeout(r,180));
 const playEl=exportAudioEl||homeAudio;
 window._exportClockEl=playEl;
 homeAudioPlaying=true;
 if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
 try{playEl.currentTime=0;}catch(e){}
 try{await playEl.play();}catch(e){console.warn('export play failed',e);}
-// Keep homeAudio paused so it doesn't fight the export element
 if(exportAudioEl){try{homeAudio.pause();}catch(e){}}
 await new Promise(resolve=>{
 let done=false;
@@ -2271,6 +2274,8 @@ homeAudioPlaying=false;
 window._exportClockEl=null;
 homeMouthOpen=false;
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
+// Short video tail so the last mouth frames aren't cut before audio ends in the mux
+await new Promise(r=>setTimeout(r,120));
 cancelAnimationFrame(copyRaf);
 paintExportFrame();
 if(rec.state!=='inactive'){
@@ -2290,11 +2295,9 @@ setExportLock(false);
 openHomeModal('Recording produced no data.',[{label:'OK',primary:true,fn:null}]);
 return;
 }
-// Browsers can't encode real QuickTime .mov; MP4 H.264 is the compatible high-quality
-// format. We save it as .mov so it opens cleanly in QuickTime when the data is MP4.
 const isMp4=useMime.indexOf('mp4')>=0;
 const blob=new Blob(chunks,{type:isMp4?'video/mp4':useMime});
-const filename=isMp4?'mega-bounce-take.mov':('mega-bounce-take.'+(useMime.indexOf('webm')>=0?'webm':'mp4'));
+const filename=isMp4?'mega-bounce-take.mp4':('mega-bounce-take.'+(useMime.indexOf('webm')>=0?'webm':'mp4'));
 triggerBlobDownload(blob,filename);
 try{homeAudio.currentTime=wasTime;}catch(e){}
 drawHomeWave();
