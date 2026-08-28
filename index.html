@@ -2239,22 +2239,39 @@ homeAudioPlaying=true;
 if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
 try{homeAudio.currentTime=0;}catch(e){}
 try{await homeAudio.play();}catch(e){console.warn('export play failed',e);}
+// Wait until the audio has fully finished (ended event and/or currentTime at duration)
 await new Promise(resolve=>{
 let done=false;
-const finish=()=>{if(done)return;done=true;homeAudio.removeEventListener('ended',finish);resolve();};
+const finish=()=>{
+if(done)return;done=true;
+homeAudio.removeEventListener('ended',finish);
+clearInterval(poll);
+clearTimeout(failSafe);
+resolve();
+};
 homeAudio.addEventListener('ended',finish);
-const dur=(homeAudio.duration&&isFinite(homeAudio.duration)?homeAudio.duration:60)+2.5;
-setTimeout(finish,dur*1000);
+const poll=setInterval(()=>{
+const d=homeAudio.duration;
+if(d&&isFinite(d)&&d>0&&homeAudio.currentTime>=d-0.03)finish();
+},50);
+const dur=(homeAudio.duration&&isFinite(homeAudio.duration)?homeAudio.duration:60)+8;
+const failSafe=setTimeout(finish,dur*1000);
 });
+// Keep recording after audio ends so the encoder flushes the last ~1s of A/V
+await new Promise(r=>setTimeout(r,900));
 try{homeAudio.pause();}catch(e){}
 homeAudioPlaying=false;
 homeMouthOpen=false;
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
-await new Promise(r=>setTimeout(r,80));
+// A few more frames, then drain MediaRecorder
+await new Promise(r=>setTimeout(r,250));
 cancelAnimationFrame(copyRaf);
 paintExportFrame();
 if(rec.state!=='inactive'){
 try{rec.requestData();}catch(e){}
+await new Promise(r=>setTimeout(r,150));
+try{rec.requestData();}catch(e){}
+await new Promise(r=>setTimeout(r,100));
 rec.stop();
 }
 await stopped;
