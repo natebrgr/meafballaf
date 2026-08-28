@@ -2082,8 +2082,7 @@ function hasVisibleWaveform(){
 return !!(homeAudio&&homePeaks&&homeWaveProg>0.5&&waveWrap&&waveWrap.style.display!=='none');
 }
 function pickBestRecorderMime(){
-// Prefer VP9/WebM for browser encoding quality; MP4/AVC is often much softer here.
-// .mov is not available via MediaRecorder in browsers.
+// Record in best browser-native format (usually WebM); convert to MP4 for QuickTime after.
 const types=[
 'video/webm;codecs=vp9,opus',
 'video/webm;codecs=vp9',
@@ -2098,6 +2097,60 @@ try{if(MediaRecorder.isTypeSupported(types[i]))return types[i];}catch(e){}
 }
 return '';
 }
+function loadScriptOnce(src){
+return new Promise((resolve,reject)=>{
+if(document.querySelector('script[data-ffsrc="'+src+'"]')){resolve();return;}
+const s=document.createElement('script');
+s.src=src;s.async=true;s.dataset.ffsrc=src;
+s.onload=()=>resolve();
+s.onerror=()=>reject(new Error('Failed to load '+src));
+document.head.appendChild(s);
+});
+}
+let _ffmpegInst=null;
+async function getFFmpeg(){
+if(_ffmpegInst)return _ffmpegInst;
+const banner=$('homeRecBanner');
+if(banner){banner.style.display='block';banner.textContent='LOADING CONVERTER…';}
+await loadScriptOnce('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js');
+const {createFFmpeg,fetchFile}=window.FFmpeg;
+const ffmpeg=createFFmpeg({
+log:false,
+corePath:'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
+});
+await ffmpeg.load();
+_ffmpegInst={ffmpeg,fetchFile};
+return _ffmpegInst;
+}
+async function convertToQuickTime(blob,srcMime){
+// Already MP4 → keep as-is (QuickTime plays MP4). Else transcode WebM → H.264 AAC MP4.
+if(srcMime&&srcMime.indexOf('mp4')>=0){
+return{blob:blob,filename:'mega-bounce-take.mp4'};
+}
+const banner=$('homeRecBanner');
+if(banner){banner.style.display='block';banner.textContent='CONVERTING TO MP4…';}
+try{
+const {ffmpeg,fetchFile}=await getFFmpeg();
+const inName='input.webm';
+const outName='output.mp4';
+ffmpeg.FS('writeFile',inName,await fetchFile(blob));
+await ffmpeg.run(
+'-i',inName,
+'-c:v','libx264','-preset','fast','-crf','17','-pix_fmt','yuv420p',
+'-c:a','aac','-b:a','192k',
+'-movflags','+faststart',
+outName
+);
+const data=ffmpeg.FS('readFile',outName);
+try{ffmpeg.FS('unlink',inName);}catch(e){}
+try{ffmpeg.FS('unlink',outName);}catch(e){}
+return{blob:new Blob([data.buffer],{type:'video/mp4'}),filename:'mega-bounce-take.mp4'};
+}catch(err){
+console.warn('ffmpeg convert failed, downloading original',err);
+const ext=(srcMime&&srcMime.indexOf('mp4')>=0)?'mp4':'webm';
+return{blob:blob,filename:'mega-bounce-take.'+ext};
+}
+}
 function getHomeExportCrop(){
 // Inner 9:16 playfield only (inside the border stroke, not including the border)
 const t=computeMapBorderTarget();
@@ -2109,11 +2162,19 @@ w:Math.max(2,t.w-pad*2),
 h:Math.max(2,t.h-pad*2)
 };
 }
-function setExportLock(on){
+function setExportLock(on,bannerText){
 homeExporting=!!on;
 try{document.body.classList.toggle('home-exporting',homeExporting);}catch(e){}
 const banner=$('homeRecBanner');
-if(banner)banner.style.display=homeExporting?'block':'none';
+if(banner){
+if(homeExporting){
+banner.style.display='block';
+banner.textContent=bannerText||'RENDERING VIDEO…';
+}else{
+banner.style.display='none';
+banner.textContent='RENDERING VIDEO…';
+}
+}
 }
 function triggerBlobDownload(blob,filename){
 try{
@@ -2277,14 +2338,22 @@ try{if(exportACtx)exportACtx.close();}catch(e){}
 if(exportAudioEl&&exportAudioEl.parentNode){try{exportAudioEl.parentNode.removeChild(exportAudioEl);}catch(e){}}
 mapBorderProg=prevBorderProg;
 const useMime=(rec.mimeType||mime||'video/webm').split(';')[0];
-const ext=useMime.indexOf('mp4')>=0?'mp4':'webm';
 if(!chunks.length){
 setExportLock(false);
 openHomeModal('Recording produced no data.',[{label:'OK',primary:true,fn:null}]);
 return;
 }
-const blob=new Blob(chunks,{type:useMime});
+let blob=new Blob(chunks,{type:useMime});
+// Convert WebM → MP4 (H.264) so it opens in QuickTime / Photos / etc.
+try{
+const converted=await convertToQuickTime(blob,useMime);
+blob=converted.blob;
+triggerBlobDownload(blob,converted.filename);
+}catch(e){
+console.warn(e);
+const ext=useMime.indexOf('mp4')>=0?'mp4':'webm';
 triggerBlobDownload(blob,'mega-bounce-take.'+ext);
+}
 try{homeAudio.currentTime=wasTime;}catch(e){}
 drawHomeWave();
 draw();
