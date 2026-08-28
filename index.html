@@ -364,7 +364,6 @@ font-family:Orbitron,sans-serif;font-size:.7rem;letter-spacing:.08em;color:#ffd7
 background:rgba(10,12,20,.9);border:1px solid rgba(255,215,0,.45);border-radius:8px;
 padding:8px 16px;pointer-events:none;
 }
-body.home-exporting,body.home-exporting *{cursor:none!important;}
 body.home-exporting #bB,
 body.home-exporting #topBar,
 body.home-exporting #waveWrap,
@@ -2103,10 +2102,7 @@ h:Math.max(2,t.h-pad*2)
 }
 function setExportLock(on){
 homeExporting=!!on;
-try{
-document.body.classList.toggle('home-exporting',homeExporting);
-document.body.style.cursor=homeExporting?'none':'';
-}catch(e){}
+try{document.body.classList.toggle('home-exporting',homeExporting);}catch(e){}
 const banner=$('homeRecBanner');
 if(banner)banner.style.display=homeExporting?'block':'none';
 }
@@ -2140,85 +2136,139 @@ return;
 if(homeArmed||homeArmCD)cancelHomeArmCD();
 stopHomeAudio(false);
 setExportLock(true);
-// Force full 9:16 border for the duration of the export
 const prevBorderProg=mapBorderProg;
 mapBorderProg=1;
 const wasTime=homeAudio.currentTime||0;
 try{homeAudio.currentTime=0;}catch(e){}
-await new Promise(r=>setTimeout(r,100));
-draw(); // ensure current frame is painted
+await new Promise(r=>setTimeout(r,120));
+draw();
 const crop=getHomeExportCrop();
-const pr=Math.min(window.devicePixelRatio||1,2);
+// Match on-screen sharpness: use full device pixels, min ~1080p on the long edge
+const srcPr=Math.min(window.devicePixelRatio||1,3);
+const srcW=Math.max(2,crop.w*srcPr);
+const srcH=Math.max(2,crop.h*srcPr);
+let outW=Math.round(srcW),outH=Math.round(srcH);
+const minLong=Math.max(outW,outH)<1280?1280/Math.max(outW,outH):1;
+if(minLong>1){outW=Math.round(outW*minLong);outH=Math.round(outH*minLong);}
 const exp=document.createElement('canvas');
-exp.width=Math.max(2,Math.floor(crop.w*pr));
-exp.height=Math.max(2,Math.floor(crop.h*pr));
-const expCtx=exp.getContext('2d');
-const fps=30;
+exp.width=outW;exp.height=outH;
+const expCtx=exp.getContext('2d',{alpha:false,desynchronized:true});
+expCtx.imageSmoothingEnabled=true;
+expCtx.imageSmoothingQuality='high';
+const fps=60;
 let expStream;
-try{
-expStream=exp.captureStream(fps);
-}catch(e){
-setExportLock(false);
-mapBorderProg=prevBorderProg;
+try{expStream=exp.captureStream(fps);}catch(e){
+setExportLock(false);mapBorderProg=prevBorderProg;
 openHomeModal('Could not capture video frames.',[{label:'OK',primary:true,fn:null}]);
 return;
 }
 const vTracks=expStream.getVideoTracks();
+// Route audio through Web Audio → MediaStreamDestination (reliable vs element.captureStream)
 let audioTracks=[];
+let exportACtx=null,exportSrc=null,exportDest=null,exportAudioEl=null;
+try{
+const AC=window.AudioContext||window.webkitAudioContext;
+exportACtx=new AC();
+if(exportACtx.state==='suspended')await exportACtx.resume();
+exportDest=exportACtx.createMediaStreamDestination();
+// Dedicated element so we never fight an existing MediaElementSource
+exportAudioEl=document.createElement(homeAudio.tagName==='VIDEO'?'video':'audio');
+exportAudioEl.preload='auto';
+exportAudioEl.crossOrigin='anonymous';
+exportAudioEl.src=homeAudioUrl||homeAudio.currentSrc||homeAudio.src;
+if(exportAudioEl.tagName==='VIDEO'){
+exportAudioEl.playsInline=true;
+exportAudioEl.muted=false;
+exportAudioEl.style.cssText='position:fixed;left:-9999px;width:1px;height:1px;opacity:0;';
+document.body.appendChild(exportAudioEl);
+}
+await new Promise(resolve=>{
+const done=()=>{exportAudioEl.removeEventListener('canplay',done);resolve();};
+exportAudioEl.addEventListener('canplay',done);
+exportAudioEl.load();
+setTimeout(resolve,2000);
+});
+exportSrc=exportACtx.createMediaElementSource(exportAudioEl);
+exportSrc.connect(exportDest);
+exportSrc.connect(exportACtx.destination);
+audioTracks=exportDest.stream.getAudioTracks();
+}catch(err){
+console.warn('Export audio graph failed, trying element.captureStream',err);
 try{
 if(typeof homeAudio.captureStream==='function'){
 audioTracks=homeAudio.captureStream().getAudioTracks();
 }
-}catch(e){}
+}catch(e2){}
+}
 const outStream=new MediaStream([...vTracks,...audioTracks]);
 const chunks=[];
 let rec;
-try{
-rec=new MediaRecorder(outStream,{mimeType:mime,videoBitsPerSecond:3500000});
-}catch(e){
-try{rec=new MediaRecorder(outStream);}catch(e2){
-setExportLock(false);
-mapBorderProg=prevBorderProg;
+const recOpts={mimeType:mime,videoBitsPerSecond:12000000,audioBitsPerSecond:192000};
+try{rec=new MediaRecorder(outStream,recOpts);}
+catch(e){
+try{rec=new MediaRecorder(outStream,{mimeType:mime,videoBitsPerSecond:8000000});}
+catch(e2){
+try{rec=new MediaRecorder(outStream);}catch(e3){
+setExportLock(false);mapBorderProg=prevBorderProg;
 openHomeModal('Could not start recorder.',[{label:'OK',primary:true,fn:null}]);
 return;
+}
 }
 }
 rec.ondataavailable=ev=>{if(ev.data&&ev.data.size>0)chunks.push(ev.data);};
 const stopped=new Promise(resolve=>{rec.onstop=()=>resolve();});
 rec.start(100);
-// Copy cropped map area into export canvas every frame while audio plays
+const mainPr=Math.min(window.devicePixelRatio||1,3);
 let copyRaf=0;
-const copyLoop=()=>{
-if(!homeExporting)return;
+const paintExportFrame=()=>{
 try{
-const srcX=crop.l*pr,srcY=crop.t*pr,srcW=crop.w*pr,srcH=crop.h*pr;
+const sx=crop.l*mainPr,sy=crop.t*mainPr,sw=crop.w*mainPr,sh=crop.h*mainPr;
 expCtx.setTransform(1,0,0,1,0,0);
 expCtx.clearRect(0,0,exp.width,exp.height);
-expCtx.drawImage(canvas,srcX,srcY,srcW,srcH,0,0,exp.width,exp.height);
+expCtx.drawImage(canvas,sx,sy,sw,sh,0,0,exp.width,exp.height);
 const vt=vTracks[0];
 if(vt&&typeof vt.requestFrame==='function')vt.requestFrame();
 }catch(e){}
+};
+const copyLoop=()=>{
+if(!homeExporting)return;
+paintExportFrame();
 copyRaf=requestAnimationFrame(copyLoop);
 };
 copyRaf=requestAnimationFrame(copyLoop);
+// Play export audio (drives the recorded soundtrack); keep homeAudio in sync for mouth track
+const playEl=exportAudioEl||homeAudio;
 homeAudioPlaying=true;
 if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
-try{await homeAudio.play();}catch(e){}
+try{playEl.currentTime=0;}catch(e){}
+try{homeAudio.currentTime=0;}catch(e){}
+// Sync homeAudio clock to export element for mouth playback
+let syncRaf=0;
+const syncClocks=()=>{
+if(!homeExporting)return;
+if(exportAudioEl){
+try{homeAudio.currentTime=exportAudioEl.currentTime;}catch(e){}
+}
+syncRaf=requestAnimationFrame(syncClocks);
+};
+syncRaf=requestAnimationFrame(syncClocks);
+try{await playEl.play();}catch(e){console.warn('export play failed',e);}
+if(exportAudioEl){try{homeAudio.pause();}catch(e){}}
+else{try{await homeAudio.play();}catch(e){}}
 await new Promise(resolve=>{
 let done=false;
-const finish=()=>{if(done)return;done=true;homeAudio.removeEventListener('ended',finish);resolve();};
-homeAudio.addEventListener('ended',finish);
-const dur=(homeAudio.duration&&isFinite(homeAudio.duration)?homeAudio.duration:60)+2.5;
+const finish=()=>{if(done)return;done=true;playEl.removeEventListener('ended',finish);resolve();};
+playEl.addEventListener('ended',finish);
+const dur=(playEl.duration&&isFinite(playEl.duration)?playEl.duration:(homeAudio.duration||60))+2.5;
 setTimeout(finish,dur*1000);
 });
+try{playEl.pause();}catch(e){}
 try{homeAudio.pause();}catch(e){}
 homeAudioPlaying=false;
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
 cancelAnimationFrame(copyRaf);
-// One last frame
-try{
-expCtx.drawImage(canvas,crop.l*pr,crop.t*pr,crop.w*pr,crop.h*pr,0,0,exp.width,exp.height);
-}catch(e){}
+cancelAnimationFrame(syncRaf);
+paintExportFrame();
 if(rec.state!=='inactive'){
 try{rec.requestData();}catch(e){}
 rec.stop();
@@ -2226,6 +2276,9 @@ rec.stop();
 await stopped;
 vTracks.forEach(t=>{try{t.stop();}catch(e){}});
 audioTracks.forEach(t=>{try{t.stop();}catch(e){}});
+try{if(exportSrc)exportSrc.disconnect();}catch(e){}
+try{if(exportACtx)exportACtx.close();}catch(e){}
+if(exportAudioEl&&exportAudioEl.parentNode){try{exportAudioEl.parentNode.removeChild(exportAudioEl);}catch(e){}}
 mapBorderProg=prevBorderProg;
 const useMime=(rec.mimeType||mime||'video/webm').split(';')[0];
 const ext=useMime.indexOf('mp4')>=0?'mp4':'webm';
