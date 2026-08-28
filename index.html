@@ -2082,74 +2082,21 @@ function hasVisibleWaveform(){
 return !!(homeAudio&&homePeaks&&homeWaveProg>0.5&&waveWrap&&waveWrap.style.display!=='none');
 }
 function pickBestRecorderMime(){
-// Record in best browser-native format (usually WebM); convert to MP4 for QuickTime after.
+// Prefer MP4/H.264 when the browser can encode it (downloads as .mov for QuickTime).
+// Fall back to WebM only if MP4 isn't available.
 const types=[
-'video/webm;codecs=vp9,opus',
-'video/webm;codecs=vp9',
-'video/webm;codecs=vp8,opus',
-'video/webm',
+'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
 'video/mp4;codecs=avc1,mp4a.40.2',
-'video/mp4'
+'video/mp4',
+'video/webm;codecs=vp9,opus',
+'video/webm;codecs=vp8,opus',
+'video/webm'
 ];
 if(typeof MediaRecorder==='undefined')return '';
 for(let i=0;i<types.length;i++){
 try{if(MediaRecorder.isTypeSupported(types[i]))return types[i];}catch(e){}
 }
 return '';
-}
-function loadScriptOnce(src){
-return new Promise((resolve,reject)=>{
-if(document.querySelector('script[data-ffsrc="'+src+'"]')){resolve();return;}
-const s=document.createElement('script');
-s.src=src;s.async=true;s.dataset.ffsrc=src;
-s.onload=()=>resolve();
-s.onerror=()=>reject(new Error('Failed to load '+src));
-document.head.appendChild(s);
-});
-}
-let _ffmpegInst=null;
-async function getFFmpeg(){
-if(_ffmpegInst)return _ffmpegInst;
-const banner=$('homeRecBanner');
-if(banner){banner.style.display='block';banner.textContent='LOADING CONVERTER…';}
-await loadScriptOnce('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js');
-const {createFFmpeg,fetchFile}=window.FFmpeg;
-const ffmpeg=createFFmpeg({
-log:false,
-corePath:'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
-});
-await ffmpeg.load();
-_ffmpegInst={ffmpeg,fetchFile};
-return _ffmpegInst;
-}
-async function convertToQuickTime(blob,srcMime){
-// Already MP4 → keep as-is (QuickTime plays MP4). Else transcode WebM → H.264 AAC MP4.
-if(srcMime&&srcMime.indexOf('mp4')>=0){
-return{blob:blob,filename:'mega-bounce-take.mp4'};
-}
-const banner=$('homeRecBanner');
-if(banner){banner.style.display='block';banner.textContent='CONVERTING TO MP4…';}
-try{
-const {ffmpeg,fetchFile}=await getFFmpeg();
-const inName='input.webm';
-const outName='output.mp4';
-ffmpeg.FS('writeFile',inName,await fetchFile(blob));
-await ffmpeg.run(
-'-i',inName,
-'-c:v','libx264','-preset','fast','-crf','17','-pix_fmt','yuv420p',
-'-c:a','aac','-b:a','192k',
-'-movflags','+faststart',
-outName
-);
-const data=ffmpeg.FS('readFile',outName);
-try{ffmpeg.FS('unlink',inName);}catch(e){}
-try{ffmpeg.FS('unlink',outName);}catch(e){}
-return{blob:new Blob([data.buffer],{type:'video/mp4'}),filename:'mega-bounce-take.mp4'};
-}catch(err){
-console.warn('ffmpeg convert failed, downloading original',err);
-const ext=(srcMime&&srcMime.indexOf('mp4')>=0)?'mp4':'webm';
-return{blob:blob,filename:'mega-bounce-take.'+ext};
-}
 }
 function getHomeExportCrop(){
 // Inner 9:16 playfield only (inside the border stroke, not including the border)
@@ -2343,17 +2290,12 @@ setExportLock(false);
 openHomeModal('Recording produced no data.',[{label:'OK',primary:true,fn:null}]);
 return;
 }
-let blob=new Blob(chunks,{type:useMime});
-// Convert WebM → MP4 (H.264) so it opens in QuickTime / Photos / etc.
-try{
-const converted=await convertToQuickTime(blob,useMime);
-blob=converted.blob;
-triggerBlobDownload(blob,converted.filename);
-}catch(e){
-console.warn(e);
-const ext=useMime.indexOf('mp4')>=0?'mp4':'webm';
-triggerBlobDownload(blob,'mega-bounce-take.'+ext);
-}
+// Browsers can't encode real QuickTime .mov; MP4 H.264 is the compatible high-quality
+// format. We save it as .mov so it opens cleanly in QuickTime when the data is MP4.
+const isMp4=useMime.indexOf('mp4')>=0;
+const blob=new Blob(chunks,{type:isMp4?'video/mp4':useMime});
+const filename=isMp4?'mega-bounce-take.mov':('mega-bounce-take.'+(useMime.indexOf('webm')>=0?'webm':'mp4'));
+triggerBlobDownload(blob,filename);
 try{homeAudio.currentTime=wasTime;}catch(e){}
 drawHomeWave();
 draw();
