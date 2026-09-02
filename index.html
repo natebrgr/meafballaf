@@ -1851,43 +1851,16 @@ const erx=eyeRx*(0.85+eo*0.45);
 const ery=eyeRy*(0.55+eo*0.9);
 const lx=-s*0.36*leftSc, rx=s*0.36*rightSc;
 const eyeYY=eyeY;
-// Lid amount: 0 = wide open, 1 = fully closed
-const lidAmt=Math.max(0, Math.min(1, 1.05 - eo));
-function drawEyeWithLid(cx, cy, rxE, ryE, ang){
 ctx.fillStyle='#111';
 ctx.beginPath();
-ctx.ellipse(cx, cy, rxE, ryE, ang, 0, Math.PI*2);
-ctx.fill();
-// Subtle upper lid only — soft cover, no lower lid
-const softLid=Math.max(0, Math.min(0.55, lidAmt*0.65));
-if(softLid < 0.5){
-ctx.save();
+ctx.ellipse(lx, eyeYY, erx*leftSc, ery, 0.08, 0, Math.PI*2);ctx.fill();
 ctx.beginPath();
-ctx.ellipse(cx, cy, rxE, ryE, ang, 0, Math.PI*2);
-ctx.clip();
-const top=cy - ryE + ryE*2*softLid;
+ctx.ellipse(rx, eyeYY, erx*rightSc, ery, -0.08, 0, Math.PI*2);ctx.fill();
 ctx.fillStyle='#eee';
-ctx.fillRect(cx-rxE, top, rxE*2, ryE*2*(1-softLid));
+const pr=Math.max(s*0.035, ery*0.45);
+ctx.beginPath();ctx.arc(lx+ex*erx*0.45, eyeYY+ey*ery*0.4, pr, 0, Math.PI*2);ctx.fill();
+ctx.beginPath();ctx.arc(rx+ex*erx*0.45, eyeYY+ey*ery*0.4, pr, 0, Math.PI*2);ctx.fill();
 ctx.fillStyle='#111';
-const pr=Math.max(s*0.03, ryE*0.42);
-ctx.beginPath();
-ctx.arc(cx+ex*rxE*0.45, cy+ey*ryE*0.35 + softLid*ryE*0.15, pr, 0, Math.PI*2);
-ctx.fill();
-ctx.restore();
-}
-// Thin upper lid line
-ctx.strokeStyle='#111';
-ctx.lineWidth=Math.max(1.3, s*0.045);
-ctx.beginPath();
-const lidY=cy - ryE*0.85 + softLid*ryE*0.9;
-ctx.moveTo(cx-rxE*0.9, lidY);
-ctx.quadraticCurveTo(cx, lidY - ryE*0.06, cx+rxE*0.9, lidY);
-ctx.stroke();
-}
-drawEyeWithLid(lx, eyeYY, erx*leftSc, ery, 0.06);
-drawEyeWithLid(rx, eyeYY, erx*rightSc, ery, -0.06);
-ctx.fillStyle='#111';
-ctx.strokeStyle='#111';
 // Mouth upright in face space; whole face rotate(roll) tilts it with eyes/brows
 drawHomeMouthViseme(ctx, s, mouthY, homeMouthShape||'rest');
 ctx.globalAlpha=1;
