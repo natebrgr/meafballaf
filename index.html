@@ -441,9 +441,10 @@ body.home-exporting #trackPick{pointer-events:none!important;}
 <div class="tp-box" style="position:relative">
 <button type="button" class="tp-x" id="tpX" title="Close">X</button>
 <div class="tp-title">MOUTH TRACKER</div>
-<div class="tp-msg">Upload or take a face video (shows in the 9:16 frame). Face tracking is automatic. Arm turns red, press red again for countdown — then motion records with your audio. Live camera is mirrored.</div>
+<div class="tp-msg">Choose LIVE CAMERA or UPLOAD VIDEO. Face tracking runs the same either way. Arm (red), press red again for countdown — face motion records locked to the audio timeline. Live cam is mirrored.</div>
 <div class="tp-row">
-<button type="button" class="primary" id="tpRecord">START CAMERA</button>
+<button type="button" class="primary" id="tpUpload">UPLOAD VIDEO</button>
+<button type="button" class="primary" id="tpRecord">LIVE CAMERA</button>
 </div>
 <div class="tp-row" style="margin-top:10px">
 <button type="button" id="tpClear" style="flex:1 1 100%">CLEAR VIDEO</button>
@@ -525,6 +526,11 @@ let homeEyeY=0;          // -1..1 gaze vertical
 let homeEyeOpen=0.55;    // 0..1 eye openness (wide eyes)
 let homeBrowL=0;         // -1..1 left brow (up positive)
 let homeBrowR=0;         // -1..1 right brow
+let homeHeadTilt=0;       // radians roll (left/right head tilt)
+let homeHeadBobX=0;       // small face offset X (fraction of head r)
+let homeHeadBobY=0;       // small face offset Y
+let homeHeadYaw=0;         // -1..1 left/right turn on sphere
+let homeHeadPitch=0;       // -1..1 up/down nod on sphere
 let homeMouthTrackLive=false;
 // Source video
 let mouthVideo=null;
@@ -557,6 +563,57 @@ let homeWaveLoading=false;
 let homeWaveCssW=300,homeWaveCssH=56;
 let homeACtx=null,homeAnalyser=null,homeMediaSrc=null;
 let homeAnalyserData=null;
+let homeAudioLevel=0; // 0..1 smoothed loudness from playing audio
+function ensureHomeAnalyser(){
+if(!homeAudio)return null;
+try{
+if(!homeACtx){
+homeACtx=new (window.AudioContext||window.webkitAudioContext)();
+}
+if(homeACtx.state==='suspended'){try{homeACtx.resume();}catch(e){}}
+if(!homeMediaSrc){
+homeMediaSrc=homeACtx.createMediaElementSource(homeAudio);
+homeAnalyser=homeACtx.createAnalyser();
+homeAnalyser.fftSize=512;
+homeAnalyser.smoothingTimeConstant=0.7;
+homeMediaSrc.connect(homeAnalyser);
+homeAnalyser.connect(homeACtx.destination);
+homeAnalyserData=new Uint8Array(homeAnalyser.fftSize);
+}
+return homeAnalyser;
+}catch(e){
+console.warn('analyser',e);
+return null;
+}
+}
+function sampleHomeAudioLevel(){
+let lvl=0;
+const an=ensureHomeAnalyser();
+if(an&&homeAnalyserData&&homeAudioPlaying&&homeAudio&&!homeAudio.paused){
+try{
+an.getByteTimeDomainData(homeAnalyserData);
+let sum=0;
+for(let i=0;i<homeAnalyserData.length;i++){
+const v=(homeAnalyserData[i]-128)/128;
+sum+=v*v;
+}
+lvl=Math.min(1, Math.sqrt(sum/homeAnalyserData.length)*3.2);
+}catch(e){}
+}else if(homePeaks&&homeAudio&&homeAudio.duration){
+// Fallback: waveform peak near playhead
+const r=Math.max(0,Math.min(0.999,(homeAudio.currentTime||0)/homeAudio.duration));
+const bin=Math.floor(r*homePeaks.length);
+lvl=Math.min(1,(homePeaks[bin]||0)*1.4);
+}
+homeAudioLevel=homeAudioLevel*0.65+lvl*0.35;
+return homeAudioLevel;
+}
+function mouthDramaFromAudio(){
+// 1 = neutral tracked motion; louder → more intense (capped ~1.4x)
+const v=Math.max(0, Math.min(1, homeAudioLevel||0));
+return Math.min(1.5, 1 + v*v*0.5 + v*0.28);
+}
+
 const HOME_WAVE_BINS=200;
 const lCh=$('lCh'),lvCh=$('lvCh'),cCh=$('cCh'),hCh=$('hCh'),hO=$('hO'),hCl=$('hCl'),hCb=$('hCb'),hCo=$('hCo');
 const tO=$('tO'),tS=$('tS'),tT=$('tT'),tB=$('tB'),tN=$('tN'),tSk=$('tSk'),tP=$('tP'),tNA=$('tNA');
@@ -956,36 +1013,59 @@ return Math.PI/2; // ball stays upright; glance is drawn into the face
 }
 // Draw stick-figure mouth visemes (used in home face dir===6)
 function drawHomeMouthViseme(ctx,s,mouthY,shape){
-const live = homeMouthTrackLive || homeMouthOpenN>0.01 || homeMouthSmile>0.03 || homeMouthFrown>0.03;
-const scale = s * 0.95; // overall mouth scale on face
-const L = homeLipL||{x:-0.28,y:0}, R = homeLipR||{x:0.28,y:0};
-const U = homeLipUp||{x:0,y:-0.04}, Lo = homeLipLo||{x:0,y:0.04};
-const mx = (homeMouthLipX||0) * s * 0.06;
+const live = homeMouthTrackLive || homeMouthOpenN>0.01;
+const scale = s * 1.08;
+// Clamp lip extents so mouth never balloons past a reasonable size
+function clampLip(p, def){
+p=p||def;
+return {
+x:Math.max(-0.48, Math.min(0.48, p.x)),
+y:Math.max(-0.28, Math.min(0.34, p.y))
+};
+}
+let L = clampLip(homeLipL,{x:-0.28,y:0});
+let R = clampLip(homeLipR,{x:0.28,y:0});
+let U = clampLip(homeLipUp,{x:0,y:-0.04});
+let Lo = clampLip(homeLipLo,{x:0,y:0.05});
+// Keep corners level so mouth tilts only via face roll, not skewed corners
+{
+const cy=(L.y+R.y)*0.5;
+L={x:L.x,y:cy}; R={x:R.x,y:cy};
+}
+// Cap vertical opening
+let openRaw = Math.max(0, Lo.y - U.y);
+const maxOpen = 0.38;
+if(openRaw > maxOpen){
+const mid = (U.y+Lo.y)*0.5;
+U={x:U.x, y:mid - maxOpen*0.5};
+Lo={x:Lo.x, y:mid + maxOpen*0.5};
+openRaw = maxOpen;
+}
+const mx = Math.max(-0.08, Math.min(0.08, (homeMouthLipX||0))) * s * 0.05;
 const baseY = mouthY + s*0.02;
 function px(p){return mx + p.x * scale;}
 function py(p){return baseY + p.y * scale;}
 ctx.save();
 ctx.lineCap='round';ctx.lineJoin='round';
 ctx.strokeStyle='#111';
-const openDist = Math.max(0, (Lo.y - U.y));
-const isOpen = openDist > 0.06 || (homeMouthOpenN||0) > 0.08;
+const openDist = openRaw;
+const isOpen = openDist > 0.07 || (homeMouthOpenN||0) > 0.12;
 if(!live){
-ctx.lineWidth=Math.max(2.0,s*0.07);
+ctx.lineWidth=Math.max(2.1,s*0.075);
 ctx.beginPath();
-ctx.moveTo(px({x:-0.22,y:0}), py({x:0,y:0}));
-ctx.lineTo(px({x:0.22,y:0}), py({x:0,y:0}));
+ctx.moveTo(px({x:-0.24,y:0}), py({x:0,y:0}));
+ctx.lineTo(px({x:0.24,y:0}), py({x:0,y:0}));
 ctx.stroke();
 ctx.restore();
 return;
 }
 if(!isOpen){
-// Closed / smile / frown path along upper+lower collapsed
-ctx.lineWidth=Math.max(2.1,s*0.075);
+// Closed / near-closed: single lip curve from tracked points only
+ctx.lineWidth=Math.max(2.2,s*0.08);
 ctx.beginPath();
 ctx.moveTo(px(L), py(L));
 ctx.quadraticCurveTo(px(U), py(U), px(R), py(R));
 ctx.stroke();
-// subtle lower lip line if slight open
 if(openDist > 0.02){
 ctx.lineWidth=Math.max(1.6,s*0.055);
 ctx.beginPath();
@@ -994,7 +1074,7 @@ ctx.quadraticCurveTo(px(Lo), py(Lo), px(R), py(R));
 ctx.stroke();
 }
 }else{
-// Open mouth: fill between upper and lower lip curves
+// Open mouth from tracked lip points
 ctx.beginPath();
 ctx.moveTo(px(L), py(L));
 ctx.quadraticCurveTo(px(U), py(U), px(R), py(R));
@@ -1002,15 +1082,25 @@ ctx.quadraticCurveTo(px(Lo), py(Lo), px(L), py(L));
 ctx.closePath();
 ctx.fillStyle='#1a0a0c';
 ctx.fill();
-// teeth if open enough
-if(openDist > 0.12 || (homeMouthOpenN||0) > 0.18){
-ctx.fillStyle='rgba(245,245,240,0.9)';
-const tx0=px({x:L.x*0.7,y:0}), tx1=px({x:R.x*0.7,y:0});
-const ty=py({x:0,y:U.y*0.5+0.01});
-const th=Math.max(s*0.025, openDist*scale*0.22);
-ctx.fillRect(tx0, ty, tx1-tx0, th);
+// Top teeth only — tucked under upper lip, tilted with mouth corners
+const Lx=px(L), Ly=py(L), Rx=px(R), Ry=py(R);
+const Uy=py(U), Loy=py(Lo);
+const openGap=Math.max(0, Loy-Uy);
+if(openGap > s*0.06 && (homeMouthOpenN||0) > 0.14){
+const mouthAng=Math.atan2(Ry-Ly, Rx-Lx);
+const mcx=(Lx+Rx)*0.5;
+// Top row: a bit lower under the upper lip so it reads more clearly
+const teethY=Uy + openGap*0.18;
+const teethW=Math.hypot(Rx-Lx, Ry-Ly)*0.68;
+const teethH=Math.max(s*0.02, Math.min(openGap*0.36, s*0.095));
+ctx.save();
+ctx.translate(mcx, teethY);
+ctx.rotate(mouthAng);
+ctx.fillStyle='rgba(245,245,240,0.95)';
+ctx.fillRect(-teethW*0.5, 0, teethW, teethH);
+ctx.restore();
 }
-ctx.lineWidth=Math.max(1.6,s*0.055);
+ctx.lineWidth=Math.max(1.7,s*0.055);
 ctx.beginPath();
 ctx.moveTo(px(L), py(L));
 ctx.quadraticCurveTo(px(U), py(U), px(R), py(R));
@@ -1070,13 +1160,93 @@ mouthCamStream=null;
 const cam=$('mouthCam');
 if(cam){try{cam.srcObject=null;}catch(e){}}
 }
+
+async function peaksFromAudioBuffer(decoded){
+const ch=decoded.getChannelData(0);
+const bins=HOME_WAVE_BINS;
+const peaks=new Float32Array(bins);
+const block=Math.max(1,Math.floor(ch.length/bins));
+for(let i=0;i<bins;i++){
+let peak=0;
+const s0=i*block, s1=Math.min(ch.length,s0+block);
+for(let j=s0;j<s1;j+=Math.max(1,Math.floor(block/200))){
+const v=Math.abs(ch[j]); if(v>peak)peak=v;
+}
+peaks[i]=peak;
+}
+return normalizePeaks(peaks);
+}
+/** Use a video/audio blob as the home waveform + playable audio (only if none uploaded yet). */
+async function adoptBlobAsHomeAudio(blob, label){
+if(homeAudio||!blob)return false;
+try{
+if(homeAudioUrl){try{URL.revokeObjectURL(homeAudioUrl);}catch(e){}}
+homeAudioUrl=URL.createObjectURL(blob);
+// Prefer hidden video/audio element so video containers work
+const fakeFile = (blob instanceof File) ? blob : new File([blob], (label||'media')+'.webm', {type:blob.type||'video/webm'});
+homeAudio=createHomeMediaElement(fakeFile, homeAudioUrl);
+homeAudio.addEventListener('timeupdate',()=>{
+if(!homeMouthRecording&&!homeArmed&&!homeWaveDragging){
+if(homeMouthTrack&&homeMouthTrack.length)updateMouthFromTrack();
+}
+});
+homeAudio.addEventListener('ended',()=>{
+if(homeMouthRecording){recordMouthSample();commitMouthRecording();}
+homeAudioPlaying=false;
+if(!homeArmed){homeMouthOpenN=0;homeMouthOpen=false;homeMouthTrackLive=false;}
+if(mouthVideo&&mouthVideoReady){try{mouthVideo.pause();}catch(e){}}
+if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
+drawHomeWave();
+});
+homeWaveLoading=true;
+homePeaks=null;
+homePeakFilled=null;
+if(waveBars)waveBars.innerHTML='';
+if(waveHint){waveHint.textContent='ANALYZING AUDIO…';waveHint.classList.remove('hide');}
+homeWaveProg=1;
+showWaveShell();
+try{
+const peaks=await analyzeAudioFile(fakeFile);
+finishWaveformPeaks(peaks);
+}catch(err){
+console.warn('analyze from video failed',err);
+// Still show a real-looking waveform shell so UI works
+try{
+const bins=HOME_WAVE_BINS;
+const peaks=new Float32Array(bins);
+// Try WebAudio decode once more
+try{
+const ab=await fakeFile.arrayBuffer();
+const actx=new (window.AudioContext||window.webkitAudioContext)();
+const decoded=await actx.decodeAudioData(ab.slice(0));
+const p=await peaksFromAudioBuffer(decoded);
+finishWaveformPeaks(p);
+try{actx.close();}catch(e){}
+}catch(e2){
+for(let i=0;i<bins;i++)peaks[i]=0.18+0.22*Math.abs(Math.sin(i*0.17))+0.1*Math.abs(Math.sin(i*0.41));
+finishWaveformPeaks(normalizePeaks(peaks));
+}
+}catch(e3){
+if(waveHint){waveHint.textContent='AUDIO READY';waveHint.classList.remove('hide');}
+}
+}
+if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
+if(homeWaveProg>0.5)layoutHomeWave();
+setTrackHint((label||'VIDEO')+' WAVEFORM READY · PRESS RED TO RECORD');
+return true;
+}catch(e){
+console.warn('adoptBlobAsHomeAudio',e);
+return false;
+}
+}
+
 async function loadMouthVideoFile(file){
 if(!file)return;
 clearMouthVideo();
 mouthVideoUrl=URL.createObjectURL(file);
 const v=$('mouthVid');
 mouthVideo=v;
-v.muted=true;v.playsInline=true;
+v.muted=true;v.playsInline=true; // visual only — audio comes from waveform player
 v.src=mouthVideoUrl;
 await new Promise((resolve,reject)=>{
 const ok=()=>{v.removeEventListener('loadeddata',ok);v.removeEventListener('error',bad);resolve();};
@@ -1089,10 +1259,17 @@ try{await v.play(); v.pause();}catch(e){}
 mouthVideoReady=true;
 mouthAnchors=[];
 mouthLivePreview=false;
-setTrackHint('VIDEO READY · FACE TRACKING AUTO · ARM TO RECORD');
 await ensureFaceLandmarker();
-// seed openness from first frame if possible
 await sampleMouthFromVideoFrame();
+// If no separate audio was uploaded yet, use this video's audio as the waveform
+if(!homeAudio){
+setTrackHint('EXTRACTING AUDIO FROM VIDEO…');
+const ok=await adoptBlobAsHomeAudio(file, 'VIDEO');
+if(!ok)setTrackHint('VIDEO READY (NO AUDIO TRACK) · UPLOAD AUDIO OR PRESS RED');
+else setTrackHint('VIDEO + WAVEFORM READY · PRESS RED AGAIN FOR COUNTDOWN');
+}else{
+setTrackHint('UPLOADED VIDEO READY · PRESS RED AGAIN FOR COUNTDOWN');
+}
 draw();
 }
 async function startMouthCameraRecord(){
@@ -1101,7 +1278,7 @@ stopMouthCam();
 try{
 mouthCamStream=await navigator.mediaDevices.getUserMedia({
 video:{facingMode:'user',width:{ideal:720},height:{ideal:1280}},
-audio:false
+audio:{echoCancellation:true,noiseSuppression:true}
 });
 }catch(err){
 setTrackHint('CAMERA BLOCKED — TRY UPLOAD');
@@ -1160,7 +1337,7 @@ delegate:'GPU'
 runningMode:'VIDEO',
 numFaces:1,
 outputFaceBlendshapes:true,
-outputFacialTransformationMatrixes:false
+outputFacialTransformationMatrixes:true
 });
 return faceLandmarker;
 }catch(err){
@@ -1187,6 +1364,16 @@ const le=lm[33], re=lm[263];
 const faceW=Math.max(0.05, Math.abs(re.x-le.x));
 const faceCx=(le.x+re.x)/2;
 const faceCy=(le.y+re.y)/2;
+// Head roll from inter-eye line (radians)
+const headTilt=Math.atan2(re.y-le.y, re.x-le.x);
+// Yaw / pitch from nose vs eye mid (sphere orientation)
+const nose=lm[1]||lm[4]||{x:faceCx,y:faceCy};
+const eyeMidX=(le.x+re.x)/2, eyeMidY=(le.y+re.y)/2;
+// Neutral face-forward should read ~0 yaw / ~0 pitch
+let headYaw=Math.max(-1,Math.min(1, (nose.x-eyeMidX)/(faceW*0.55)));
+const noseBelowEyes=(nose.y-eyeMidY)/Math.max(1e-6,faceW);
+// Typical forward pose nose-below-eyes ≈ 0.28–0.38 of faceW — subtract neutral
+let headPitch=Math.max(-1,Math.min(1, (noseBelowEyes - 0.32)/0.55));
 // Key lip landmarks (MediaPipe)
 const L=lm[61], R=lm[291];           // corners
 const Up=lm[13], Lo=lm[17];          // inner upper / lower mid
@@ -1197,12 +1384,25 @@ const nL=nrm(L), nR=nrm(R), nU=nrm(Up), nLo=nrm(Lo);
 // Mouth-local coords: subtract mouth center so drawing is stable
 const mcx=(nL.x+nR.x)/2, mcy=(nL.y+nR.y)/2;
 function loc(p){return {x:p.x-mcx, y:p.y-mcy};}
-const lipL=loc(nL), lipR=loc(nR), lipUp=loc(nU), lipLo=loc(nLo);
-// Scale lips down slightly so stick mouth isn't huge
-const s=0.55;
+let lipL=loc(nL), lipR=loc(nR), lipUp=loc(nU), lipLo=loc(nLo);
+// Remove head-roll from lip shape so corners don't shear; whole mouth rotates with face later
+{
+const ca=Math.cos(-headTilt), sa=Math.sin(-headTilt);
+function unrot(p){return {x:p.x*ca - p.y*sa, y:p.x*sa + p.y*ca};}
+lipL=unrot(lipL); lipR=unrot(lipR); lipUp=unrot(lipUp); lipLo=unrot(lipLo);
+}
+const s=0.78;
 lipL.x*=s; lipL.y*=s; lipR.x*=s; lipR.y*=s; lipUp.x*=s; lipUp.y*=s; lipLo.x*=s; lipLo.y*=s;
+// Damp independent corner lift; mouth tilts as a unit via face roll, not per-corner
+if(lipL.y<0) lipL.y*=0.3;
+if(lipR.y<0) lipR.y*=0.3;
+const midLipY=(lipUp.y+lipLo.y)*0.5;
+const cornerMid=(lipL.y+lipR.y)*0.5;
+// Force corners onto a shared horizontal relative to mouth (no independent tilt)
+lipL.y = midLipY + (cornerMid-midLipY)*0.5;
+lipR.y = lipL.y;
 const openRaw=Math.max(0, nLo.y-nU.y);
-const openN=Math.max(0,Math.min(1, Math.pow(Math.max(0,(openRaw-0.01)/0.22), 1.25)));
+const openN=Math.max(0,Math.min(1, Math.pow(Math.max(0,(openRaw-0.008)/0.18), 1.05)));
 const widthN=Math.max(0.08,Math.min(0.7, (Math.abs(nR.x-nL.x)-0.2)/0.45));
 const lipX=Math.max(-1,Math.min(1, mcx / 0.15));
 const cornerY=(nL.y+nR.y)/2;
@@ -1222,11 +1422,11 @@ const lEyeH=Math.max(0.005,Math.abs(lEyeBot.y-lEyeTop.y));
 const rEyeH=Math.max(0.005,Math.abs(rEyeBot.y-rEyeTop.y));
 const eyeX=Math.max(-1,Math.min(1,(((lIris.x-lEyeCx)/(lEyeW*0.45))+((rIris.x-rEyeCx)/(rEyeW*0.45)))/2));
 const eyeY=Math.max(-1,Math.min(1,(((lIris.y-lEyeCy)/(lEyeH*0.7+0.01))+((rIris.y-rEyeCy)/(rEyeH*0.7+0.01)))/2));
-const eyeOpen=Math.max(0.15,Math.min(1, (((lEyeH+rEyeH)/2)/faceW - 0.02)/0.08));
+let eyeOpen=Math.max(0.05,Math.min(1, (((lEyeH+rEyeH)/2)/faceW - 0.015)/0.09));
 const browLin=lm[55]||lm[107], browRin=lm[285]||lm[336];
 const browL=Math.max(-1,Math.min(1,(lEyeCy-faceW*0.32-browLin.y)/(faceW*0.12)));
 const browR=Math.max(-1,Math.min(1,(rEyeCy-faceW*0.32-browRin.y)/(faceW*0.12)));
-let smile=smileGeom, frown=frownGeom, jaw=0, pucker=0, eyeWideL=0, eyeWideR=0;
+let smile=smileGeom, frown=frownGeom, jaw=0, pucker=0, eyeWideL=0, eyeWideR=0, blinkL=0, blinkR=0;
 if(blendCats){
 let sL=0,sR=0,fL=0,fR=0;
 for(const c of blendCats){
@@ -1239,14 +1439,25 @@ else if(n==='jawOpen')jaw=sc;
 else if(n==='mouthPucker')pucker=sc;
 else if(n==='eyeWideLeft')eyeWideL=sc;
 else if(n==='eyeWideRight')eyeWideR=sc;
+else if(n==='eyeBlinkLeft')blinkL=sc;
+else if(n==='eyeBlinkRight')blinkR=sc;
 }
-smile=Math.max(smile, Math.min(1,(sL+sR)*0.7+Math.max(sL,sR)*0.4));
-frown=Math.max(frown, Math.min(1,(fL+fR)*0.7));
+// Only trust blendshapes when clearly stronger than neutral geometry
+if(sL+sR > 0.35) smile=Math.max(smile, Math.min(1,(sL+sR)*0.5));
+if(fL+fR > 0.35) frown=Math.max(frown, Math.min(1,(fL+fR)*0.5));
+const blink=Math.max(blinkL, blinkR);
+if(blink>0.05) eyeOpen=Math.min(eyeOpen, Math.max(0.02, 1-blink*1.05));
 }
+if(smile < 0.2) smile=0;
+if(frown < 0.2) frown=0;
 const openFinal=Math.max(openN, jaw?Math.min(1,Math.pow(jaw,1.15)*0.95):openN);
 return {
 openN:openFinal, widthN, lipX, eyeX, eyeY, eyeOpen:Math.max(eyeOpen,(eyeWideL+eyeWideR)*0.5),
-browL, browR, smile, frown, pucker,
+browL, browR, smile, frown, pucker, headTilt:(headTilt||0)*0.55,
+headYaw:headYaw||0,
+headPitch:headPitch||0,
+headBobX: Math.max(-1,Math.min(1, ((faceCx-0.5)*1.4) )),
+headBobY: Math.max(-1,Math.min(1, ((faceCy-0.45)*1.6) )),
 lipL, lipR, lipUp, lipLo
 };
 }
@@ -1287,7 +1498,44 @@ homeLipL=lerpP(homeLipL, lipL);
 homeLipR=lerpP(homeLipR, lipR);
 homeLipUp=lerpP(homeLipUp, lipUp);
 homeLipLo=lerpP(homeLipLo, lipLo);
-homeMouthOpen=homeMouthOpenN>0.06||homeMouthSmile>0.1;
+const tilt = mirror ? -(m.headTilt||0) : (m.headTilt||0);
+homeHeadTilt=lerp(homeHeadTilt||0, tilt);
+const yaw = (mirror ? -(m.headYaw||0) : (m.headYaw||0)) * 0.35;
+const pitch = (m.headPitch||0) * 0.3;
+homeHeadYaw=lerp(homeHeadYaw||0, yaw);
+homeHeadPitch=lerp(homeHeadPitch||0, pitch); // already scaled in metrics
+// Head bob (small, eases toward target each frame)
+let bobX = m.headBobX||0, bobY = m.headBobY||0;
+if(mirror) bobX = -bobX;
+const bobA = smooth?0.2:1;
+homeHeadBobX = (homeHeadBobX||0)*(1-bobA) + bobX*0.14*bobA;
+homeHeadBobY = (homeHeadBobY||0)*(1-bobA) + bobY*0.12*bobA;
+homeHeadBobX = Math.max(-0.08, Math.min(0.08, homeHeadBobX));
+homeHeadBobY = Math.max(-0.07, Math.min(0.07, homeHeadBobY));
+// Audio loudness intensifies mouth (shape still from tracking)
+const drama=mouthDramaFromAudio();
+if(drama>1.02){
+homeMouthOpenN=Math.min(1, homeMouthOpenN*drama);
+if(homeLipUp&&homeLipLo){
+const mid=(homeLipUp.y+homeLipLo.y)*0.5;
+homeLipUp={x:homeLipUp.x, y:mid+(homeLipUp.y-mid)*drama};
+homeLipLo={x:homeLipLo.x, y:mid+(homeLipLo.y-mid)*drama};
+}
+if(homeLipL) homeLipL={x:homeLipL.x, y:homeLipL.y*(0.85+0.15*drama)};
+if(homeLipR) homeLipR={x:homeLipR.x, y:homeLipR.y*(0.85+0.15*drama)};
+homeMouthWidthN=Math.min(0.7, homeMouthWidthN*(1+(drama-1)*0.2));
+}
+// Hard caps after drama
+homeMouthOpenN=Math.min(1, homeMouthOpenN);
+if(homeLipUp&&homeLipLo){
+const gap=homeLipLo.y-homeLipUp.y;
+if(gap>0.38){
+const mid=(homeLipUp.y+homeLipLo.y)*0.5;
+homeLipUp={x:homeLipUp.x,y:mid-0.19};
+homeLipLo={x:homeLipLo.x,y:mid+0.19};
+}
+}
+homeMouthOpen=homeMouthOpenN>0.06;
 homeMouthTrackLive=true;
 }
 async function sampleMouthFromVideoFrame(){
@@ -1416,6 +1664,7 @@ t:t,
 openN:homeMouthOpenN, widthN:homeMouthWidthN,
 smile:homeMouthSmile, frown:homeMouthFrown, lipX:homeMouthLipX,
 eyeX:homeEyeX, eyeY:homeEyeY, eyeOpen:homeEyeOpen, browL:homeBrowL, browR:homeBrowR,
+headTilt:homeHeadTilt||0, headBobX:homeHeadBobX||0, headBobY:homeHeadBobY||0,
 lipL:homeLipL?{x:homeLipL.x,y:homeLipL.y}:null,
 lipR:homeLipR?{x:homeLipR.x,y:homeLipR.y}:null,
 lipUp:homeLipUp?{x:homeLipUp.x,y:homeLipUp.y}:null,
@@ -1566,35 +1815,93 @@ ctx.beginPath();
 ctx.ellipse(0,mouthY+s*0.04,s*0.16,s*0.2,0,0,Math.PI*2);
 ctx.stroke();
 }else if(dir===6){
-// Home face — MediaPipe driven eyes, brows, mouth
-ctx.lineWidth=Math.max(2.2,s*0.075);
+// Full-size face (same as before) + mild spherical shift from head pose
+const yaw=Math.max(-0.4,Math.min(0.4, homeHeadYaw||0));
+const pitch=Math.max(-0.3,Math.min(0.3, homeHeadPitch||0));
+const roll=Math.max(-0.18,Math.min(0.18, homeHeadTilt||0));
+const bobX=(homeHeadBobX||0)*s*0.2;
+const bobY=(homeHeadBobY||0)*s*0.2;
+// Sphere-style offsets: shift features as if on a ball (does not shrink size)
+const ox=yaw*s*0.22 + bobX;
+const oy=pitch*s*0.18 + bobY;
+const turnAmt=Math.abs(yaw)*1.2+Math.abs(pitch)*0.7;
+const faceVis=Math.max(0, Math.min(1, 1.25-turnAmt));
+if(faceVis >= 0.04){
+ctx.save();
+ctx.translate(ox, oy);
+ctx.rotate(roll);
+ctx.globalAlpha=faceVis;
+// Near-side slightly larger, far-side slightly smaller (subtle, not overall shrink)
+const leftSc=1+yaw*0.08;
+const rightSc=1-yaw*0.08;
+const bL=homeBrowL||0, bR=homeBrowR||0;
+const browRaise=((bL+bR)*0.5)*s*0.1;
+const by=browY - browRaise;
+ctx.lineWidth=Math.max(2.3,s*0.085);
+ctx.strokeStyle='#111';
+ctx.beginPath();
+ctx.moveTo(-s*0.5*leftSc, by);
+ctx.lineTo(-s*0.16*leftSc, by);
+ctx.moveTo(s*0.16*rightSc, by);
+ctx.lineTo(s*0.5*rightSc, by);
+ctx.stroke();
 const ex=homeEyeX||0, ey=homeEyeY||0;
 const eo=Math.max(0.2, Math.min(1.35, homeEyeOpen!=null?homeEyeOpen:0.55));
-// Eye size scales with openness (wider when eyes open wide)
 const erx=eyeRx*(0.85+eo*0.45);
 const ery=eyeRy*(0.55+eo*0.9);
-const lx=-s*0.36, rx=s*0.36;
+const lx=-s*0.36*leftSc, rx=s*0.36*rightSc;
 const eyeYY=eyeY;
-ctx.beginPath();
-ctx.ellipse(lx,eyeYY,erx,ery,0.08,0,Math.PI*2);ctx.fill();
-ctx.beginPath();
-ctx.ellipse(rx,eyeYY,erx,ery,-0.08,0,Math.PI*2);ctx.fill();
-// Pupils track gaze inside the eye
-ctx.fillStyle='#eee';
-const pr=Math.max(s*0.035, ery*0.45);
-const maxOffX=erx*0.45, maxOffY=ery*0.4;
-ctx.beginPath();ctx.arc(lx+ex*maxOffX, eyeYY+ey*maxOffY, pr, 0, Math.PI*2);ctx.fill();
-ctx.beginPath();ctx.arc(rx+ex*maxOffX, eyeYY+ey*maxOffY, pr, 0, Math.PI*2);ctx.fill();
+// Lid amount: 0 = wide open, 1 = fully closed
+const lidAmt=Math.max(0, Math.min(1, 1.05 - eo));
+function drawEyeWithLid(cx, cy, rxE, ryE, ang){
 ctx.fillStyle='#111';
-const bL=homeBrowL||0, bR=homeBrowR||0;
-ctx.lineWidth=Math.max(2.3,s*0.085);
 ctx.beginPath();
-ctx.moveTo(-s*0.52, browY - bL*s*0.02);
-ctx.lineTo(-s*0.14, browY - bL*s*0.14);
-ctx.moveTo(s*0.52, browY - bR*s*0.02);
-ctx.lineTo(s*0.14, browY - bR*s*0.14);
+ctx.ellipse(cx, cy, rxE, ryE, ang, 0, Math.PI*2);
+ctx.fill();
+if(lidAmt < 0.92){
+// Visible eye opening (sclera + pupil) below upper lid
+ctx.save();
+ctx.beginPath();
+ctx.ellipse(cx, cy, rxE, ryE, ang, 0, Math.PI*2);
+ctx.clip();
+const openH=ryE*2*(1-lidAmt);
+const top=cy - ryE + ryE*2*lidAmt;
+ctx.fillStyle='#eee';
+ctx.fillRect(cx-rxE, top, rxE*2, openH);
+// pupil only if reasonably open
+if(lidAmt < 0.7){
+ctx.fillStyle='#111';
+const pr=Math.max(s*0.03, ryE*0.42*(1-lidAmt*0.5));
+ctx.beginPath();
+ctx.arc(cx+ex*rxE*0.45, cy+ey*ryE*0.35 + lidAmt*ryE*0.3, pr, 0, Math.PI*2);
+ctx.fill();
+}
+ctx.restore();
+}
+// Upper eyelid crease
+ctx.strokeStyle='#111';
+ctx.lineWidth=Math.max(1.8, s*0.06);
+ctx.beginPath();
+const lidY=cy - ryE + lidAmt*ryE*1.85;
+ctx.moveTo(cx-rxE*0.95, lidY);
+ctx.quadraticCurveTo(cx, lidY - ryE*0.12*(1-lidAmt*0.5), cx+rxE*0.95, lidY);
 ctx.stroke();
-drawHomeMouthViseme(ctx,s,mouthY,homeMouthShape||'rest');
+// Lower lid hint
+ctx.lineWidth=Math.max(1.2, s*0.04);
+ctx.beginPath();
+ctx.moveTo(cx-rxE*0.85, cy+ryE*0.75);
+ctx.quadraticCurveTo(cx, cy+ryE*0.95, cx+rxE*0.85, cy+ryE*0.75);
+ctx.stroke();
+}
+drawEyeWithLid(lx, eyeYY, erx*leftSc, ery, 0.06);
+drawEyeWithLid(rx, eyeYY, erx*rightSc, ery, -0.06);
+ctx.fillStyle='#111';
+ctx.strokeStyle='#111';
+// Mouth upright in face space; whole face rotate(roll) tilts it with eyes/brows
+drawHomeMouthViseme(ctx, s, mouthY, homeMouthShape||'rest');
+ctx.globalAlpha=1;
+ctx.restore();
+}
 }else if(dir===0||dir===2||dir===4){
 // Forward face; dir 2 = eyes up; dir 4 = angrier brows (brief side-hit flash)
 ctx.lineWidth=Math.max(2.2,s*0.075);
@@ -2132,6 +2439,9 @@ recordMouthSample();
 commitMouthRecording();
 if(homeAudioPlaying)stopHomeAudio(false);
 }
+if(mouthVideo&&mouthVideoReady&&!mouthLivePreview){
+try{mouthVideo.pause();}catch(e){}
+}
 homeArmed=false;
 homeMouthTrackLive=!!(homeMouthTrack&&homeMouthTrack.length);
 if(armB)armB.classList.remove('armed');
@@ -2178,7 +2488,7 @@ homeMouthRecordBuffer=null;
 homeMouthRecording=false;
 }
 function packSample(e){
-const def={openN:0,widthN:0.28,smile:0,frown:0,lipX:0,eyeX:0,eyeY:0,eyeOpen:0.55,browL:0,browR:0,
+const def={openN:0,widthN:0.28,smile:0,frown:0,lipX:0,eyeX:0,eyeY:0,eyeOpen:0.55,browL:0,browR:0,headTilt:0,headBobX:0,headBobY:0,
 lipL:{x:-0.22,y:0},lipR:{x:0.22,y:0},lipUp:{x:0,y:-0.03},lipLo:{x:0,y:0.03}};
 if(!e)return def;
 if(e.openN==null&&e.shape)return Object.assign({},def,{openN:e.shape==='rest'?0:0.4});
@@ -2186,7 +2496,7 @@ return {
 openN:e.openN||0, widthN:e.widthN!=null?e.widthN:0.28,
 smile:e.smile||0, frown:e.frown||0, lipX:e.lipX||0,
 eyeX:e.eyeX||0, eyeY:e.eyeY||0, eyeOpen:e.eyeOpen!=null?e.eyeOpen:0.55,
-browL:e.browL||0, browR:e.browR||0,
+browL:e.browL||0, browR:e.browR||0, headTilt:e.headTilt||0, headBobX:e.headBobX||0, headBobY:e.headBobY||0,
 lipL:e.lipL||def.lipL, lipR:e.lipR||def.lipR, lipUp:e.lipUp||def.lipUp, lipLo:e.lipLo||def.lipLo
 };
 }
@@ -2198,7 +2508,7 @@ return {
 openN:n(A.openN,B.openN), widthN:n(A.widthN,B.widthN),
 smile:n(A.smile,B.smile), frown:n(A.frown,B.frown), lipX:n(A.lipX,B.lipX),
 eyeX:n(A.eyeX,B.eyeX), eyeY:n(A.eyeY,B.eyeY), eyeOpen:n(A.eyeOpen,B.eyeOpen),
-browL:n(A.browL,B.browL), browR:n(A.browR,B.browR),
+browL:n(A.browL,B.browL), browR:n(A.browR,B.browR), headTilt:n(A.headTilt,B.headTilt), headBobX:n(A.headBobX,B.headBobX), headBobY:n(A.headBobY,B.headBobY),
 lipL:p(A.lipL,B.lipL), lipR:p(A.lipR,B.lipR), lipUp:p(A.lipUp,B.lipUp), lipLo:p(A.lipLo,B.lipLo)
 };
 }
@@ -2222,38 +2532,60 @@ function applySampleToFace(s){
 homeMouthOpenN=s.openN; homeMouthWidthN=s.widthN;
 homeMouthSmile=s.smile||0; homeMouthFrown=s.frown||0; homeMouthLipX=s.lipX||0;
 homeEyeX=s.eyeX||0; homeEyeY=s.eyeY||0; homeEyeOpen=s.eyeOpen!=null?s.eyeOpen:0.55;
-homeBrowL=s.browL||0; homeBrowR=s.browR||0;
+homeBrowL=s.browL||0; homeBrowR=s.browR||0; homeHeadTilt=s.headTilt||0;
+homeHeadBobX=s.headBobX!=null?s.headBobX:0; homeHeadBobY=s.headBobY!=null?s.headBobY:0;
 if(s.lipL)homeLipL=s.lipL; if(s.lipR)homeLipR=s.lipR;
 if(s.lipUp)homeLipUp=s.lipUp; if(s.lipLo)homeLipLo=s.lipLo;
 homeMouthOpen=homeMouthOpenN>0.06||homeMouthSmile>0.1;
 homeMouthTrackLive=true;
 }
+function syncFaceVideoToAudio(){
+if(!mouthVideo||!mouthVideoReady||mouthLivePreview)return;
+if(!homeAudio||!homeAudio.duration||!mouthVideo.duration)return;
+try{
+const ratio=(homeAudio.currentTime||0)/Math.max(0.001,homeAudio.duration);
+const want=Math.max(0,Math.min(mouthVideo.duration-0.04, ratio*mouthVideo.duration));
+if(Math.abs((mouthVideo.currentTime||0)-want)>0.1)mouthVideo.currentTime=want;
+}catch(e){}
+}
 function updateMouthFromTrack(){
-// Live capture owns the face while recording or armed countdown
-if(homeMouthRecording||(homeArmed&&homeArmCD)){
-return;
-}
-if(homeArmed&&mouthVideoReady&&!homeMouthRecording){
-// Armed idle: still show live face tracking preview
-return;
-}
-if(!homeMouthTrack||!homeMouthTrack.length){
-if(!homeArmed)homeMouthTrackLive=false;
-return;
-}
+// Armed / active record session owns sampling in animate()
+if(homeArmed||homeMouthRecording)return;
 if(!homeAudio){
 homeMouthTrackLive=false;
 return;
 }
-// Follow audio playhead whenever audio is playing OR user is scrubbing (not paused at start with no track need)
-const playing=homeExporting||(homeAudioPlaying&&!homeAudio.paused);
-const t=(homeAudio.currentTime||0)+(homeExporting?0.06:0);
-if(playing || (homeAudio.currentTime>0.02)){
-applySampleToFace(mouthSampleAtAudioTime(t));
-}else if(!homeArmed){
-// At rest start
-homeMouthTrackLive=false;
+const playing=!!(homeExporting||(homeAudioPlaying&&homeAudio&&!homeAudio.paused));
+const t=Math.max(0,(homeAudio.currentTime||0)+(homeExporting?0.05:0));
+
+// Uploaded face video: always drive face live from the video frame at the playhead.
+// No recording required — sample whatever frame the video is on.
+if(mouthVideoReady&&!mouthLivePreview){
+syncFaceVideoToAudio();
+if(playing){
+if(mouthVideo.paused){
+const p=mouthVideo.play();
+if(p&&p.then)p.catch(()=>{});
 }
+// Live landmark sample from the current video frame
+sampleMouthFromVideoFrame();
+return;
+}
+// Paused / scrubbing: seek video then sample that still frame
+if(homeWaveDragging||t>0.01){
+sampleMouthFromVideoFrame();
+return;
+}
+homeMouthTrackLive=false;
+return;
+}
+
+// Fallback: recorded track only (e.g. live-cam takes after mic audio saved)
+if(homeMouthTrack&&homeMouthTrack.length){
+applySampleToFace(mouthSampleAtAudioTime(t));
+return;
+}
+homeMouthTrackLive=false;
 }
 function beginMouthRecordingSession(){
 homeMouthRecordMode = homeAudio ? 'audio' : 'clock';
@@ -2267,6 +2599,7 @@ homeMouthRecordBuffer=[{
 t:homeMouthRecordStart, openN:homeMouthOpenN, widthN:homeMouthWidthN,
 smile:homeMouthSmile, frown:homeMouthFrown, lipX:homeMouthLipX,
 eyeX:homeEyeX, eyeY:homeEyeY, eyeOpen:homeEyeOpen, browL:homeBrowL, browR:homeBrowR,
+headTilt:homeHeadTilt||0, headBobX:homeHeadBobX||0, headBobY:homeHeadBobY||0,
 lipL:homeLipL?{x:homeLipL.x,y:homeLipL.y}:null,
 lipR:homeLipR?{x:homeLipR.x,y:homeLipR.y}:null,
 lipUp:homeLipUp?{x:homeLipUp.x,y:homeLipUp.y}:null,
@@ -2274,12 +2607,10 @@ lipLo:homeLipLo?{x:homeLipLo.x,y:homeLipLo.y}:null
 }];
 homeMouthRecording=true;
 setTrackHint(homeAudio?'TRACKING + AUDIO…':'TRACKING + MIC…');
-// Ensure MediaRecorder is capturing this take (for mic audio when no upload)
+// Live cam: ensure MediaRecorder for optional mic audio capture
 if(mouthCamStream && mouthLivePreview){
 try{
-if(mouthMediaRecorder && mouthMediaRecorder.state==='recording'){
-/* already recording */
-}else if(mouthCamStream){
+if(!(mouthMediaRecorder && mouthMediaRecorder.state==='recording')){
 mouthRecordChunks=[];
 const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':
 (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')?'video/webm;codecs=vp8,opus':
@@ -2290,6 +2621,21 @@ mouthMediaRecorder.start(100);
 mouthRecordingCam=true;
 }
 }catch(e){console.warn(e);}
+}
+// Uploaded face video: play in lockstep with audio (or from 0)
+if(mouthVideo&&mouthVideoReady&&!mouthLivePreview){
+try{
+const d=mouthVideo.duration;
+if(d&&isFinite(d)&&homeAudio&&homeAudio.duration){
+const ratio=(homeAudio.currentTime||0)/Math.max(0.001,homeAudio.duration);
+mouthVideo.currentTime=Math.max(0,Math.min(d-0.04, ratio*d));
+}else{
+mouthVideo.currentTime=0;
+}
+mouthVideo.muted=true;
+const vp=mouthVideo.play();
+if(vp&&vp.then)vp.catch(()=>{});
+}catch(e){}
 }
 // Auto-start uploaded audio for the take
 if(homeAudio){
@@ -2314,55 +2660,9 @@ mouthRecordingCam=false;
 if(!mouthRecordChunks.length)return false;
 const blob=new Blob(mouthRecordChunks,{type:mouthRecordChunks[0].type||'video/webm'});
 mouthRecordChunks=[];
-try{
-// Use the recorded blob as audio source (browsers decode audio track from webm)
-if(homeAudioUrl){try{URL.revokeObjectURL(homeAudioUrl);}catch(e){}}
-homeAudioUrl=URL.createObjectURL(blob);
-const a=new Audio();
-a.preload='auto';
-a.src=homeAudioUrl;
-a.crossOrigin='anonymous';
-homeAudio=a;
-await new Promise((resolve,reject)=>{
-const ok=()=>{a.removeEventListener('loadedmetadata',ok);resolve();};
-const bad=()=>{a.removeEventListener('error',bad);resolve();};
-a.addEventListener('loadedmetadata',ok);
-a.addEventListener('error',bad);
-setTimeout(resolve,2000);
-});
-// Build waveform peaks from decoded audio if possible
-try{
-const ab=await (await fetch(homeAudioUrl)).arrayBuffer();
-const actx=new (window.AudioContext||window.webkitAudioContext)();
-const decoded=await actx.decodeAudioData(ab.slice(0));
-const ch=decoded.getChannelData(0);
-const bins=HOME_WAVE_BINS;
-const peaks=new Float32Array(bins);
-const block=Math.max(1,Math.floor(ch.length/bins));
-for(let i=0;i<bins;i++){
-let peak=0;
-const s0=i*block, s1=Math.min(ch.length,s0+block);
-for(let j=s0;j<s1;j+=Math.max(1,Math.floor(block/200))){
-const v=Math.abs(ch[j]); if(v>peak)peak=v;
-}
-peaks[i]=peak;
-}
-finishWaveformPeaks(normalizePeaks(peaks));
-try{actx.close();}catch(e){}
-}catch(e){
-console.warn('waveform from mic take failed',e);
-showWaveShell();
-if(waveHint){waveHint.textContent='MIC TAKE READY';waveHint.classList.remove('hide');}
-}
-homeWaveProg=1;
-showWaveShell();
-if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
-setTrackHint('MIC AUDIO CAPTURED · PLAY TO PREVIEW FACE');
-return true;
-}catch(e){
-console.warn(e);
-return false;
-}
+const ok=await adoptBlobAsHomeAudio(blob, 'MIC');
+if(ok)setTrackHint('MIC AUDIO → WAVEFORM · PLAY TO PREVIEW FACE');
+return ok;
 }
 function stopHomeAudio(resetTime){
 
@@ -2371,7 +2671,13 @@ try{homeAudio.pause();}catch(e){}
 if(resetTime){try{homeAudio.currentTime=0;}catch(e){}}
 }
 homeAudioPlaying=false;
-if(!homeMouthRecording&&!homeArmed){homeMouthOpenN=0;homeMouthOpen=false;homeMouthTrackLive=false;}
+if(!homeMouthRecording&&!homeArmed){
+if(homeMouthTrack&&homeMouthTrack.length&&homeAudio){
+updateMouthFromTrack(); // keep face at paused playhead
+}else{
+homeMouthOpenN=0;homeMouthOpen=false;homeMouthTrackLive=false;
+}
+}
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
 }
 function teardownHomeGraph(){
@@ -2621,6 +2927,11 @@ return;
 clearHomeAudio();
 homeAudioUrl=URL.createObjectURL(file);
 homeAudio=createHomeMediaElement(file,homeAudioUrl);
+homeAudio.addEventListener('timeupdate',()=>{
+if(!homeMouthRecording&&!homeArmed&&homeMouthTrack&&homeMouthTrack.length){
+updateMouthFromTrack();
+}
+});
 homeAudio.addEventListener('ended',()=>{
 if(homeMouthRecording){
 recordMouthSample();
@@ -2758,13 +3069,23 @@ if(homeAudioPlaying){
 try{homeAudio.pause();}catch(e){}
 homeAudioPlaying=false;
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
-// Pausing while circle is red → turn it gray (end record/arm)
+if(mouthVideo&&mouthVideoReady&&!mouthLivePreview){
+try{mouthVideo.pause();}catch(e){}
+}
 if(homeArmed||homeArmCD)cancelHomeArmCD();
 }else{
+ensureHomeAnalyser();
 const p=homeAudio.play();
 if(p&&p.then)p.catch(err=>console.warn('play failed',err));
 homeAudioPlaying=true;
 if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
+if(mouthVideo&&mouthVideoReady&&!mouthLivePreview){
+syncFaceVideoToAudio();
+const vp=mouthVideo.play();
+if(vp&&vp.then)vp.catch(()=>{});
+}
+sampleHomeAudioLevel();
+updateMouthFromTrack();
 }
 drawHomeWave();
 }
@@ -3028,25 +3349,51 @@ const rect=waveHit.getBoundingClientRect();
 const clientX=(e.touches&&e.touches[0]?e.touches[0].clientX:(e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientX:e.clientX));
 return Math.max(0,Math.min(1,(clientX-rect.left)/Math.max(1,rect.width)));
 };
+const scrubToRatio=(r)=>{
+if(!homeAudio||!homeAudio.duration)return;
+const t=Math.max(0,Math.min(1,r))*homeAudio.duration;
+try{homeAudio.currentTime=t;}catch(err){}
+// Scrub face video with the same ratio
+if(mouthVideo&&mouthVideoReady&&mouthVideo.duration&&isFinite(mouthVideo.duration)){
+try{
+const vt=Math.max(0,Math.min(mouthVideo.duration-0.04, r*mouthVideo.duration));
+mouthVideo.currentTime=vt;
+}catch(err){}
+}
+if(mouthVideoReady&&!mouthLivePreview){
+sampleMouthFromVideoFrame();
+}else if(homeMouthTrack&&homeMouthTrack.length){
+applySampleToFace(mouthSampleAtAudioTime(t));
+}
+drawHomeWave();
+};
 const onDown=(e)=>{
 if(homeExporting||homeArmed||!homeAudio||!homeAudio.duration)return;
 e.preventDefault();
 homeWaveDragging=true;
+// Mute/pause audio while dragging — visual scrub only
+try{homeAudio.pause();}catch(err){}
 homeWaveDragRatio=ratioFromEvent(e);
-drawHomeWave();
+scrubToRatio(homeWaveDragRatio);
 };
 const onMove=(e)=>{
 if(!homeWaveDragging)return;
 e.preventDefault();
 homeWaveDragRatio=ratioFromEvent(e);
-drawHomeWave();
+scrubToRatio(homeWaveDragRatio);
 };
 const onUp=(e)=>{
 if(!homeWaveDragging)return;
 homeWaveDragging=false;
 if(homeArmed||!homeAudio||!homeAudio.duration)return;
 const r=ratioFromEvent(e);
+homeWaveDragRatio=r;
 try{homeAudio.currentTime=r*homeAudio.duration;}catch(err){}
+if(mouthVideo&&mouthVideoReady&&mouthVideo.duration){
+try{mouthVideo.currentTime=Math.max(0,Math.min(mouthVideo.duration-0.04,r*mouthVideo.duration));}catch(err){}
+}
+if(mouthVideoReady&&!mouthLivePreview)sampleMouthFromVideoFrame();
+else if(homeMouthTrack&&homeMouthTrack.length)applySampleToFace(mouthSampleAtAudioTime(r*homeAudio.duration));
 drawHomeWave();
 };
 waveHit.addEventListener('mousedown',onDown);
@@ -3057,26 +3404,43 @@ window.addEventListener('touchmove',onMove,{passive:false});
 window.addEventListener('touchend',onUp);
 }
 function armHomeTracker(){
-// Gray → red: live camera only (no upload picker)
+// Gray → red: arm only; choose live or upload if needed
 homeArmed=true;
 homeWaveDragging=false;
 if(armB)armB.classList.add('armed');
 homeArmCD=false;
 homeMouthOpenN=0;homeMouthOpen=false;homeMouthSmile=0;homeMouthFrown=0;
-closeTrackPicker();
 if(!mouthVideoReady){
-startMouthCameraRecord();
+openTrackPicker();
+setTrackHint('LIVE CAMERA OR UPLOAD VIDEO');
 }else{
-setTrackHint('LIVE TRACKING · PRESS RED AGAIN FOR COUNTDOWN');
+closeTrackPicker();
+setTrackHint(mouthLivePreview?'LIVE READY · PRESS RED FOR COUNTDOWN':'VIDEO READY · PRESS RED TO RECORD');
 ensureFaceLandmarker();
 }
 if(homeWaveProg>0.5)layoutHomeWave();
 }
 function startHomeArmCD(){
-// Red press → countdown, then record. Audio starts only after countdown.
+// Red press → record. Countdown only for LIVE camera; uploaded video starts immediately.
 if(!homeArmed)armHomeTracker();
 if(homeArmCD||homeMouthRecording)return;
+if(!mouthVideoReady){
+openTrackPicker();
+setTrackHint('CHOOSE LIVE OR UPLOAD FIRST');
+return;
+}
 homeWaveDragging=false;
+ensureFaceLandmarker();
+// Uploaded video: skip countdown
+if(!mouthLivePreview){
+homeArmCD=false;
+if(homeCd){homeCd.style.opacity='0';homeCd.textContent='';}
+setTrackHint('RECORDING…');
+beginMouthRecordingSession();
+if(homeWaveProg>0.5)layoutHomeWave();
+return;
+}
+// Live camera: 3-2-1 countdown
 homeArmCD=true;homeArmCdVal=3;homeArmCdRemain=1000;homeArmCdOp=1;
 if(homeCd){
 homeCd.textContent='3';
@@ -3084,7 +3448,6 @@ homeCd.style.opacity='1';
 }
 layoutHomeCd();
 setTrackHint('COUNTDOWN…');
-ensureFaceLandmarker();
 if(homeWaveProg>0.5)layoutHomeWave();
 }
 function layoutHomeCd(){
@@ -4973,11 +5336,24 @@ const nowA=Date.now();
 const dtArm=Math.min(100,nowA-_homeArmLast);_homeArmLast=nowA;
 tickHomeArmCD(dtArm);
 updateHomeWaveAnim();
-updateMouthFromTrack();
-// live mouth track while armed / recording
-if(homeArmed&&mouthVideoReady){
+// Face: live capture while armed/recording; otherwise playback from track vs audio time
+if(homeMouthRecording||homeArmed){
+if(homeAudioPlaying||homeMouthRecording)sampleHomeAudioLevel();
+if(mouthVideoReady){
 sampleMouthFromVideoFrame();
+// Keep uploaded face-video locked to audio while recording
+if(homeMouthRecording&&mouthVideo&&!mouthLivePreview&&homeAudio&&homeAudio.duration&&mouthVideo.duration){
+try{
+const ratio=(homeAudio.currentTime||0)/Math.max(0.001,homeAudio.duration);
+const want=Math.max(0,Math.min(mouthVideo.duration-0.04, ratio*mouthVideo.duration));
+if(Math.abs((mouthVideo.currentTime||0)-want)>0.2)mouthVideo.currentTime=want;
+}catch(e){}
+}
+}
 if(homeMouthRecording)recordMouthSample();
+}else{
+if(homeAudioPlaying||homeWaveDragging)sampleHomeAudioLevel();
+updateMouthFromTrack();
 }
 phys();draw();
 }catch(err){console.error(err)}requestAnimationFrame(animate)}
