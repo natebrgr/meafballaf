@@ -441,7 +441,7 @@ body.home-exporting #trackPick{pointer-events:none!important;}
 <div class="tp-box" style="position:relative">
 <button type="button" class="tp-x" id="tpX" title="Close">X</button>
 <div class="tp-title">MOUTH TRACKER</div>
-<div class="tp-msg">Upload or record a face video. It appears behind the stick figure (paused). Tap the lips to place tracking anchors, then arm + countdown to track.</div>
+<div class="tp-msg">Upload or take a face video (shows in the 9:16 frame). Place up to 8 trackers: 1–4 mouth, 5–6 eyes, 7–8 brows. Drag to adjust. Arm (red), place trackers, press red again for countdown — then tracking records with your audio.</div>
 <div class="tp-row">
 <button type="button" class="primary" id="tpUpload">UPLOAD VIDEO</button>
 <button type="button" class="primary" id="tpRecord">TAKE VIDEO</button>
@@ -500,23 +500,33 @@ const waveBars=$('waveBars'),waveHead=$('waveHead'),waveHint=$('waveHint'),waveH
 let homeDockProg=0; // 0=hidden below, 1=docked on screen
 let homeArmed=false;
 let homeArmCD=false,homeArmCdVal=3,homeArmCdRemain=1000,homeArmCdOp=0;
-// --- Mouth tracker (video + MediaPipe lip landmarks) ---
+// --- Face tracker (video + MediaPipe landmarks) ---
 let homeMouthOpen=false;
-let homeMouthShape='rest'; // fallback discrete when no live track
-let homeMouthTrack=null; // [{t, openN, widthN}, ...] continuous track
+let homeMouthShape='rest';
+let homeMouthTrack=null; // [{t, openN, widthN, smile, frown, lipX, eyeX, eyeY, browL, browR}, ...]
 let homeMouthRecording=false;
 let homeMouthRecordBuffer=null;
 let homeMouthRecordStart=0;
-// Live continuous mouth params (0..1)
-let homeMouthOpenN=0;   // vertical openness
-let homeMouthWidthN=0.45; // horizontal stretch
+// Live continuous face params
+let homeMouthOpenN=0;
+let homeMouthWidthN=0.45;
+let homeMouthSmile=0;    // 0..1 smile amount
+let homeMouthFrown=0;    // 0..1 frown amount
+let homeMouthLipX=0;     // -1..1 lower lip side shift
+let homeEyeX=0;          // -1..1 gaze horizontal
+let homeEyeY=0;          // -1..1 gaze vertical
+let homeBrowL=0;         // -1..1 left brow (up positive)
+let homeBrowR=0;         // -1..1 right brow
 let homeMouthTrackLive=false;
 // Source video
-let mouthVideo=null; // active HTMLVideoElement (file or recorded)
+let mouthVideo=null;
 let mouthVideoUrl=null;
 let mouthVideoReady=false;
-let mouthAnchors=[]; // [{nx,ny}] normalized 0-1 in video frame (user taps)
-const MOUTH_ANCHOR_MAX=4;
+// Anchors: order 0-3 mouth, 4-5 eyes, 6-7 brows. Max 8. [{nx,ny,role}]
+let mouthAnchors=[];
+const FACE_ANCHOR_MAX=8;
+const ANCHOR_ROLES=['mouth','mouth','mouth','mouth','eye','eye','brow','brow'];
+let anchorDragIdx=-1;
 // MediaPipe
 let faceLandmarker=null;
 let faceLandmarkerLoading=null;
@@ -525,6 +535,7 @@ let mouthCamStream=null;
 let mouthRecordingCam=false;
 let mouthMediaRecorder=null;
 let mouthRecordChunks=[];
+let mouthLivePreview=false; // true while live cam shown in border before/during arm
 // Home audio + waveform (builds left→right in real time while playing)
 let homeAudio=null; // HTMLAudioElement
 let homeAudioUrl=null;
@@ -937,79 +948,76 @@ return Math.PI/2; // ball stays upright; glance is drawn into the face
 }
 // Draw stick-figure mouth visemes (used in home face dir===6)
 function drawHomeMouthViseme(ctx,s,mouthY,shape){
-// Continuous track params preferred when live or recorded openness is set
 const openN = Math.max(0, Math.min(1, homeMouthOpenN||0));
 const widthN = Math.max(0.15, Math.min(1, homeMouthWidthN!=null?homeMouthWidthN:0.45));
-const useCont = homeMouthTrackLive || openN>0.02;
+const smile = Math.max(0, Math.min(1, homeMouthSmile||0));
+const frown = Math.max(0, Math.min(1, homeMouthFrown||0));
+const lipX = Math.max(-1, Math.min(1, homeMouthLipX||0));
+const useCont = homeMouthTrackLive || openN>0.02 || smile>0.05 || frown>0.05 || Math.abs(lipX)>0.05;
 if(useCont){
-const mx=0, my=mouthY+s*0.02;
-const rx=s*(0.12+widthN*0.22);
-const ry=s*(0.035+openN*0.22);
+const mx = lipX * s * 0.12;
+const my = mouthY + s*0.02;
+const rx = s*(0.12+widthN*0.22 + smile*0.08);
+const ry = s*(0.03+openN*0.22);
 ctx.save();
 ctx.lineCap='round';ctx.lineJoin='round';
+if(openN<0.12 && smile<0.15 && frown<0.15){
+// mostly closed — smile or frown curve
+ctx.lineWidth=Math.max(2.2,s*0.08);
 ctx.beginPath();
-ctx.ellipse(mx,my,rx,Math.max(ry,s*0.03),0,0,Math.PI*2);
+if(smile>=frown){
+const lift = smile*s*0.12;
+ctx.moveTo(mx-rx, my);
+ctx.quadraticCurveTo(mx, my+ry*0.3+lift*0.2, mx+rx, my);
+ctx.quadraticCurveTo(mx, my-lift, mx-rx, my);
+}else{
+const drop = frown*s*0.1;
+ctx.moveTo(mx-rx, my);
+ctx.quadraticCurveTo(mx, my+drop+ry, mx+rx, my);
+}
+ctx.strokeStyle='#111';
+ctx.stroke();
+}else{
+ctx.beginPath();
+ctx.ellipse(mx, my, rx, Math.max(ry,s*0.03), 0, 0, Math.PI*2);
 ctx.fillStyle='#1a0a0c';
 ctx.fill();
 if(openN>0.12){
-// top teeth when reasonably open
 ctx.fillStyle='rgba(245,245,240,0.92)';
 ctx.beginPath();
-ctx.ellipse(mx,my-ry*0.42,rx*0.7,Math.max(s*0.025,ry*0.22),0,0,Math.PI*2);
+ctx.ellipse(mx, my-ry*0.42, rx*0.7, Math.max(s*0.025, ry*0.22), 0, 0, Math.PI*2);
 ctx.fill();
 }
 ctx.strokeStyle='#111';
 ctx.lineWidth=Math.max(1.6,s*0.055);
 ctx.beginPath();
-ctx.ellipse(mx,my,rx,Math.max(ry,s*0.03),0,0,Math.PI*2);
+ctx.ellipse(mx, my, rx, Math.max(ry,s*0.03), 0, 0, Math.PI*2);
 ctx.stroke();
-// soft lower lip curve
-if(openN<0.35){
+// smile corners pull up / frown down on lower lip
+if(smile>0.08 || frown>0.08){
 ctx.lineWidth=Math.max(1.8,s*0.06);
+const cornerY = smile>frown ? (my - smile*s*0.06) : (my + frown*s*0.08);
 ctx.beginPath();
-ctx.moveTo(-rx*0.9,my+ry*0.2);
-ctx.quadraticCurveTo(0,my+ry*0.85+s*0.02,rx*0.9,my+ry*0.2);
+ctx.moveTo(mx-rx*0.95, my+ry*0.15);
+ctx.quadraticCurveTo(mx, my+ry*(0.5+frown*0.4)-smile*s*0.04, mx+rx*0.95, my+ry*0.15);
 ctx.stroke();
+// corner ticks
+ctx.beginPath();
+ctx.moveTo(mx-rx, my); ctx.lineTo(mx-rx*1.05, cornerY);
+ctx.moveTo(mx+rx, my); ctx.lineTo(mx+rx*1.05, cornerY);
+ctx.stroke();
+}
 }
 ctx.restore();
 return;
 }
-// Fallback discrete shapes (legacy / no video)
-const mx=0, my=mouthY+s*0.04;
-const sh=shape||'rest';
+// closed rest
 ctx.save();
-ctx.lineCap='round';ctx.lineJoin='round';
 ctx.strokeStyle='#111';
-ctx.fillStyle='#111';
-if(sh==='rest'){
 ctx.lineWidth=Math.max(2.3,s*0.08);
 ctx.beginPath();
 ctx.moveTo(-s*0.22,mouthY);ctx.lineTo(s*0.22,mouthY);
 ctx.stroke();
-}else if(sh==='mbp'){
-ctx.lineWidth=Math.max(2.4,s*0.09);
-ctx.beginPath();
-ctx.moveTo(-s*0.2,mouthY-s*0.02);ctx.lineTo(s*0.2,mouthY-s*0.02);
-ctx.stroke();
-ctx.lineWidth=Math.max(2.2,s*0.085);
-ctx.beginPath();
-ctx.moveTo(-s*0.2,mouthY+s*0.01);
-ctx.quadraticCurveTo(0,mouthY+s*0.14,s*0.2,mouthY+s*0.01);
-ctx.stroke();
-}else if(sh==='a'||sh==='e'||sh==='o'||sh==='u'||sh==='s'||sh==='fv'||sh==='th'){
-const openMap={a:0.85,e:0.45,o:0.55,u:0.3,s:0.25,fv:0.2,th:0.35};
-const wMap={a:0.55,e:0.95,o:0.35,u:0.22,s:0.5,fv:0.55,th:0.45};
-homeMouthOpenN=openMap[sh]||0.4; homeMouthWidthN=wMap[sh]||0.5;
-// recurse once with continuous
-homeMouthTrackLive=true;
-drawHomeMouthViseme(ctx,s,mouthY,shape);
-homeMouthTrackLive=false;
-}else{
-ctx.lineWidth=Math.max(2.3,s*0.08);
-ctx.beginPath();
-ctx.moveTo(-s*0.22,mouthY);ctx.lineTo(s*0.22,mouthY);
-ctx.stroke();
-}
 ctx.restore();
 }
 
@@ -1042,10 +1050,11 @@ try{mouthVideo.pause();}catch(e){}
 try{mouthVideo.removeAttribute('src');mouthVideo.load();}catch(e){}
 }
 if(mouthVideoUrl){try{URL.revokeObjectURL(mouthVideoUrl);}catch(e){}}
-mouthVideoUrl=null;mouthVideo=null;mouthVideoReady=false;
-mouthAnchors=[];
+mouthVideoUrl=null;mouthVideo=null;mouthVideoReady=false;mouthLivePreview=false;
+mouthAnchors=[];anchorDragIdx=-1;
 homeMouthTrackLive=false;
-homeMouthOpenN=0;homeMouthWidthN=0.45;
+homeMouthOpenN=0;homeMouthWidthN=0.45;homeMouthSmile=0;homeMouthFrown=0;homeMouthLipX=0;
+homeEyeX=0;homeEyeY=0;homeBrowL=0;homeBrowR=0;
 setTrackHint('');
 draw();
 }
@@ -1079,7 +1088,8 @@ try{v.currentTime=0;}catch(e){}
 try{await v.play(); v.pause();}catch(e){}
 mouthVideoReady=true;
 mouthAnchors=[];
-setTrackHint('TAP LIPS TO PLACE ANCHORS ('+MOUTH_ANCHOR_MAX+' max) · THEN USE ARM');
+mouthLivePreview=false;
+setTrackHint('TRACKERS: 1-4 MOUTH · 5-6 EYES · 7-8 BROWS (max 8) · DRAG TO ADJUST');
 await ensureFaceLandmarker();
 // seed openness from first frame if possible
 await sampleMouthFromVideoFrame();
@@ -1103,36 +1113,33 @@ cam.muted=true;cam.playsInline=true;
 await cam.play().catch(()=>{});
 mouthVideo=cam;
 mouthVideoReady=true;
+mouthLivePreview=true;
 mouthAnchors=[];
-setTrackHint('RECORDING… TAP ARM AGAIN OR WAIT — TAP SCREEN TO STOP');
+// Optionally also record the session to a file in background for later playback
 mouthRecordChunks=[];
+try{
 const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':
 (MediaRecorder.isTypeSupported('video/webm')?'video/webm':'');
-try{
 mouthMediaRecorder=mime?new MediaRecorder(mouthCamStream,{mimeType:mime}):new MediaRecorder(mouthCamStream);
-}catch(e){
-mouthMediaRecorder=new MediaRecorder(mouthCamStream);
-}
 mouthMediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size)mouthRecordChunks.push(e.data);};
 mouthMediaRecorder.onstop=async()=>{
-stopMouthCam();
-if(!mouthRecordChunks.length){setTrackHint('NO VIDEO CAPTURED');return;}
+if(!mouthRecordChunks.length)return;
 const blob=new Blob(mouthRecordChunks,{type:mouthRecordChunks[0].type||'video/webm'});
 mouthRecordChunks=[];
-const file=new File([blob],'mouth-take.webm',{type:blob.type});
-await loadMouthVideoFile(file);
+// Keep live stream as primary; store blob URL as fallback file
+if(mouthVideoUrl){try{URL.revokeObjectURL(mouthVideoUrl);}catch(e){}}
+mouthVideoUrl=URL.createObjectURL(blob);
 };
 mouthRecordingCam=true;
 mouthMediaRecorder.start(200);
-// live preview while recording uses cam as mouthVideo
+}catch(e){console.warn(e);}
+setTrackHint('LIVE CAM · PLACE TRACKERS · ARM RED THEN PRESS AGAIN FOR COUNTDOWN');
+if(!homeArmed)armHomeTracker();
+await ensureFaceLandmarker();
 draw();
 }
 function stopMouthCameraRecordIfAny(){
-if(mouthRecordingCam&&mouthMediaRecorder&&mouthMediaRecorder.state==='recording'){
-try{mouthMediaRecorder.stop();}catch(e){}
-mouthRecordingCam=false;
-return true;
-}
+// No longer stop on canvas tap — live cam stays until Clear / disarm
 return false;
 }
 async function ensureFaceLandmarker(){
@@ -1174,77 +1181,126 @@ const LIP_LOWER_MID=14;
 const LIP_LOWER_OUTER=17;
 const LIP_LEFT=61;
 const LIP_RIGHT=291;
-function mouthMetricsFromLandmarks(lm){
-// lm: array of {x,y,z} normalized
+function faceMetricsFromLandmarks(lm, blendCats){
 if(!lm||lm.length<300)return null;
-const up=lm[13]; // upper lip inner
-const low=lm[14]; // lower lip inner (actually 14 is near upper; 17 is lower mid)
-const low2=lm[17];
-const left=lm[61];
-const right=lm[291];
-const topY=up.y;
-const botY=(low2&&low2.y!=null)?low2.y:low.y;
-const open=Math.max(0,botY-topY);
-const width=Math.abs(right.x-left.x);
-// face scale: eye distance approx
+const up=lm[13], low2=lm[17], left=lm[61], right=lm[291];
 const le=lm[33], re=lm[263];
 const faceW=Math.max(0.05, Math.abs(re.x-le.x));
+const open=Math.max(0, (low2?low2.y:lm[14].y) - up.y);
+const width=Math.abs(right.x-left.x);
 const openN=Math.max(0,Math.min(1,(open/faceW-0.02)/0.35));
 const widthN=Math.max(0.15,Math.min(1,(width/faceW-0.3)/0.55));
-return {openN,widthN,up,low:low2||low,left,right};
+// lower lip mid vs mouth center for side shift
+const lowMid = lm[17]||lm[14];
+const mouthCx = (left.x+right.x)/2;
+const lipX = Math.max(-1, Math.min(1, (lowMid.x - mouthCx) / (faceW*0.25)));
+// eyes: iris centers 468/473 if present else eye centers
+const hasIris = lm.length>473;
+const lIris = hasIris?lm[468]:lm[159];
+const rIris = hasIris?lm[473]:lm[386];
+const lEyeOut=lm[33], lEyeIn=lm[133];
+const rEyeOut=lm[263], rEyeIn=lm[362];
+const lEyeCx=(lEyeOut.x+lEyeIn.x)/2, lEyeCy=(lEyeOut.y+lEyeIn.y)/2;
+const rEyeCx=(rEyeOut.x+rEyeIn.x)/2, rEyeCy=(rEyeOut.y+rEyeIn.y)/2;
+const lEyeW=Math.max(0.01, Math.abs(lEyeOut.x-lEyeIn.x));
+const rEyeW=Math.max(0.01, Math.abs(rEyeOut.x-rEyeIn.x));
+const eyeX = Math.max(-1, Math.min(1, (
+  ((lIris.x-lEyeCx)/lEyeW) + ((rIris.x-rEyeCx)/rEyeW)
+)/1.2));
+const eyeY = Math.max(-1, Math.min(1, (
+  ((lIris.y-lEyeCy)/(lEyeW*0.6)) + ((rIris.y-rEyeCy)/(rEyeW*0.6))
+)/1.2));
+// brows: inner brow landmarks
+const browLin=lm[55]||lm[107], browRin=lm[285]||lm[336];
+const browBaseL=lEyeCy - faceW*0.35, browBaseR=rEyeCy - faceW*0.35;
+const browL = Math.max(-1, Math.min(1, (browBaseL - browLin.y) / (faceW*0.12)));
+const browR = Math.max(-1, Math.min(1, (browBaseR - browRin.y) / (faceW*0.12)));
+let smile=0, frown=0, jaw=0, pucker=0;
+if(blendCats){
+for(const c of blendCats){
+const n=c.categoryName, sc=c.score||0;
+if(n==='mouthSmileLeft'||n==='mouthSmileRight')smile=Math.max(smile,sc);
+if(n==='mouthFrownLeft'||n==='mouthFrownRight')frown=Math.max(frown,sc);
+if(n==='jawOpen')jaw=sc;
+if(n==='mouthPucker')pucker=sc;
+if(n==='mouthLeft'){/*lip*/}
+}
+smile=Math.min(1, smile*1.2);
+frown=Math.min(1, frown*1.2);
+}
+if(jaw>0) {/* applied by caller */}
+return {openN: Math.max(openN, jaw?Math.min(1,jaw*1.15):openN), widthN, lipX, eyeX, eyeY, browL, browR, smile, frown, pucker};
+}
+function applyFaceMetrics(m, smooth){
+if(!m)return;
+const a = smooth?0.35:1;
+function lerp(cur, tgt){return cur*(1-a)+tgt*a;}
+homeMouthOpenN=lerp(homeMouthOpenN, m.openN);
+homeMouthWidthN=lerp(homeMouthWidthN, m.pucker>0.2?Math.min(m.widthN,0.35+(1-m.pucker)*0.3):m.widthN);
+homeMouthSmile=lerp(homeMouthSmile||0, m.smile||0);
+homeMouthFrown=lerp(homeMouthFrown||0, m.frown||0);
+homeMouthLipX=lerp(homeMouthLipX||0, m.lipX||0);
+homeEyeX=lerp(homeEyeX||0, m.eyeX||0);
+homeEyeY=lerp(homeEyeY||0, m.eyeY||0);
+homeBrowL=lerp(homeBrowL||0, m.browL||0);
+homeBrowR=lerp(homeBrowR||0, m.browR||0);
+homeMouthOpen=homeMouthOpenN>0.08||homeMouthSmile>0.12;
+homeMouthTrackLive=true;
 }
 async function sampleMouthFromVideoFrame(){
 if(!mouthVideo||!mouthVideoReady)return false;
 const fl=await ensureFaceLandmarker();
-if(!fl)return false;
+if(!fl){
+return sampleFromAnchorsOnly();
+}
 const ts=performance.now();
-if(ts-mouthTrackLastTs<16)return false;
+if(ts-mouthTrackLastTs<20)return false;
 mouthTrackLastTs=ts;
 try{
 const res=fl.detectForVideo(mouthVideo, ts);
 if(res&&res.faceLandmarks&&res.faceLandmarks[0]){
-const m=mouthMetricsFromLandmarks(res.faceLandmarks[0]);
-if(m){
-// smooth
-const a=0.35;
-homeMouthOpenN=homeMouthOpenN*(1-a)+m.openN*a;
-homeMouthWidthN=homeMouthWidthN*(1-a)+m.widthN*a;
-homeMouthOpen=homeMouthOpenN>0.08;
-homeMouthTrackLive=true;
-// blendshapes if available (jawOpen etc)
-if(res.faceBlendshapes&&res.faceBlendshapes[0]){
-const cats=res.faceBlendshapes[0].categories||[];
-let jaw=0, smileL=0, smileR=0, pucker=0;
-for(const c of cats){
-if(c.categoryName==='jawOpen')jaw=c.score;
-else if(c.categoryName==='mouthSmileLeft')smileL=c.score;
-else if(c.categoryName==='mouthSmileRight')smileR=c.score;
-else if(c.categoryName==='mouthPucker')pucker=c.score;
-}
-if(jaw>0)homeMouthOpenN=Math.max(homeMouthOpenN, Math.min(1,jaw*1.15));
-if(pucker>0.2)homeMouthWidthN=Math.min(homeMouthWidthN, 0.35+(1-pucker)*0.3);
-if(smileL+smileR>0.3)homeMouthWidthN=Math.max(homeMouthWidthN, 0.5+(smileL+smileR)*0.25);
-}
+const cats=(res.faceBlendshapes&&res.faceBlendshapes[0]&&res.faceBlendshapes[0].categories)||null;
+const m=faceMetricsFromLandmarks(res.faceLandmarks[0], cats);
+applyFaceMetrics(m, true);
 return true;
-}
 }
 }catch(e){console.warn(e);}
-// Fallback: if user placed anchors, estimate openness from vertical span
-if(mouthAnchors.length>=2){
-let minY=1,maxY=0,minX=1,maxX=0;
-mouthAnchors.forEach(a=>{minY=Math.min(minY,a.ny);maxY=Math.max(maxY,a.ny);minX=Math.min(minX,a.nx);maxX=Math.max(maxX,a.nx);});
-const openN=Math.max(0,Math.min(1,(maxY-minY-0.01)/0.12));
-const widthN=Math.max(0.2,Math.min(1,(maxX-minX)/0.2));
-homeMouthOpenN=homeMouthOpenN*0.7+openN*0.3;
-homeMouthWidthN=homeMouthWidthN*0.7+widthN*0.3;
-homeMouthTrackLive=true;
-homeMouthOpen=homeMouthOpenN>0.08;
-return true;
+return sampleFromAnchorsOnly();
 }
-return false;
+function sampleFromAnchorsOnly(){
+// Use role-grouped anchors as coarse fallback
+const mouths=mouthAnchors.filter(a=>a.role==='mouth');
+const eyes=mouthAnchors.filter(a=>a.role==='eye');
+const brows=mouthAnchors.filter(a=>a.role==='brow');
+if(mouths.length>=2){
+let minY=1,maxY=0,minX=1,maxX=0,cx=0;
+mouths.forEach(a=>{minY=Math.min(minY,a.ny);maxY=Math.max(maxY,a.ny);minX=Math.min(minX,a.nx);maxX=Math.max(maxX,a.nx);cx+=a.nx;});
+cx/=mouths.length;
+homeMouthOpenN=homeMouthOpenN*0.7+Math.max(0,Math.min(1,(maxY-minY-0.01)/0.12))*0.3;
+homeMouthWidthN=homeMouthWidthN*0.7+Math.max(0.2,Math.min(1,(maxX-minX)/0.2))*0.3;
+homeMouthLipX=homeMouthLipX*0.7+Math.max(-1,Math.min(1,(cx-0.5)*2))*0.3;
+homeMouthTrackLive=true;
+}
+if(eyes.length>=1){
+const e=eyes[0];
+// relative to face center approx 0.5,0.4
+homeEyeX=homeEyeX*0.7+Math.max(-1,Math.min(1,(e.nx-0.5)*3))*0.3;
+homeEyeY=homeEyeY*0.7+Math.max(-1,Math.min(1,(e.ny-0.38)*4))*0.3;
+if(eyes[1]){
+homeEyeX=homeEyeX*0.5+Math.max(-1,Math.min(1,(eyes[1].nx-0.5)*3))*0.5;
+}
+homeMouthTrackLive=true;
+}
+if(brows.length>=1){
+homeBrowL=homeBrowL*0.7+Math.max(-1,Math.min(1,(0.32-brows[0].ny)*8))*0.3;
+if(brows[1])homeBrowR=homeBrowR*0.7+Math.max(-1,Math.min(1,(0.32-brows[1].ny)*8))*0.3;
+else homeBrowR=homeBrowL;
+homeMouthTrackLive=true;
+}
+homeMouthOpen=homeMouthOpenN>0.08;
+return homeMouthTrackLive;
 }
 function getHomeBorderRectCss(){
-// Map 9:16 border in CSS pixels (matching canvas display)
 const cr=canvas.getBoundingClientRect();
 const target=computeMapBorderTarget();
 const sx=cr.width/viewW, sy=cr.height/viewH;
@@ -1253,76 +1309,114 @@ left:cr.left+target.l*sx,
 top:cr.top+target.t*sy,
 width:target.w*sx,
 height:target.h*sy,
-// also canvas coords
 cL:target.l,cT:target.t,cW:target.w,cH:target.h
 };
 }
-function drawMouthVideoBehind(ctx,bL,bT,bW,bH){
-if(!mouthVideo||!mouthVideoReady)return;
+function videoDrawRect(bL,bT,bW,bH){
+if(!mouthVideo)return null;
 const v=mouthVideo;
 const vw=v.videoWidth||640, vh=v.videoHeight||360;
-if(vw<2||vh<2)return;
-// object-fit: cover into border rect
+if(vw<2||vh<2)return null;
 const scale=Math.max(bW/vw, bH/vh);
 const dw=vw*scale, dh=vh*scale;
 const dx=bL+(bW-dw)/2, dy=bT+(bH-dh)/2;
+return {dx,dy,dw,dh,vw,vh};
+}
+function drawMouthVideoBehind(ctx,bL,bT,bW,bH){
+if(!mouthVideo||!mouthVideoReady)return;
+const vr=videoDrawRect(bL,bT,bW,bH);
+if(!vr)return;
+const {dx,dy,dw,dh}=vr;
 ctx.save();
 ctx.beginPath();ctx.rect(bL,bT,bW,bH);ctx.clip();
 ctx.globalAlpha=0.92;
-ctx.drawImage(v, dx, dy, dw, dh);
-// darken slightly so stick figure stays readable
+ctx.drawImage(mouthVideo, dx, dy, dw, dh);
 ctx.fillStyle='rgba(5,8,16,0.25)';
 ctx.fillRect(bL,bT,bW,bH);
 ctx.restore();
-// anchors in canvas space
 if(mouthAnchors.length){
-const ax0=dx, ay0=dy;
-mouthAnchors.forEach(a=>{
-const px=ax0+a.nx*dw;
-const py=ay0+a.ny*dh;
+const colors={mouth:'#00e5ff',eye:'#ffd700',brow:'#ff66aa'};
+mouthAnchors.forEach((a,i)=>{
+const px=dx+a.nx*dw, py=dy+a.ny*dh;
+const col=colors[a.role]||'#00e5ff';
 ctx.beginPath();
-ctx.arc(px,py,5,0,Math.PI*2);
-ctx.fillStyle='rgba(0,229,255,0.45)';
+ctx.arc(px,py, anchorDragIdx===i?7:5.5, 0, Math.PI*2);
+ctx.fillStyle=col.replace(')',',0.4)').replace('rgb','rgba').replace('#00e5ff','rgba(0,229,255,0.45)').replace('#ffd700','rgba(255,215,0,0.45)').replace('#ff66aa','rgba(255,102,170,0.45)');
+if(col[0]==='#'){
+ctx.fillStyle=col==='#00e5ff'?'rgba(0,229,255,0.45)':col==='#ffd700'?'rgba(255,215,0,0.45)':'rgba(255,102,170,0.45)';
+}
 ctx.fill();
-ctx.strokeStyle='#00e5ff';
+ctx.strokeStyle=col;
 ctx.lineWidth=2;
 ctx.stroke();
+// tiny label
+ctx.fillStyle=col;
+ctx.font='9px Orbitron,sans-serif';
+ctx.textAlign='center';
+ctx.fillText(String(i+1), px, py-9);
 });
 }
 }
 function canvasToVideoNorm(cx,cy,bL,bT,bW,bH){
-if(!mouthVideo)return null;
-const v=mouthVideo;
-const vw=v.videoWidth||640, vh=v.videoHeight||360;
-const scale=Math.max(bW/vw, bH/vh);
-const dw=vw*scale, dh=vh*scale;
-const dx=bL+(bW-dw)/2, dy=bT+(bH-dh)/2;
-const nx=(cx-dx)/dw, ny=(cy-dy)/dh;
+const vr=videoDrawRect(bL,bT,bW,bH);
+if(!vr)return null;
+const nx=(cx-vr.dx)/vr.dw, ny=(cy-vr.dy)/vr.dh;
 if(nx<0||ny<0||nx>1||ny>1)return null;
 return {nx,ny};
 }
+function hitTestAnchor(cx,cy){
+if(!mouthVideoReady||!mouthAnchors.length)return -1;
+const br=computeMapBorderTarget();
+const vr=videoDrawRect(br.l,br.t,br.w,br.h);
+if(!vr)return -1;
+for(let i=mouthAnchors.length-1;i>=0;i--){
+const a=mouthAnchors[i];
+const px=vr.dx+a.nx*vr.dw, py=vr.dy+a.ny*vr.dh;
+if(Math.hypot(cx-px,cy-py)<=14)return i;
+}
+return -1;
+}
 function placeMouthAnchorAtCanvas(cx,cy){
 if(!mouthVideoReady||!homeArmed)return false;
+// Prefer drag-hit handled outside
 const br=computeMapBorderTarget();
 const n=canvasToVideoNorm(cx,cy,br.l,br.t,br.w,br.h);
 if(!n)return false;
-if(mouthAnchors.length>=MOUTH_ANCHOR_MAX)mouthAnchors.shift();
-mouthAnchors.push(n);
-setTrackHint('ANCHORS '+mouthAnchors.length+'/'+MOUTH_ANCHOR_MAX+(mouthAnchors.length>=2?' · READY TO TRACK':''));
+if(mouthAnchors.length>=FACE_ANCHOR_MAX){
+setTrackHint('MAX 8 TRACKERS');
+return false;
+}
+const role=ANCHOR_ROLES[mouthAnchors.length]||'mouth';
+mouthAnchors.push({nx:n.nx, ny:n.ny, role:role});
+const labels={mouth:'MOUTH',eye:'EYE',brow:'BROW'};
+setTrackHint(labels[role]+' '+mouthAnchors.filter(a=>a.role===role).length+' · TOTAL '+mouthAnchors.length+'/'+FACE_ANCHOR_MAX);
 sampleMouthFromVideoFrame();
 draw();
 return true;
 }
+function moveAnchorToCanvas(idx,cx,cy){
+if(idx<0||idx>=mouthAnchors.length)return;
+const br=computeMapBorderTarget();
+const n=canvasToVideoNorm(cx,cy,br.l,br.t,br.w,br.h);
+if(!n)return;
+mouthAnchors[idx].nx=n.nx;
+mouthAnchors[idx].ny=n.ny;
+}
 function recordMouthSample(){
-if(!homeMouthRecording||!homeAudio)return;
-const t=Math.max(0,homeAudio.currentTime||0);
-const sample={t:t, openN:homeMouthOpenN, widthN:homeMouthWidthN};
+if(!homeMouthRecording)return;
+const t=homeAudio?Math.max(0,homeAudio.currentTime||0):(mouthVideo?Math.max(0,mouthVideo.currentTime||0):0);
+const sample={
+t:t,
+openN:homeMouthOpenN, widthN:homeMouthWidthN,
+smile:homeMouthSmile, frown:homeMouthFrown, lipX:homeMouthLipX,
+eyeX:homeEyeX, eyeY:homeEyeY, browL:homeBrowL, browR:homeBrowR
+};
 if(!homeMouthRecordBuffer)homeMouthRecordBuffer=[];
 const buf=homeMouthRecordBuffer;
 if(buf.length){
 const last=buf[buf.length-1];
-if(Math.abs(last.openN-sample.openN)<0.02&&Math.abs(last.widthN-sample.widthN)<0.02&&(t-last.t)<0.05){
-last.t=t; last.openN=sample.openN; last.widthN=sample.widthN;
+if((t-last.t)<0.04){
+Object.assign(last, sample);
 return;
 }
 }
@@ -1462,18 +1556,31 @@ ctx.beginPath();
 ctx.ellipse(0,mouthY+s*0.04,s*0.16,s*0.2,0,0,Math.PI*2);
 ctx.stroke();
 }else if(dir===6){
-// Straight/neutral face — after leaving the game
+// Home face — tracker driven eyes, brows, mouth
 ctx.lineWidth=Math.max(2.2,s*0.075);
+const ex=homeEyeX||0, ey=homeEyeY||0;
+const lx=-s*0.36 + ex*s*0.06, rx=s*0.36 + ex*s*0.06;
+const eyeYY=eyeY + ey*s*0.06;
+// eye whites (dark fill style of stick figure = sclera as outline shape)
 ctx.beginPath();
-ctx.ellipse(-s*0.36,eyeY,eyeRx,eyeRy,0.1,0,Math.PI*2);ctx.fill();
+ctx.ellipse(lx,eyeYY,eyeRx,eyeRy,0.1,0,Math.PI*2);ctx.fill();
 ctx.beginPath();
-ctx.ellipse(s*0.36,eyeY,eyeRx,eyeRy,-0.1,0,Math.PI*2);ctx.fill();
-ctx.lineWidth=Math.max(2.2,s*0.08);
+ctx.ellipse(rx,eyeYY,eyeRx,eyeRy,-0.1,0,Math.PI*2);ctx.fill();
+// pupils
+ctx.fillStyle='#eee';
+const pr=s*0.045;
+ctx.beginPath();ctx.arc(lx+ex*s*0.05, eyeYY+ey*s*0.04, pr, 0, Math.PI*2);ctx.fill();
+ctx.beginPath();ctx.arc(rx+ex*s*0.05, eyeYY+ey*s*0.04, pr, 0, Math.PI*2);ctx.fill();
+ctx.fillStyle='#111';
+// brows — pivot from outer, inner corner moves with browL/R
+const bL=homeBrowL||0, bR=homeBrowR||0;
+ctx.lineWidth=Math.max(2.3,s*0.085);
 ctx.beginPath();
-ctx.moveTo(-s*0.5,browY);ctx.lineTo(-s*0.16,browY);
-ctx.moveTo(s*0.5,browY);ctx.lineTo(s*0.16,browY);
+ctx.moveTo(-s*0.52, browY - bL*s*0.02);
+ctx.lineTo(-s*0.14, browY - bL*s*0.14);
+ctx.moveTo(s*0.52, browY - bR*s*0.02);
+ctx.lineTo(s*0.14, browY - bR*s*0.14);
 ctx.stroke();
-ctx.lineWidth=Math.max(2.3,s*0.08);
 drawHomeMouthViseme(ctx,s,mouthY,homeMouthShape||'rest');
 }else if(dir===0||dir===2||dir===4){
 // Forward face; dir 2 = eyes up; dir 4 = angrier brows (brief side-hit flash)
@@ -2042,51 +2149,78 @@ homeMouthRecordBuffer=null;
 homeMouthRecording=false;
 }
 function mouthSampleAtAudioTime(t){
-if(!homeMouthTrack||!homeMouthTrack.length)return {openN:0,widthN:0.45};
-let s={openN:0,widthN:0.45};
+const def={openN:0,widthN:0.45,smile:0,frown:0,lipX:0,eyeX:0,eyeY:0,browL:0,browR:0};
+if(!homeMouthTrack||!homeMouthTrack.length)return def;
+let s=Object.assign({},def);
 for(let i=0;i<homeMouthTrack.length;i++){
 if(homeMouthTrack[i].t<=t){
 const e=homeMouthTrack[i];
-if(e.openN!=null)s={openN:e.openN,widthN:e.widthN!=null?e.widthN:0.45};
-else if(e.shape){ // legacy
-s={openN:e.shape==='rest'?0:0.5, widthN:0.45};
-}else if(e.open)s={openN:0.5,widthN:0.45};
+if(e.openN!=null){
+s={
+openN:e.openN, widthN:e.widthN!=null?e.widthN:0.45,
+smile:e.smile||0, frown:e.frown||0, lipX:e.lipX||0,
+eyeX:e.eyeX||0, eyeY:e.eyeY||0, browL:e.browL||0, browR:e.browR||0
+};
+}else if(e.shape){
+s=Object.assign({},def,{openN:e.shape==='rest'?0:0.5});
+}else if(e.open)s=Object.assign({},def,{openN:0.5});
 }else break;
 }
 return s;
 }
+function applySampleToFace(s){
+homeMouthOpenN=s.openN; homeMouthWidthN=s.widthN;
+homeMouthSmile=s.smile||0; homeMouthFrown=s.frown||0; homeMouthLipX=s.lipX||0;
+homeEyeX=s.eyeX||0; homeEyeY=s.eyeY||0; homeBrowL=s.browL||0; homeBrowR=s.browR||0;
+homeMouthOpen=homeMouthOpenN>0.08||homeMouthSmile>0.12;
+homeMouthTrackLive=homeMouthOpenN>0.02||homeMouthSmile>0.05||Math.abs(homeEyeX)>0.05;
+}
 function updateMouthFromTrack(){
 if(homeArmed||homeMouthRecording){
-// live path handled in animate via sampleMouthFromVideoFrame
-return;
+return; // live sampling in animate
 }
-if(!homeAudio){homeMouthOpenN=0;homeMouthOpen=false;homeMouthTrackLive=false;return;}
+if(!homeAudio){
+applySampleToFace({openN:0,widthN:0.45,smile:0,frown:0,lipX:0,eyeX:0,eyeY:0,browL:0,browR:0});
+homeMouthTrackLive=false;return;
+}
 if(!homeExporting&&(!homeAudioPlaying||homeAudio.paused)){
-homeMouthOpenN=0;homeMouthOpen=false;homeMouthTrackLive=false;
+applySampleToFace({openN:0,widthN:0.45,smile:0,frown:0,lipX:0,eyeX:0,eyeY:0,browL:0,browR:0});
+homeMouthTrackLive=false;
+if(mouthVideo&&mouthVideoReady){try{mouthVideo.pause();}catch(e){}}
 return;
 }
 if(!homeMouthTrack||!homeMouthTrack.length){
-homeMouthOpenN=0;homeMouthOpen=false;homeMouthTrackLive=false;
-return;
+homeMouthTrackLive=false;return;
 }
 const t=(homeAudio.currentTime||0)+(homeExporting?0.08:0);
-const s=mouthSampleAtAudioTime(t);
-homeMouthOpenN=s.openN;homeMouthWidthN=s.widthN;
-homeMouthOpen=homeMouthOpenN>0.08;
-homeMouthTrackLive=homeMouthOpenN>0.02;
+applySampleToFace(mouthSampleAtAudioTime(t));
+// scrub face video with audio during playback
+if(mouthVideo&&mouthVideoReady&&homeAudio&&homeAudio.duration&&mouthVideo.duration){
+try{
+const ratio=t/homeAudio.duration;
+const vt=Math.max(0,Math.min(mouthVideo.duration-0.05, ratio*mouthVideo.duration));
+if(Math.abs((mouthVideo.currentTime||0)-vt)>0.12)mouthVideo.currentTime=vt;
+if(homeAudioPlaying&&mouthVideo.paused){const p=mouthVideo.play();if(p&&p.then)p.catch(()=>{});}
+}catch(e){}
+}
 }
 function beginMouthRecordingSession(){
 homeMouthRecordStart=homeAudio?Math.max(0,homeAudio.currentTime||0):0;
-homeMouthRecordBuffer=[{t:homeMouthRecordStart, openN:homeMouthOpenN, widthN:homeMouthWidthN}];
+homeMouthRecordBuffer=[{
+t:homeMouthRecordStart, openN:homeMouthOpenN, widthN:homeMouthWidthN,
+smile:homeMouthSmile, frown:homeMouthFrown, lipX:homeMouthLipX,
+eyeX:homeEyeX, eyeY:homeEyeY, browL:homeBrowL, browR:homeBrowR
+}];
 homeMouthRecording=true;
-// If mouth video exists, play it in sync from start (or current audio time ratio)
-if(mouthVideo&&mouthVideoReady){
+setTrackHint('TRACKING…');
+// Play face video from matching time
+if(mouthVideo&&mouthVideoReady&&!mouthLivePreview){
 try{
 const d=mouthVideo.duration;
 if(d&&isFinite(d)&&homeAudio&&homeAudio.duration){
-const ratio=(homeAudio.currentTime||0)/homeAudio.duration;
+const ratio=(homeAudio.currentTime||0)/Math.max(0.001,homeAudio.duration);
 mouthVideo.currentTime=Math.max(0,Math.min(d-0.05, ratio*d));
-}else{
+}else if(d&&isFinite(d)){
 mouthVideo.currentTime=0;
 }
 mouthVideo.playbackRate=1;
@@ -2094,6 +2228,7 @@ const p=mouthVideo.play();
 if(p&&p.then)p.catch(()=>{});
 }catch(e){}
 }
+// Live cam: keep streaming; already playing
 
 // Auto-start audio for the take
 if(homeAudio){
@@ -2796,25 +2931,35 @@ waveHit.addEventListener('touchstart',onDown,{passive:false});
 window.addEventListener('touchmove',onMove,{passive:false});
 window.addEventListener('touchend',onUp);
 }
-function startHomeArmCD(){
+function armHomeTracker(){
+// Gray → red: arm only, no countdown / no audio yet
 homeArmed=true;
 homeWaveDragging=false;
 if(armB)armB.classList.add('armed');
+homeArmCD=false;
+homeMouthOpenN=0;homeMouthOpen=false;homeMouthSmile=0;homeMouthFrown=0;
+if(!mouthVideoReady){
+openTrackPicker();
+setTrackHint('CHOOSE UPLOAD OR TAKE VIDEO');
+}else{
+setTrackHint(mouthAnchors.length?'PRESS RED CIRCLE TO START COUNTDOWN':'PLACE TRACKERS (1-4 mouth, 5-6 eyes, 7-8 brows)');
+ensureFaceLandmarker();
+}
+if(homeWaveProg>0.5)layoutHomeWave();
+}
+function startHomeArmCD(){
+// Red press → countdown, then record. Audio starts only after countdown.
+if(!homeArmed)armHomeTracker();
+if(homeArmCD||homeMouthRecording)return;
+homeWaveDragging=false;
 homeArmCD=true;homeArmCdVal=3;homeArmCdRemain=1000;homeArmCdOp=1;
 if(homeCd){
 homeCd.textContent='3';
 homeCd.style.opacity='1';
 }
-homeMouthOpenN=0;homeMouthOpen=false;
 layoutHomeCd();
-// If no video yet, offer upload/record. If video ready, prompt anchors.
-if(!mouthVideoReady){
-openTrackPicker();
-setTrackHint('CHOOSE UPLOAD OR TAKE VIDEO');
-}else{
-setTrackHint(mouthAnchors.length?'TRACKING READY':'TAP LIPS TO PLACE ANCHORS');
+setTrackHint('COUNTDOWN…');
 ensureFaceLandmarker();
-}
 if(homeWaveProg>0.5)layoutHomeWave();
 }
 function layoutHomeCd(){
@@ -4414,11 +4559,16 @@ if(homeExporting)return;
 if(uiLocked)return;
 if(lockTrans)return;
 if(homeTrans||homeAway){
-if(stopMouthCameraRecordIfAny()){e.preventDefault();return;}
 if(homeArmed&&mouthVideoReady){
 e.preventDefault();
 const pos=getPos(e,e.touches?e.touches[0].identifier:null);
+const hit=hitTestAnchor(pos.x,pos.y);
+if(hit>=0){
+anchorDragIdx=hit;
+}else{
 placeMouthAnchorAtCanvas(pos.x,pos.y);
+}
+draw();
 }
 return;
 }
@@ -4432,6 +4582,12 @@ if(!isPaused)trail.length=0;btnAct={play:false,home:false,bouncy:false,lock:fals
 }
 
 function drag(e){
+if(anchorDragIdx>=0&&(homeTrans||homeAway)&&homeArmed){
+const pos=getPos(e,e.touches?e.touches[0].identifier:null);
+moveAnchorToCanvas(anchorDragIdx,pos.x,pos.y);
+draw();
+return;
+}
 const w=viewW,h=viewH,pw=w-2*SSW,now=Date.now();
 if(circle.resizeTouchId!==null||rightResize){
 const pos=getPos(e,circle.resizeTouchId==='mouse-right'?null:circle.resizeTouchId);
@@ -4463,6 +4619,11 @@ if(isPaused)saveSt();draw();
 }
 
 function stopDrag(e){
+if(anchorDragIdx>=0){
+anchorDragIdx=-1;
+sampleMouthFromVideoFrame();
+draw();
+}
 if(gold.drag){let tid=gold.tid;if(e.changedTouches){let m=false;for(let i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===tid)m=true;if(!m&&e.touches&&e.touches.length>0)return}
 const dist=Math.hypot(gold.x-diaX,gold.y-diaY);if(dist<gold.r+DIA_R-6)startMerge();else springBack(gold.x,gold.y);draw();return}
 if(!circle.isDragging)return;let tid=circle.dragTouchId;if(e.touches&&e.touches.length>0)return;
@@ -4586,11 +4747,15 @@ function setModBtn(btn,on){if(btn)btn.classList.toggle('on',!!on)}
 if(homeB)homeB.onclick=()=>toggleHome();
 if(armB)armB.onclick=()=>{
 if(homeExporting||homeDockProg<0.85)return;
-if(homeArmed||homeArmCD){
-// Red / mid-countdown → cancel countdown and go gray
+if(homeArmCD||homeMouthRecording){
+// Mid-countdown or recording → cancel to gray
 cancelHomeArmCD();
-}else{
+}else if(homeArmed){
+// Already red (armed, not counting) → start countdown
 startHomeArmCD();
+}else{
+// Gray → arm red (no countdown yet)
+armHomeTracker();
 }
 };
 if(upB)upB.onclick=e=>{
