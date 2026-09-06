@@ -289,6 +289,25 @@ background:#888;box-shadow:0 0 0 2px rgba(255,255,255,.25) inset;
 transition:background .15s ease,box-shadow .15s ease;
 }
 #armB.armed .armDot{background:#ff3355;box-shadow:0 0 10px rgba(255,51,85,.65),0 0 0 2px rgba(255,255,255,.3) inset;}
+#bodyPick{
+position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:80;background:rgba(0,0,0,.55);
+}
+#bodyPick.open{display:flex}
+#bodyPick .tp-box{
+background:rgba(12,14,22,.95);border:1px solid rgba(0,240,255,.35);border-radius:14px;padding:22px 20px 18px;max-width:340px;width:90%;
+box-shadow:0 0 28px rgba(0,240,255,.15);
+}
+#bodyPick .tp-title{font-family:Orbitron,sans-serif;font-size:.85rem;color:var(--cyan);letter-spacing:.08em;margin:0 0 8px}
+#bodyPick .tp-msg{font-family:Exo 2,sans-serif;font-size:.78rem;color:#c0d0e8;line-height:1.45;margin:0 0 16px}
+#bodyPick .tp-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#bodyPick .tp-row button{
+font-family:Orbitron,sans-serif;font-size:.62rem;letter-spacing:.02em;padding:10px 8px;border-radius:10px;
+background:rgba(20,24,36,.9);border:1px solid rgba(255,255,255,.2);color:#e8f0ff;cursor:pointer;
+flex:1 1 40%;min-width:0;white-space:normal;line-height:1.25;text-align:center;
+}
+#bodyPick .tp-row button:hover{border-color:#00e5ff;box-shadow:0 0 12px rgba(0,229,255,.25)}
+#bodyPick .tp-row button.primary{background:rgba(0,240,255,.18);border-color:rgba(0,240,255,.65)}
+#bodyPick .tp-x{position:absolute;top:10px;right:12px;background:transparent;border:none;color:#fff;font-size:1.1rem;cursor:pointer;opacity:.7}
 #trackPick{
 position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;
 background:rgba(2,4,10,.78);backdrop-filter:blur(8px);
@@ -317,8 +336,8 @@ color:rgba(0,229,255,.9);text-align:center;text-shadow:0 0 8px rgba(0,0,0,.8);
 left:50%;transform:translateX(-50%);
 }
 #trackHint.show{display:block}
-#mouthVid,#mouthCam{
-position:fixed;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;
+#mouthVid,#bodyVid,#mouthCam{
+position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;
 }
 #trackAnchors{
 position:fixed;z-index:54;display:none;pointer-events:none;
@@ -364,6 +383,19 @@ color:rgba(0,240,255,.9);letter-spacing:.04em;pointer-events:none;
 text-shadow:0 0 8px rgba(0,0,0,.85);
 }
 #waveHint.hide{display:none;}
+#audioSyncWrap{
+position:fixed;z-index:56;display:none;align-items:center;gap:8px;
+left:50%;transform:translateX(-50%);
+bottom:118px;
+background:rgba(8,12,22,.9);border:1px solid rgba(0,229,255,.35);
+border-radius:12px;padding:5px 12px;pointer-events:auto;
+}
+#audioSyncWrap.show{display:flex}
+#audioSyncWrap .asLabel{font-family:Orbitron,sans-serif;font-size:.5rem;color:#00e5ff;letter-spacing:.05em;white-space:nowrap}
+#audioSyncWrap .asVal{font-family:Orbitron,sans-serif;font-size:.5rem;color:#e8f0ff;min-width:36px}
+#audioSync{
+width:110px;accent-color:#00e5ff;cursor:pointer;
+}
 #waveHit{
 position:absolute;inset:0;z-index:4;cursor:ew-resize;touch-action:none;background:transparent;
 }
@@ -440,8 +472,8 @@ body.home-exporting #trackPick{pointer-events:none!important;}
 <div id="trackPick">
 <div class="tp-box" style="position:relative">
 <button type="button" class="tp-x" id="tpX" title="Close">X</button>
-<div class="tp-title">MOUTH TRACKER</div>
-<div class="tp-msg">Choose LIVE CAMERA or UPLOAD VIDEO. Face tracking runs the same either way. Arm (red), press red again for countdown — face motion records locked to the audio timeline. Live cam is mirrored.</div>
+<div class="tp-title">FACE TRACKER</div>
+<div class="tp-msg" id="tpMsg">Choose LIVE CAMERA or UPLOAD VIDEO for face tracking. Arm (red), press again for countdown. Live cam is mirrored.</div>
 <div class="tp-row">
 <button type="button" class="primary" id="tpUpload">UPLOAD VIDEO</button>
 <button type="button" class="primary" id="tpRecord">LIVE CAMERA</button>
@@ -451,16 +483,36 @@ body.home-exporting #trackPick{pointer-events:none!important;}
 </div>
 </div>
 </div>
+<div id="bodyPick">
+<div class="tp-box" style="position:relative">
+<button type="button" class="tp-x" id="bpX" title="Close">X</button>
+<div class="tp-title">BODY TRACKER</div>
+<div class="tp-msg" id="bpMsg">Upload a body video (muted). Stick figure body automatically follows a detected person while the video plays (body mode and face mode). Head stays fixed.</div>
+<div class="tp-row">
+<button type="button" class="primary" id="bpUpload">UPLOAD VIDEO</button>
+</div>
+<div class="tp-row" style="margin-top:10px">
+<button type="button" id="bpClear" style="flex:1 1 100%">CLEAR VIDEO</button>
+</div>
+</div>
+</div>
 <div id="trackHint"></div>
 <video id="mouthVid" playsinline webkit-playsinline muted></video>
+<video id="bodyVid" playsinline webkit-playsinline muted style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none"></video>
 <video id="mouthCam" playsinline webkit-playsinline muted></video>
 <input type="file" id="mouthVideoFile" accept="video/*,.mp4,.webm,.mov,.m4v" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0">
+<input type="file" id="bodyVideoFile" accept="video/*,.mp4,.webm,.mov,.m4v" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0">
 <input type="file" id="audioFile" accept="audio/*,video/*,.mp3,.wav,.ogg,.m4a,.aac,.flac,.mp4,.webm,.mov,.mkv,.m4v,.avi">
 <div id="waveWrap">
 <div id="waveBars"></div>
 <div id="waveHead"></div>
 <div id="waveHint">PRESS PLAY</div>
 <div id="waveHit"></div>
+</div>
+<div id="audioSyncWrap" title="Shift audio earlier (−) or later (+) vs the video">
+<span class="asLabel">AUDIO</span>
+<input type="range" id="audioSync" min="-1.5" max="1.5" step="0.05" value="0"/>
+<span class="asVal" id="audioSyncVal">0.00s</span>
 </div>
 <div id="homeModal">
 <div class="hm-box">
@@ -547,9 +599,38 @@ let faceLandmarkerLoading=null;
 let mouthTrackLastTs=-1;
 let mouthCamStream=null;
 let mouthRecordingCam=false;
+let mouthRecordedBlob=null; // last live-cam take blob for playback/audio
 let mouthMediaRecorder=null;
 let mouthRecordChunks=[];
 let mouthLivePreview=false; // true while live cam shown in border before/during arm
+let bodyTrackMode=false;      // body tracking mode (face video hidden, body from pose)
+let bodyTrack=null;           // [{t, joints:{...}}] recorded body vs audio time
+let bodyTrackingActive=false; // currently capturing body samples
+let bodyRecordBuffer=null;
+let bodyRecordStart=0;
+let poseLandmarker=null;
+let poseLandmarkerLoading=null;
+let bodyVideo=null;
+let bodyVideoUrl=null;
+let bodyVideoReady=false;
+let bodyLivePreview=false;
+let bodyVideoPlaying=false;
+let bodyOverlay=null; // current joint positions {name:{nx,ny}}
+let bodyJointTracks={}; // name -> [{t,nx,ny},...]
+let bodyJointHold=null; // {name, phase:'cd'|'rec', t0, recStart}
+let bodyJointCdMs=5000;
+let bodyJointOverride={}; // free-place pose until re-recorded
+let bodyJointRest={};
+
+
+let bodyOverlayDrag=null;
+let lastMapBorder={l:0,t:0,w:100,h:100};
+
+
+
+let armHoldTimer=null;
+let armHoldFired=false;
+
 // Home audio + waveform (builds left→right in real time while playing)
 let homeAudio=null; // HTMLAudioElement
 let homeAudioUrl=null;
@@ -559,6 +640,8 @@ let homeWaveProg=0; // 0=off-screen above, 1=docked under $
 let homeWaveDragging=false;
 let homeWaveDragRatio=0;
 let homeAudioPlaying=false;
+let homeAudioDelay=0; // seconds: + = audio later (video ahead), − = audio earlier
+
 let homeWaveLoading=false;
 let homeWaveCssW=300,homeWaveCssH=56;
 let homeACtx=null,homeAnalyser=null,homeMediaSrc=null;
@@ -567,11 +650,13 @@ let homeAudioLevel=0; // 0..1 smoothed loudness from playing audio
 function ensureHomeAnalyser(){
 if(!homeAudio)return null;
 try{
+try{homeAudio.muted=false; homeAudio.volume=1;}catch(e){}
 if(!homeACtx){
 homeACtx=new (window.AudioContext||window.webkitAudioContext)();
 }
 if(homeACtx.state==='suspended'){try{homeACtx.resume();}catch(e){}}
 if(!homeMediaSrc){
+// Route element → analyser → speakers so audio still plays
 homeMediaSrc=homeACtx.createMediaElementSource(homeAudio);
 homeAnalyser=homeACtx.createAnalyser();
 homeAnalyser.fftSize=512;
@@ -583,13 +668,14 @@ homeAnalyserData=new Uint8Array(homeAnalyser.fftSize);
 return homeAnalyser;
 }catch(e){
 console.warn('analyser',e);
+// If MediaElementSource fails, element still plays through default output
 return null;
 }
 }
 function sampleHomeAudioLevel(){
 let lvl=0;
 const an=ensureHomeAnalyser();
-if(an&&homeAnalyserData&&homeAudioPlaying&&homeAudio&&!homeAudio.paused){
+if(an&&homeAnalyserData&&homeAudioPlaying&&homeAudio&&!homeAudio.paused&&!homeWaveDragging){
 try{
 an.getByteTimeDomainData(homeAnalyserData);
 let sum=0;
@@ -611,7 +697,7 @@ return homeAudioLevel;
 function mouthDramaFromAudio(){
 // 1 = neutral tracked motion; louder → more intense (capped ~1.4x)
 const v=Math.max(0, Math.min(1, homeAudioLevel||0));
-return Math.min(1.5, 1 + v*v*0.5 + v*0.28);
+return Math.min(1.35, 1 + v*v*0.4 + v*0.25);
 }
 
 const HOME_WAVE_BINS=200;
@@ -884,6 +970,7 @@ if(homeTrans&&!{centerX:1,toFloor:1,glideBack:1,restore:1}[homeTrans.phase]){
 return; // cinematic faces during jump/idle
 }
 if(homeAway&&!homeTrans){BODY.faceDir=6;return;}
+if(bodyTrackMode&&homeAway){BODY.faceDir=6;return;}
 const now=Date.now();
 const deepSplits=BODY.landT>0.35;
 if(deepSplits)BODY.faceDir=3;
@@ -893,6 +980,18 @@ else if(BODY.pose==='fall')BODY.faceDir=5;
 else BODY.faceDir=0;
 }
 function bodyUpdate(){
+if(bodyPoseActive||bodyTrackMode||bodyVideoPlaying||bodyLivePreview||(bodyVideoReady&&(homeAudioPlaying||bodyVideoPlaying))){
+if(!BODY.ready||!BODY.pts)bodyReset();
+// Head centered horizontally; neck extends below head (shoulders further down)
+const r=Math.max(14,circle.radius);
+if(BODY.pts&&BODY.pts.neck){
+BODY.pts.neck.x=circle.x;
+BODY.pts.neck.y=circle.y+r*0.98+r*0.55*0.5;
+BODY.pts.neck.px=BODY.pts.neck.x;
+BODY.pts.neck.py=BODY.pts.neck.y;
+}
+return;
+}
 if(!BODY.ready||!BODY.pts)bodyReset();
 // lockTrans no longer freezes the body — pose/borders/faces run during the glide
 const pts=BODY.pts;
@@ -1014,7 +1113,7 @@ return Math.PI/2; // ball stays upright; glance is drawn into the face
 // Draw stick-figure mouth visemes (used in home face dir===6)
 function drawHomeMouthViseme(ctx,s,mouthY,shape){
 const live = homeMouthTrackLive || homeMouthOpenN>0.01;
-const scale = s * 1.08;
+const scale = s * 1.16;
 // Clamp lip extents so mouth never balloons past a reasonable size
 function clampLip(p, def){
 p=p||def;
@@ -1034,7 +1133,7 @@ L={x:L.x,y:cy}; R={x:R.x,y:cy};
 }
 // Cap vertical opening
 let openRaw = Math.max(0, Lo.y - U.y);
-const maxOpen = 0.38;
+const maxOpen = 0.34;
 if(openRaw > maxOpen){
 const mid = (U.y+Lo.y)*0.5;
 U={x:U.x, y:mid - maxOpen*0.5};
@@ -1047,60 +1146,72 @@ function px(p){return mx + p.x * scale;}
 function py(p){return baseY + p.y * scale;}
 ctx.save();
 ctx.lineCap='round';ctx.lineJoin='round';
-ctx.strokeStyle='#111';
+const lipCol='#111';
 const openDist = openRaw;
-const isOpen = openDist > 0.07 || (homeMouthOpenN||0) > 0.12;
+const openN=Math.max(0, Math.min(1, homeMouthOpenN||0));
 if(!live){
-ctx.lineWidth=Math.max(2.1,s*0.075);
+ctx.lineWidth=Math.max(2.4,s*0.085);
+ctx.strokeStyle=lipCol;
 ctx.beginPath();
-ctx.moveTo(px({x:-0.24,y:0}), py({x:0,y:0}));
-ctx.lineTo(px({x:0.24,y:0}), py({x:0,y:0}));
+ctx.moveTo(px({x:-0.14,y:0}), py({x:0,y:0}));
+ctx.lineTo(px({x:0.14,y:0}), py({x:0,y:0}));
 ctx.stroke();
 ctx.restore();
 return;
 }
-if(!isOpen){
-// Closed / near-closed: single lip curve from tracked points only
-ctx.lineWidth=Math.max(2.2,s*0.08);
+const Lx=px(L), Ly=py(L), Rx=px(R), Ry=py(R);
+const Uy=py(U), Loy=py(Lo);
+const openGap=Math.max(0.001, Loy-Uy);
+const mouthAng=Math.atan2(Ry-Ly, Rx-Lx);
+const mcx=(Lx+Rx)*0.5;
+const mcy=(Uy+Loy)*0.5;
+const slightlyOpen = openDist > 0.01 || openN > 0.025;
+const wideOpen = openDist > 0.14 || openN > 0.35;
+
+if(!slightlyOpen){
+ctx.lineWidth=Math.max(2.6,s*0.09);
+ctx.strokeStyle=lipCol;
 ctx.beginPath();
 ctx.moveTo(px(L), py(L));
 ctx.quadraticCurveTo(px(U), py(U), px(R), py(R));
 ctx.stroke();
-if(openDist > 0.02){
-ctx.lineWidth=Math.max(1.6,s*0.055);
-ctx.beginPath();
-ctx.moveTo(px(L), py(L));
-ctx.quadraticCurveTo(px(Lo), py(Lo), px(R), py(R));
-ctx.stroke();
-}
 }else{
-// Open mouth from tracked lip points
+// Light pink cavity (not black) — deeper only when wide
 ctx.beginPath();
 ctx.moveTo(px(L), py(L));
 ctx.quadraticCurveTo(px(U), py(U), px(R), py(R));
 ctx.quadraticCurveTo(px(Lo), py(Lo), px(L), py(L));
 ctx.closePath();
-ctx.fillStyle='#1a0a0c';
+ctx.fillStyle=wideOpen?'#c47888':'#e8b4bc';
 ctx.fill();
-// Top teeth only — tucked under upper lip, tilted with mouth corners
-const Lx=px(L), Ly=py(L), Rx=px(R), Ry=py(R);
-const Uy=py(U), Loy=py(Lo);
-const openGap=Math.max(0, Loy-Uy);
-if(openGap > s*0.06 && (homeMouthOpenN||0) > 0.14){
-const mouthAng=Math.atan2(Ry-Ly, Rx-Lx);
-const mcx=(Lx+Rx)*0.5;
-// Top row: a bit lower under the upper lip so it reads more clearly
-const teethY=Uy + openGap*0.18;
-const teethW=Math.hypot(Rx-Lx, Ry-Ly)*0.68;
-const teethH=Math.max(s*0.02, Math.min(openGap*0.36, s*0.095));
+// Teeth size from mouth open amount only — not head pitch / projected gap
+{
+const teethW=Math.min(Math.hypot(Rx-Lx, Ry-Ly)*0.88, s*0.75);
+const gap=s*Math.max(0.02, Math.min(0.28, 0.04+openN*0.30));
+const slit=Math.max(s*0.004, Math.min(gap*0.12, s*0.018));
+const topH=Math.max(s*0.03, (gap*0.5 - slit*0.5));
+const botH=Math.max(s*0.022, (gap*0.5 - slit*0.5)*0.85);
 ctx.save();
-ctx.translate(mcx, teethY);
+ctx.beginPath();
+ctx.moveTo(px(L), py(L));
+ctx.quadraticCurveTo(px(U), py(U), px(R), py(R));
+ctx.quadraticCurveTo(px(Lo), py(Lo), px(L), py(L));
+ctx.closePath();
+ctx.clip();
+ctx.translate(mcx, mcy);
 ctx.rotate(mouthAng);
-ctx.fillStyle='rgba(245,245,240,0.95)';
-ctx.fillRect(-teethW*0.5, 0, teethW, teethH);
+const half=gap*0.5;
+ctx.fillStyle='#ffffff';
+// Top teeth: hang low from upper lip
+ctx.fillRect(-teethW*0.5, -half + s*0.002, teethW, topH);
+// Bottom teeth: rise high from lower lip
+ctx.fillStyle='#f0f0eb';
+ctx.fillRect(-teethW*0.46, half - botH - s*0.002, teethW*0.92, botH);
 ctx.restore();
 }
-ctx.lineWidth=Math.max(1.7,s*0.055);
+// Black lips
+ctx.lineWidth=Math.max(2.6,s*0.09);
+ctx.strokeStyle=lipCol;
 ctx.beginPath();
 ctx.moveTo(px(L), py(L));
 ctx.quadraticCurveTo(px(U), py(U), px(R), py(R));
@@ -1118,6 +1229,14 @@ if(el)el.classList.add('open');
 }
 function closeTrackPicker(){
 const el=$('trackPick');
+if(el)el.classList.remove('open');
+}
+function openBodyPicker(){
+const el=$('bodyPick');
+if(el)el.classList.add('open');
+}
+function closeBodyPicker(){
+const el=$('bodyPick');
 if(el)el.classList.remove('open');
 }
 function setTrackHint(msg){
@@ -1182,13 +1301,18 @@ if(homeAudio||!blob)return false;
 try{
 if(homeAudioUrl){try{URL.revokeObjectURL(homeAudioUrl);}catch(e){}}
 homeAudioUrl=URL.createObjectURL(blob);
-// Prefer hidden video/audio element so video containers work
 const fakeFile = (blob instanceof File) ? blob : new File([blob], (label||'media')+'.webm', {type:blob.type||'video/webm'});
 homeAudio=createHomeMediaElement(fakeFile, homeAudioUrl);
+try{homeAudio.muted=false; homeAudio.volume=1;}catch(e){}
 homeAudio.addEventListener('timeupdate',()=>{
-if(!homeMouthRecording&&!homeArmed&&!homeWaveDragging){
-if(homeMouthTrack&&homeMouthTrack.length)updateMouthFromTrack();
+if(homeMouthRecording)return;
+if(homeMouthTrack&&homeMouthTrack.length){
+const t=homeVisualTime();
+applySampleToFace(mouthSampleAtAudioTime(t));
+BODY.faceDir=6;
+homeMouthTrackLive=true;
 }
+syncMouthVideoToAudio(false);
 });
 homeAudio.addEventListener('ended',()=>{
 if(homeMouthRecording){recordMouthSample();commitMouthRecording();}
@@ -1210,29 +1334,19 @@ const peaks=await analyzeAudioFile(fakeFile);
 finishWaveformPeaks(peaks);
 }catch(err){
 console.warn('analyze from video failed',err);
-// Still show a real-looking waveform shell so UI works
 try{
 const bins=HOME_WAVE_BINS;
 const peaks=new Float32Array(bins);
-// Try WebAudio decode once more
-try{
-const ab=await fakeFile.arrayBuffer();
-const actx=new (window.AudioContext||window.webkitAudioContext)();
-const decoded=await actx.decodeAudioData(ab.slice(0));
-const p=await peaksFromAudioBuffer(decoded);
-finishWaveformPeaks(p);
-try{actx.close();}catch(e){}
-}catch(e2){
 for(let i=0;i<bins;i++)peaks[i]=0.18+0.22*Math.abs(Math.sin(i*0.17))+0.1*Math.abs(Math.sin(i*0.41));
 finishWaveformPeaks(normalizePeaks(peaks));
-}
 }catch(e3){
 if(waveHint){waveHint.textContent='AUDIO READY';waveHint.classList.remove('hide');}
+homeWaveLoading=false;
 }
 }
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
 if(homeWaveProg>0.5)layoutHomeWave();
-setTrackHint((label||'VIDEO')+' WAVEFORM READY · PRESS RED TO RECORD');
+setTrackHint((label||'VIDEO')+' AUDIO READY · PLAY');
 return true;
 }catch(e){
 console.warn('adoptBlobAsHomeAudio',e);
@@ -1243,10 +1357,15 @@ return false;
 async function loadMouthVideoFile(file){
 if(!file)return;
 clearMouthVideo();
+if(homeArmed||homeArmCD||homeMouthRecording||bodyTrackingActive)cancelHomeArmCD();
+homeArmed=false;
+if(armB)armB.classList.remove('armed');
 mouthVideoUrl=URL.createObjectURL(file);
 const v=$('mouthVid');
 mouthVideo=v;
-v.muted=true;v.playsInline=true; // visual only — audio comes from waveform player
+v.muted=true;
+v.playsInline=true;
+v.loop=false;
 v.src=mouthVideoUrl;
 await new Promise((resolve,reject)=>{
 const ok=()=>{v.removeEventListener('loadeddata',ok);v.removeEventListener('error',bad);resolve();};
@@ -1255,21 +1374,38 @@ v.addEventListener('loadeddata',ok);
 v.addEventListener('error',bad);
 });
 try{v.currentTime=0;}catch(e){}
-try{await v.play(); v.pause();}catch(e){}
 mouthVideoReady=true;
 mouthAnchors=[];
 mouthLivePreview=false;
+
+// FACE MODE only
+try{await v.play(); v.pause();}catch(e){}
 await ensureFaceLandmarker();
 await sampleMouthFromVideoFrame();
-// If no separate audio was uploaded yet, use this video's audio as the waveform
-if(!homeAudio){
-setTrackHint('EXTRACTING AUDIO FROM VIDEO…');
+// Always replace waveform/audio with this face video's audio
+try{if(homeAudio)homeAudio.pause();}catch(e){}
+homeAudioPlaying=false;
+if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
+setTrackHint('LOADING VIDEO AUDIO…');
 const ok=await adoptBlobAsHomeAudio(file, 'VIDEO');
-if(!ok)setTrackHint('VIDEO READY (NO AUDIO TRACK) · UPLOAD AUDIO OR PRESS RED');
-else setTrackHint('VIDEO + WAVEFORM READY · PRESS RED AGAIN FOR COUNTDOWN');
-}else{
-setTrackHint('UPLOADED VIDEO READY · PRESS RED AGAIN FOR COUNTDOWN');
+if(!ok){
+try{
+if(homeAudioUrl){try{URL.revokeObjectURL(homeAudioUrl);}catch(e){}}
+homeAudioUrl=URL.createObjectURL(file);
+homeAudio=createHomeMediaElement(file, homeAudioUrl);
+homeAudio.muted=false; homeAudio.volume=1;
+homeWaveProg=1; showWaveShell();
+const bins=HOME_WAVE_BINS; const peaks=new Float32Array(bins);
+for(let i=0;i<bins;i++)peaks[i]=0.2+0.15*Math.abs(Math.sin(i*0.19));
+finishWaveformPeaks(normalizePeaks(peaks));
+setTrackHint('VIDEO AUDIO READY · PLAY · GRAY = CHANGE SOURCE');
+}catch(e){
+setTrackHint('VIDEO READY · UPLOAD AUDIO IF SILENT');
 }
+}else{
+setTrackHint('VIDEO + AUDIO READY · PLAY · GRAY = CHANGE SOURCE');
+}
+if(homeWaveProg>0.5)layoutHomeWave();
 draw();
 }
 async function startMouthCameraRecord(){
@@ -1319,6 +1455,63 @@ function stopMouthCameraRecordIfAny(){
 // No longer stop on canvas tap — live cam stays until Clear / disarm
 return false;
 }
+async function promoteLiveCamRecordingToFile(){
+// After a live-cam take: stop recorder, replace live feed with the recorded file for playback
+if(!mouthLivePreview)return false;
+try{
+if(mouthMediaRecorder && mouthMediaRecorder.state==='recording'){
+await new Promise(resolve=>{
+const prev=mouthMediaRecorder.onstop;
+mouthMediaRecorder.onstop=()=>{
+try{if(typeof prev==='function')prev();}catch(e){}
+resolve();
+};
+try{mouthMediaRecorder.stop();}catch(e){resolve();}
+});
+mouthRecordingCam=false;
+}
+}catch(e){console.warn(e);}
+let blob=null;
+if(mouthRecordChunks&&mouthRecordChunks.length){
+blob=new Blob(mouthRecordChunks,{type:mouthRecordChunks[0].type||'video/webm'});
+mouthRecordChunks=[];
+}
+// Also accept URL already set by onstop handler
+if(!blob && mouthVideoUrl){
+// already have a blob URL from onstop
+}else if(blob){
+mouthRecordedBlob=blob;
+if(mouthVideoUrl){try{URL.revokeObjectURL(mouthVideoUrl);}catch(e){}}
+mouthVideoUrl=URL.createObjectURL(blob);
+}
+if(!mouthVideoUrl)return false;
+// Stop live camera element
+try{
+const cam=$('mouthCam');
+if(cam){cam.pause();cam.srcObject=null;}
+}catch(e){}
+if(mouthCamStream){
+try{mouthCamStream.getTracks().forEach(t=>t.stop());}catch(e){}
+mouthCamStream=null;
+}
+// Switch to recorded file video
+const v=document.createElement('video');
+v.playsInline=true;v.muted=true;v.preload='auto';v.crossOrigin='anonymous';
+v.src=mouthVideoUrl;
+await new Promise((res)=>{
+const done=()=>res();
+v.onloadeddata=done;v.onerror=done;
+setTimeout(done,4000);
+try{v.load();}catch(e){}
+});
+mouthVideo=v;
+mouthVideoReady=true;
+mouthLivePreview=false;
+mouthMediaRecorder=null;
+try{v.currentTime=0;}catch(e){}
+return true;
+}
+
 async function ensureFaceLandmarker(){
 if(faceLandmarker)return faceLandmarker;
 if(faceLandmarkerLoading)return faceLandmarkerLoading;
@@ -1350,6 +1543,47 @@ faceLandmarkerLoading=null;
 })();
 return faceLandmarkerLoading;
 }
+async function ensurePoseLandmarker(){
+if(poseLandmarker)return poseLandmarker;
+if(poseLandmarkerLoading)return poseLandmarkerLoading;
+poseLandmarkerLoading=(async()=>{
+try{
+const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm');
+const {PoseLandmarker, FilesetResolver}=vision;
+const fileset=await FilesetResolver.forVisionTasks(
+'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+);
+try{
+poseLandmarker=await PoseLandmarker.createFromOptions(fileset,{
+baseOptions:{
+modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task',
+delegate:'GPU'
+},
+runningMode:'VIDEO',
+numPoses:1
+});
+}catch(eGpu){
+poseLandmarker=await PoseLandmarker.createFromOptions(fileset,{
+baseOptions:{
+modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task',
+delegate:'CPU'
+},
+runningMode:'VIDEO',
+numPoses:1
+});
+}
+return poseLandmarker;
+}catch(err){
+console.warn('PoseLandmarker load failed',err);
+poseLandmarker=null;
+return null;
+}finally{
+poseLandmarkerLoading=null;
+}
+})();
+return poseLandmarkerLoading;
+}
+
 // Lip landmark indices (MediaPipe Face Mesh refined)
 const LIP_TOP=[13,14,312]; // upper inner
 const LIP_BOT=[14,17,317]; // will use 17 mid lower
@@ -1373,7 +1607,7 @@ const eyeMidX=(le.x+re.x)/2, eyeMidY=(le.y+re.y)/2;
 let headYaw=Math.max(-1,Math.min(1, (nose.x-eyeMidX)/(faceW*0.55)));
 const noseBelowEyes=(nose.y-eyeMidY)/Math.max(1e-6,faceW);
 // Typical forward pose nose-below-eyes ≈ 0.28–0.38 of faceW — subtract neutral
-let headPitch=Math.max(-1,Math.min(1, (noseBelowEyes - 0.32)/0.55));
+let headPitch=Math.max(-1,Math.min(1, (noseBelowEyes - 0.34)/0.5));
 // Key lip landmarks (MediaPipe)
 const L=lm[61], R=lm[291];           // corners
 const Up=lm[13], Lo=lm[17];          // inner upper / lower mid
@@ -1401,6 +1635,11 @@ const cornerMid=(lipL.y+lipR.y)*0.5;
 // Force corners onto a shared horizontal relative to mouth (no independent tilt)
 lipL.y = midLipY + (cornerMid-midLipY)*0.5;
 lipR.y = lipL.y;
+// Keep mouth width stable when head yaws (prevents side-to-side stretch)
+{
+const halfW=Math.min(0.34, Math.max(0.16, Math.abs(lipR.x-lipL.x)*0.5));
+lipL.x=-halfW; lipR.x=halfW;
+}
 const openRaw=Math.max(0, nLo.y-nU.y);
 const openN=Math.max(0,Math.min(1, Math.pow(Math.max(0,(openRaw-0.008)/0.18), 1.05)));
 const widthN=Math.max(0.08,Math.min(0.7, (Math.abs(nR.x-nL.x)-0.2)/0.45));
@@ -1424,8 +1663,12 @@ const eyeX=Math.max(-1,Math.min(1,(((lIris.x-lEyeCx)/(lEyeW*0.45))+((rIris.x-rEy
 const eyeY=Math.max(-1,Math.min(1,(((lIris.y-lEyeCy)/(lEyeH*0.7+0.01))+((rIris.y-rEyeCy)/(rEyeH*0.7+0.01)))/2));
 let eyeOpen=Math.max(0.05,Math.min(1, (((lEyeH+rEyeH)/2)/faceW - 0.015)/0.09));
 const browLin=lm[55]||lm[107], browRin=lm[285]||lm[336];
-const browL=Math.max(-1,Math.min(1,(lEyeCy-faceW*0.32-browLin.y)/(faceW*0.12)));
-const browR=Math.max(-1,Math.min(1,(rEyeCy-faceW*0.32-browRin.y)/(faceW*0.12)));
+const browLout=lm[70]||lm[46]||browLin, browRout=lm[300]||lm[276]||browRin;
+// Exaggerated but still landmark-driven
+const browL=Math.max(-1,Math.min(1, ((lEyeCy-browLin.y)/Math.max(1e-6,faceW) - 0.22)/0.07 * 1.35
++ ((lEyeCy-browLout.y)/Math.max(1e-6,faceW) - 0.2)/0.1 * 0.4));
+const browR=Math.max(-1,Math.min(1, ((rEyeCy-browRin.y)/Math.max(1e-6,faceW) - 0.22)/0.07 * 1.35
++ ((rEyeCy-browRout.y)/Math.max(1e-6,faceW) - 0.2)/0.1 * 0.4));
 let smile=smileGeom, frown=frownGeom, jaw=0, pucker=0, eyeWideL=0, eyeWideR=0, blinkL=0, blinkR=0;
 if(blendCats){
 let sL=0,sR=0,fL=0,fR=0;
@@ -1463,11 +1706,17 @@ lipL, lipR, lipUp, lipLo
 }
 function applyFaceMetrics(m, smooth){
 if(!m)return;
-const a = smooth?0.45:1;
-function lerp(cur, tgt){return cur*(1-a)+tgt*a;}
-function lerpP(cur, tgt){
+const aMouth = smooth?0.85:1; // keep mouth responsive
+const aSoft = smooth?0.55:1;  // eyes/brows/head less twitchy
+function lerp(cur, tgt, aa){aa=aa!=null?aa:aMouth; return cur*(1-aa)+tgt*aa;}
+function lerpP(cur, tgt, aa){
 if(!cur)cur={x:0,y:0};
-return {x:lerp(cur.x,tgt.x), y:lerp(cur.y,tgt.y)};
+aa=aa!=null?aa:aMouth;
+return {x:lerp(cur.x,tgt.x,aa), y:lerp(cur.y,tgt.y,aa)};
+}
+function dead(cur, tgt, eps){
+if(Math.abs(tgt-cur)<eps)return cur;
+return tgt;
 }
 const mirror = !!mouthLivePreview;
 const eyeX = mirror ? -(m.eyeX||0) : (m.eyeX||0);
@@ -1482,32 +1731,42 @@ lipR={x:-(m.lipL?m.lipL.x:0.28), y:(m.lipL?m.lipL.y:0)};
 lipUp={x:-(m.lipUp?m.lipUp.x:0), y:(m.lipUp?m.lipUp.y:-0.04)};
 lipLo={x:-(m.lipLo?m.lipLo.x:0), y:(m.lipLo?m.lipLo.y:0.04)};
 }
-homeMouthOpenN=lerp(homeMouthOpenN, m.openN);
+homeMouthOpenN=lerp(homeMouthOpenN, dead(homeMouthOpenN, m.openN, 0.012), aMouth);
 let w=m.widthN;
 if(m.pucker>0.2)w=Math.min(w,0.28+(1-m.pucker)*0.25);
-homeMouthWidthN=lerp(homeMouthWidthN, w);
-homeMouthSmile=lerp(homeMouthSmile||0, m.smile||0);
-homeMouthFrown=lerp(homeMouthFrown||0, m.frown||0);
-homeMouthLipX=lerp(homeMouthLipX||0, lipX);
-homeEyeX=lerp(homeEyeX||0, eyeX);
-homeEyeY=lerp(homeEyeY||0, m.eyeY||0);
-homeEyeOpen=lerp(homeEyeOpen!=null?homeEyeOpen:0.55, m.eyeOpen!=null?m.eyeOpen:0.55);
-homeBrowL=lerp(homeBrowL||0, browL);
-homeBrowR=lerp(homeBrowR||0, browR);
-homeLipL=lerpP(homeLipL, lipL);
-homeLipR=lerpP(homeLipR, lipR);
-homeLipUp=lerpP(homeLipUp, lipUp);
-homeLipLo=lerpP(homeLipLo, lipLo);
+homeMouthWidthN=lerp(homeMouthWidthN, w, aMouth);
+homeMouthSmile=lerp(homeMouthSmile||0, m.smile||0, aMouth);
+homeMouthFrown=lerp(homeMouthFrown||0, m.frown||0, aMouth);
+homeMouthLipX=lerp(homeMouthLipX||0, lipX, aMouth);
+homeEyeX=lerp(homeEyeX||0, dead(homeEyeX||0, eyeX, 0.02), aSoft);
+homeEyeY=lerp(homeEyeY||0, dead(homeEyeY||0, m.eyeY||0, 0.02), aSoft);
+homeEyeOpen=lerp(homeEyeOpen!=null?homeEyeOpen:0.55, m.eyeOpen!=null?m.eyeOpen:0.55, aSoft);
+const exprSmile=Math.max(0, m.smile||0);
+const exprFrown=Math.max(0, m.frown||0);
+const browBoost=1+exprFrown*0.55-exprSmile*0.2;
+homeBrowL=lerp(homeBrowL||0, Math.max(-1,Math.min(1,browL*browBoost - exprSmile*0.15 + exprFrown*0.25)), aSoft);
+homeBrowR=lerp(homeBrowR||0, Math.max(-1,Math.min(1,browR*browBoost - exprSmile*0.15 + exprFrown*0.25)), aSoft);
+if(exprSmile>0.15){
+homeEyeOpen=lerp(homeEyeOpen!=null?homeEyeOpen:0.55, Math.min(1.2,(m.eyeOpen||0.55)+exprSmile*0.2), aSoft);
+}
+if(exprFrown>0.15){
+homeEyeOpen=lerp(homeEyeOpen!=null?homeEyeOpen:0.55, Math.max(0.2,(m.eyeOpen||0.55)-exprFrown*0.12), aSoft);
+}
+homeLipL=lerpP(homeLipL, lipL, aMouth);
+homeLipR=lerpP(homeLipR, lipR, aMouth);
+homeLipUp=lerpP(homeLipUp, lipUp, aMouth);
+homeLipLo=lerpP(homeLipLo, lipLo, aMouth);
 const tilt = mirror ? -(m.headTilt||0) : (m.headTilt||0);
-homeHeadTilt=lerp(homeHeadTilt||0, tilt);
-const yaw = (mirror ? -(m.headYaw||0) : (m.headYaw||0)) * 0.35;
-const pitch = (m.headPitch||0) * 0.3;
-homeHeadYaw=lerp(homeHeadYaw||0, yaw);
-homeHeadPitch=lerp(homeHeadPitch||0, pitch); // already scaled in metrics
+homeHeadTilt=lerp(homeHeadTilt||0, tilt, aSoft);
+const yaw = (mirror ? -(m.headYaw||0) : (m.headYaw||0)) * 1.15;
+// Invert pitch; bias so neutral face sits level (was too low)
+const pitch = -(m.headPitch||0) * 0.28 + 0.08;
+homeHeadYaw=lerp(homeHeadYaw||0, Math.max(-1.35,Math.min(1.35,yaw)), aSoft);
+homeHeadPitch=lerp(homeHeadPitch||0, Math.max(-0.55,Math.min(0.55,pitch)), aSoft);
 // Head bob (small, eases toward target each frame)
 let bobX = m.headBobX||0, bobY = m.headBobY||0;
 if(mirror) bobX = -bobX;
-const bobA = smooth?0.2:1;
+const bobA = smooth?0.55:1;
 homeHeadBobX = (homeHeadBobX||0)*(1-bobA) + bobX*0.14*bobA;
 homeHeadBobY = (homeHeadBobY||0)*(1-bobA) + bobY*0.12*bobA;
 homeHeadBobX = Math.max(-0.08, Math.min(0.08, homeHeadBobX));
@@ -1538,6 +1797,32 @@ homeLipLo={x:homeLipLo.x,y:mid+0.19};
 homeMouthOpen=homeMouthOpenN>0.06;
 homeMouthTrackLive=true;
 }
+function restFacePose(smooth){
+const a=smooth?0.12:1;
+function L(c,t){return c*(1-a)+t*a;}
+function LP(c,t){c=c||t; return {x:L(c.x,t.x),y:L(c.y,t.y)};}
+homeMouthOpenN=L(homeMouthOpenN||0, 0);
+homeMouthWidthN=L(homeMouthWidthN||0.45, 0.45);
+homeMouthSmile=L(homeMouthSmile||0, 0);
+homeMouthFrown=L(homeMouthFrown||0, 0);
+homeMouthLipX=L(homeMouthLipX||0, 0);
+homeEyeX=L(homeEyeX||0, 0);
+homeEyeY=L(homeEyeY||0, 0);
+homeEyeOpen=L(homeEyeOpen!=null?homeEyeOpen:0.55, 0.55);
+homeBrowL=L(homeBrowL||0, 0);
+homeBrowR=L(homeBrowR||0, 0);
+homeHeadTilt=L(homeHeadTilt||0, 0);
+homeHeadYaw=L(homeHeadYaw||0, 0);
+homeHeadPitch=L(homeHeadPitch||0, 0);
+homeHeadBobX=L(homeHeadBobX||0, 0);
+homeHeadBobY=L(homeHeadBobY||0, 0);
+homeLipL=LP(homeLipL,{x:-0.16,y:0});
+homeLipR=LP(homeLipR,{x:0.16,y:0});
+homeLipUp=LP(homeLipUp,{x:0,y:-0.02});
+homeLipLo=LP(homeLipLo,{x:0,y:0.03});
+homeMouthWidthN=L(homeMouthWidthN||0.45, 0.28);
+homeMouthTrackLive=true;
+}
 async function sampleMouthFromVideoFrame(){
 if(!mouthVideo||!mouthVideoReady)return false;
 const fl=await ensureFaceLandmarker();
@@ -1545,7 +1830,8 @@ if(!fl){
 return sampleFromAnchorsOnly();
 }
 const ts=performance.now();
-if(ts-mouthTrackLastTs<20)return false;
+const faceMinGap=(bodyVideoReady&&(homeAudioPlaying||bodyVideoPlaying))?28:10;
+if(ts-mouthTrackLastTs<faceMinGap)return false;
 mouthTrackLastTs=ts;
 try{
 const res=fl.detectForVideo(mouthVideo, ts);
@@ -1555,8 +1841,12 @@ const m=faceMetricsFromLandmarks(res.faceLandmarks[0], cats);
 applyFaceMetrics(m, true);
 return true;
 }
+// No face detected → ease to resting face
+restFacePose(true);
+return false;
 }catch(e){console.warn(e);}
-return sampleFromAnchorsOnly();
+restFacePose(true);
+return false;
 }
 function sampleFromAnchorsOnly(){
 return false;
@@ -1582,6 +1872,27 @@ const scale=Math.max(bW/vw, bH/vh);
 const dw=vw*scale, dh=vh*scale;
 const dx=bL+(bW-dw)/2, dy=bT+(bH-dh)/2;
 return {dx,dy,dw,dh,vw,vh};
+}
+function drawBodyVideoBehind(ctx,bL,bT,bW,bH){
+// Canvas-only inside 9:16 border; DOM <video> stays off-screen
+if(!bodyTrackMode||!bodyVideo||!bodyVideoReady)return;
+const v=bodyVideo;
+const vw=Math.max(1,v.videoWidth||1), vh=Math.max(1,v.videoHeight||1);
+const scale=Math.max(bW/vw, bH/vh);
+const dw=vw*scale, dh=vh*scale;
+const dx=bL+(bW-dw)/2, dy=bT+(bH-dh)/2;
+ctx.save();
+ctx.beginPath();
+ctx.rect(bL, bT, bW, bH);
+ctx.clip();
+if(bodyLivePreview){
+ctx.translate(bL+bW, bT);
+ctx.scale(-1, 1);
+ctx.drawImage(v, (bW-dw)/2, (bH-dh)/2, dw, dh);
+}else{
+ctx.drawImage(v, dx, dy, dw, dh);
+}
+ctx.restore();
 }
 function drawMouthVideoBehind(ctx,bL,bT,bW,bH){
 if(!mouthVideo||!mouthVideoReady)return;
@@ -1665,6 +1976,7 @@ openN:homeMouthOpenN, widthN:homeMouthWidthN,
 smile:homeMouthSmile, frown:homeMouthFrown, lipX:homeMouthLipX,
 eyeX:homeEyeX, eyeY:homeEyeY, eyeOpen:homeEyeOpen, browL:homeBrowL, browR:homeBrowR,
 headTilt:homeHeadTilt||0, headBobX:homeHeadBobX||0, headBobY:homeHeadBobY||0,
+headYaw:homeHeadYaw||0, headPitch:homeHeadPitch||0,
 lipL:homeLipL?{x:homeLipL.x,y:homeLipL.y}:null,
 lipR:homeLipR?{x:homeLipR.x,y:homeLipR.y}:null,
 lipUp:homeLipUp?{x:homeLipUp.x,y:homeLipUp.y}:null,
@@ -1682,6 +1994,456 @@ return;
 buf.push(sample);
 }
 
+
+// ----- Body tracking (pose → stick figure) -----
+const BODY_JOINT_KEYS=['chest','hip','lShoulder','rShoulder','lElbow','rElbow','lHand','rHand','lKnee','rKnee','lFoot','rFoot'];
+function enterBodyTrackMode(){
+bodyTrackMode=true;
+mouthLivePreview=false;
+if(mouthVideo){try{mouthVideo.pause();}catch(e){}}
+setTrackHint('BODY MODE · UPLOAD VIDEO · AUTO BODY TRACKING');
+openBodyPicker();
+if(BODY.pts)stickToOverlayFromBody();
+draw();
+}
+function exitBodyTrackMode(){
+bodyTrackMode=false;
+bodyTrackingActive=false;
+bodyRecordBuffer=null;
+bodyLivePreview=false;
+bodyVideoPlaying=false;
+bodyJointHold=null;bodyOverlayDrag=null;
+if(bodyVideo){try{bodyVideo.pause();bodyVideo.playbackRate=1;}catch(e){}}
+
+closeBodyPicker();
+setTrackHint('FACE MODE');
+draw();
+}
+function openBodyModePrompt(){
+// Hold circle: toggle face ↔ body mode
+if(bodyTrackMode){
+openHomeModal('Switch back to FACE video mode? Saved body animation still plays with audio.',[
+{label:'Face mode',primary:true,fn:()=>exitBodyTrackMode()},
+{label:'Stay body mode',fn:null}
+]);
+}else{
+openHomeModal('Switch to BODY tracking mode? Face animation + audio stay. Pick a body video (muted).',[
+{label:'Body mode',primary:true,fn:()=>enterBodyTrackMode()},
+{label:'Stay face mode',fn:null}
+]);
+}
+}
+function clearBodyVideo(){
+if(bodyVideo){
+try{bodyVideo.pause();}catch(e){}
+try{bodyVideo.removeAttribute('src');bodyVideo.load();}catch(e){}
+}
+if(bodyVideoUrl){try{URL.revokeObjectURL(bodyVideoUrl);}catch(e){}}
+bodyVideoUrl=null;bodyVideo=null;bodyVideoReady=false;bodyLivePreview=false;
+if(mouthCamStream&&bodyTrackMode){
+try{mouthCamStream.getTracks().forEach(t=>t.stop());}catch(e){}
+mouthCamStream=null;
+}
+}
+async function loadBodyVideoFile(file){
+if(!file)return;
+clearBodyVideo();
+bodyVideoUrl=URL.createObjectURL(file);
+const v=$('bodyVid');
+bodyVideo=v;
+v.muted=true;
+v.playsInline=true;
+v.loop=false;
+v.removeAttribute('loop');
+v.src=bodyVideoUrl;
+await new Promise((resolve,reject)=>{
+const ok=()=>{v.removeEventListener('loadeddata',ok);v.removeEventListener('error',bad);resolve();};
+const bad=()=>{v.removeEventListener('loadeddata',ok);v.removeEventListener('error',bad);reject(new Error('load fail'));};
+v.addEventListener('loadeddata',ok);
+v.addEventListener('error',bad);
+});
+try{v.currentTime=0;}catch(e){}
+bodyVideoReady=true;
+bodyLivePreview=false;
+bodyPoseActive=false;
+ensurePoseLandmarker();
+
+if(homeAudio){
+try{
+const at=Math.max(0,homeAudio.currentTime||0);
+const vDur=v.duration||0;
+v.currentTime=Math.max(0,Math.min(Math.max(0,vDur-0.04), at));
+}catch(e){}
+}
+try{v.pause();}catch(e){}
+sampleBodyFromVideoFrame();
+bodyVideo.onended=()=>{
+bodyVideoPlaying=false;
+if(!homeAudioPlaying&&homePB){homePB.textContent='PLAY';homePB.title='Play';}
+};
+setTrackHint('BODY VIDEO READY · PLAY FOR AUTO TRACKING');
+draw();
+}
+async function startBodyCamera(){
+// Live body cam disabled — upload only
+closeBodyPicker();
+setTrackHint('UPLOAD A BODY VIDEO (LIVE CAM OFF)');
+return;
+clearBodyVideo();
+try{
+mouthCamStream=await navigator.mediaDevices.getUserMedia({
+video:{facingMode:'user',width:{ideal:720},height:{ideal:1280}},
+audio:false
+});
+}catch(err){
+setTrackHint('CAMERA BLOCKED');
+return;
+}
+const cam=$('mouthCam');
+cam.srcObject=mouthCamStream;
+cam.muted=true;cam.playsInline=true;
+await cam.play().catch(()=>{});
+bodyVideo=cam;
+bodyVideoReady=true;
+bodyLivePreview=true;
+await ensurePoseLandmarker();
+setTrackHint('BODY LIVE · TRACKING · HEAD FIXED');
+draw();
+}
+function applyAvOffsetNow(force){
+if(!homeAudio)return;
+const vt=homeVisualTime();
+if(mouthVideo&&mouthVideoReady&&!mouthLivePreview){
+try{
+const vDur=mouthVideo.duration||0;
+if(vDur>0){
+const want=Math.max(0,Math.min(vDur-0.03, vt));
+mouthVideo.currentTime=want;
+}
+}catch(e){}
+}
+if(bodyVideo&&bodyVideoReady){
+try{
+const vDur=bodyVideo.duration||0;
+if(vDur>0)bodyVideo.currentTime=Math.max(0,Math.min(vDur-0.03, vt));
+}catch(e){}
+}
+if(homeMouthTrack&&homeMouthTrack.length){
+applySampleToFace(mouthSampleAtAudioTime(vt));
+homeMouthTrackLive=true;
+BODY.faceDir=6;
+}else if(mouthVideoReady&&!mouthLivePreview){
+sampleMouthFromVideoFrame();
+}
+if(force)draw();
+}
+function homeVisualTime(){
+// Visual clock relative to audio: +offset means picture ahead of sound
+const t=homeAudio?Math.max(0,homeAudio.currentTime||0):0;
+const d=homeAudioDelay||0;
+return Math.max(0, t+d);
+}
+function syncMouthVideoToAudio(force){
+if(!mouthVideo||!mouthVideoReady||mouthLivePreview)return;
+if(!homeAudio)return;
+const vDur=(mouthVideo.duration&&isFinite(mouthVideo.duration))?mouthVideo.duration:0;
+if(!(vDur>0))return;
+const want=Math.max(0, Math.min(vDur-0.02, homeVisualTime()));
+try{
+const cur=mouthVideo.currentTime||0;
+const drift=want-cur;
+// Tighter when user has set an offset so the slider is obvious
+const tol=Math.abs(homeAudioDelay||0)>0.001?0.06:0.14;
+if(force || Math.abs(drift)>tol){
+mouthVideo.currentTime=want;
+}
+}catch(e){}
+}
+function bodySharedEnd(){
+// Shared timeline ends at shorter of audio / body video
+const aDur=(homeAudio&&homeAudio.duration&&isFinite(homeAudio.duration))?homeAudio.duration:0;
+const vDur=(bodyVideo&&bodyVideo.duration&&isFinite(bodyVideo.duration))?bodyVideo.duration:0;
+if(aDur>0&&vDur>0)return Math.min(aDur,vDur);
+return vDur||aDur||0;
+}
+function syncBodyVideoToAudio(force){
+if(!bodyVideo||!bodyVideoReady)return;
+const vDur=(bodyVideo.duration&&isFinite(bodyVideo.duration))?bodyVideo.duration:0;
+if(!(vDur>0))return;
+const want=Math.max(0, Math.min(vDur-0.02, homeAudio?homeVisualTime():0));
+try{
+if(force||Math.abs((bodyVideo.currentTime||0)-want)>0.15){
+bodyVideo.currentTime=want;
+}
+}catch(e){}
+}
+
+
+
+
+// --- Automatic body pose (MediaPipe Pose Landmarker) ---
+let bodyPoseActive=false;
+let _poseTs=0;
+let _poseCanvas=null;
+
+function getBodyBorder(){return lastMapBorder||{l:0,t:0,w:viewW,h:viewH};}
+
+function restBodyPose(smooth){
+if(!BODY.pts)bodyReset();
+const r=Math.max(14, circle.radius);
+const standY=typeof homeStandYFor==='function'?homeStandYFor(r):(viewH-r*3.2);
+const a=smooth?0.18:1;
+circle.x=(typeof viewW==='number'?viewW/2:circle.x);
+circle.y=circle.y*(1-a)+standY*a;
+// Don't let head leave the playable vertical range while resting
+const minY=r+8, maxY=viewH-r*2.5;
+circle.y=Math.max(minY, Math.min(maxY, circle.y));
+BODY.pose='stand';
+bodyApplyPose('stand');
+bodyPinNeck();
+// Extend neck a bit so rest matches tracking neck
+if(BODY.pts.neck){
+BODY.pts.neck.y=circle.y+r*0.98+r*0.55*0.5;
+BODY.pts.neck.py=BODY.pts.neck.y;
+}
+bodyPoseActive=false;
+}
+function applyPoseLandmarksToStick(lm, mirror){
+if(!lm||!lm.length)return false;
+if(!BODY.pts)bodyReset();
+const r=Math.max(14, circle.radius);
+
+function P(i){
+const p=lm[i];
+if(!p||typeof p.x!=='number')return null;
+// Require reasonable on-screen coords
+if(p.x<-0.15||p.x>1.15||p.y<-0.15||p.y>1.2)return null;
+// Visibility / presence when available
+if(typeof p.visibility==='number'&&p.visibility<0.35)return null;
+if(typeof p.presence==='number'&&p.presence<0.4)return null;
+let x=p.x, y=p.y;
+if(mirror)x=1-x;
+return {x,y};
+}
+const ls=P(11), rs=P(12);
+if(!ls||!rs)return false;
+const shDist=Math.hypot(ls.x-rs.x, ls.y-rs.y);
+if(!(shDist>0.02&&shDist<0.9))return false;
+
+const le=P(13), re=P(14), lw=P(15), rw=P(16);
+const lh=P(23), rh=P(24), lk=P(25), rk=P(26), la=P(27), ra=P(28);
+// Full body required: both hips + at least one knee and one ankle
+if(!lh||!rh)return false;
+if(!(lk||rk))return false;
+if(!(la||ra))return false;
+const midShX=(ls.x+rs.x)*0.5, midShY=(ls.y+rs.y)*0.5;
+if(midShY<0.02||midShY>0.85)return false;
+const midHipYchk=(lh.y+rh.y)*0.5;
+if(midHipYchk<=midShY+0.05)return false;
+
+const midHipX=(lh&&rh)?(lh.x+rh.x)*0.5:midShX;
+const midHipY=(lh&&rh)?(lh.y+rh.y)*0.5:midShY+0.28;
+let torsoH=Math.abs(midHipY-midShY);
+if(!(torsoH>0.04))torsoH=0.22; // fallback if hips missing
+// Cap scale so off-frame compression doesn't explode limb lengths
+let scale=(r*1.45)/torsoH;
+const maxScale=r*8;
+const minScale=r*2.2;
+scale=Math.max(minScale, Math.min(maxScale, scale));
+
+const headX=typeof viewW==='number'?viewW/2:circle.x;
+// Start from a stable head height (stand), then ground-lift after
+const standY=typeof homeStandYFor==='function'?homeStandYFor(r):circle.y;
+if(!bodyPoseActive)circle.y=standY;
+const headBottom=circle.y+r*0.98;
+const neckLen=r*0.55;
+const shoulderY=headBottom+neckLen;
+
+function map(px,py){
+return {
+x: headX+(px-midShX)*scale,
+y: shoulderY+(py-midShY)*scale
+};
+}
+const br=getBodyBorder();
+function setPt(name, pt){
+if(!pt)return;
+const t=BODY.pts[name];
+let x=Math.max(br.l+6, Math.min(br.l+br.w-6, pt.x));
+let y=pt.y;
+// Soft vertical clamp so limbs never leave the border wildly
+y=Math.max(br.t+4, Math.min(br.t+br.h+r*0.5, y));
+t.x=x; t.y=y; t.px=x; t.py=y;
+}
+BODY.pts.neck.x=headX;
+BODY.pts.neck.y=headBottom+neckLen*0.5;
+BODY.pts.neck.px=headX; BODY.pts.neck.py=BODY.pts.neck.y;
+BODY.pts.chest.x=headX;
+BODY.pts.chest.y=headBottom+neckLen*0.75;
+BODY.pts.chest.px=headX; BODY.pts.chest.py=BODY.pts.chest.y;
+
+setPt('lShoulder', map(ls.x,ls.y));
+setPt('rShoulder', map(rs.x,rs.y));
+if(le)setPt('lElbow', map(le.x,le.y));
+if(re)setPt('rElbow', map(re.x,re.y));
+if(lw)setPt('lHand', map(lw.x,lw.y));
+if(rw)setPt('rHand', map(rw.x,rw.y));
+setPt('hip', map(midHipX, midHipY));
+if(lk)setPt('lKnee', map(lk.x,lk.y));
+if(rk)setPt('rKnee', map(rk.x,rk.y));
+if(la)setPt('lFoot', map(la.x,la.y));
+if(ra)setPt('rFoot', map(ra.x,ra.y));
+
+// Ground clearance with hard cap so head never flies off the top
+const floor=viewH-2;
+const keys=['lShoulder','rShoulder','lElbow','rElbow','lHand','rHand','hip','chest','lKnee','rKnee','lFoot','rFoot','neck'];
+let lowest=-1e9;
+for(const k of keys){
+const p=BODY.pts[k];
+if(p&&p.y>lowest)lowest=p.y;
+}
+if(lowest>floor){
+let lift=lowest-floor;
+const minHeadY=r+10; // keep head on screen
+const maxLift=Math.max(0, circle.y-minHeadY);
+lift=Math.min(lift, maxLift);
+circle.y-=lift;
+for(const k of keys){
+const p=BODY.pts[k];
+if(!p)continue;
+p.y-=lift; p.py=p.y;
+}
+}else if(homeAudioPlaying||bodyVideoPlaying){
+const gap=floor-lowest;
+if(gap>4&&circle.y<standY-1){
+const drop=Math.min(gap*0.12, standY-circle.y, 5);
+circle.y+=drop;
+for(const k of keys){
+const p=BODY.pts[k];
+if(!p)continue;
+p.y+=drop; p.py=p.y;
+}
+}
+}
+circle.x=headX;
+// Final safety: head must stay on screen
+circle.y=Math.max(r+8, Math.min(viewH-r*1.2, circle.y));
+bodyPoseActive=true;
+return true;
+}
+
+async function sampleBodyFromVideoFrame(){
+const vid=bodyVideo;
+if(!vid||!bodyVideoReady)return false;
+if(vid.readyState<2)return false;
+const pl=await ensurePoseLandmarker();
+if(!pl)return false;
+_poseTs=Math.max(_poseTs+1, (vid.currentTime||0)*1000+1);
+try{
+let res=null;
+try{ res=pl.detectForVideo(vid, _poseTs); }
+catch(e1){
+if(!_poseCanvas)_poseCanvas=document.createElement('canvas');
+const w=vid.videoWidth|0, h=vid.videoHeight|0;
+if(w<16||h<16)return false;
+_poseCanvas.width=w; _poseCanvas.height=h;
+_poseCanvas.getContext('2d').drawImage(vid,0,0,w,h);
+res=pl.detectForVideo(_poseCanvas, _poseTs+0.5);
+}
+if(res&&res.landmarks&&res.landmarks[0]){
+const ok=applyPoseLandmarksToStick(res.landmarks[0], !!bodyLivePreview);
+if(ok)return true;
+}
+// No usable body → ease back to default standing pose
+restBodyPose(true);
+return false;
+}catch(e){console.warn('pose',e);}
+restBodyPose(true);
+return false;
+}
+function drawBodyOverlayUI(){}
+function tickJointHold(){}
+
+function captureBodySample(){
+if(!BODY.pts)return null;
+const nx=BODY.pts.neck.x, ny=BODY.pts.neck.y, r=Math.max(12,circle.radius);
+const joints={};
+for(const k of BODY_JOINT_KEYS){
+const p=BODY.pts[k];
+joints[k]={x:(p.x-nx)/r, y:(p.y-ny)/r};
+}
+return joints;
+}
+function applyBodySample(joints){
+if(!joints||!BODY.pts)return;
+const nx=BODY.pts.neck.x, ny=BODY.pts.neck.y, r=Math.max(12,circle.radius);
+for(const k of BODY_JOINT_KEYS){
+const j=joints[k];
+if(!j)continue;
+const p=BODY.pts[k];
+p.x=nx+j.x*r; p.y=ny+j.y*r; p.px=p.x; p.py=p.y;
+}
+bodyPinNeck();
+}
+function bodySampleAtAudioTime(t){
+const track=bodyTrack;
+if(!track||!track.length)return null;
+if(t<=track[0].t)return track[0].joints;
+if(t>=track[track.length-1].t)return track[track.length-1].joints;
+let lo=0,hi=track.length-1;
+while(hi-lo>1){
+const mid=(lo+hi)>>1;
+if(track[mid].t<=t)lo=mid;else hi=mid;
+}
+const a=track[lo], b=track[hi];
+const u=Math.max(0,Math.min(1,(t-a.t)/Math.max(1e-4,b.t-a.t)));
+const out={};
+for(const k of BODY_JOINT_KEYS){
+const pa=a.joints[k], pb=b.joints[k];
+if(!pa||!pb)continue;
+out[k]={x:pa.x+(pb.x-pa.x)*u, y:pa.y+(pb.y-pa.y)*u};
+}
+return out;
+}
+function beginBodyRecordingSession(){
+bodyRecordStart=homeAudio?Math.max(0,homeAudio.currentTime||0):0;
+bodyRecordBuffer=[{t:bodyRecordStart, joints:captureBodySample()}];
+bodyTrackingActive=true;
+setTrackHint('BODY TRACKING…');
+}
+function commitBodyRecording(){
+if(!bodyTrackingActive){bodyRecordBuffer=null;return;}
+const end=homeAudio?Math.max(bodyRecordStart,homeAudio.currentTime||bodyRecordStart):bodyRecordStart+1;
+let buf=(bodyRecordBuffer||[]).slice();
+if(buf.length&&buf[buf.length-1].t<end-0.01)buf.push({t:end, joints:buf[buf.length-1].joints});
+const old=bodyTrack||[];
+const before=old.filter(e=>e.t<bodyRecordStart-0.0005);
+const after=old.filter(e=>e.t>end+0.0005);
+bodyTrack=before.concat(buf).concat(after).sort((a,b)=>a.t-b.t);
+bodyRecordBuffer=null;
+bodyTrackingActive=false;
+setTrackHint('BODY TRACK SAVED');
+}
+function recordBodySample(){
+if(!bodyTrackingActive)return;
+const t=homeAudio?Math.max(0,homeAudio.currentTime||0):(performance.now()/1000);
+const sample={t, joints:captureBodySample()};
+if(!bodyRecordBuffer)bodyRecordBuffer=[];
+const buf=bodyRecordBuffer;
+if(buf.length){
+const last=buf[buf.length-1];
+if((t-last.t)<0.04){last.joints=sample.joints;return;}
+}
+buf.push(sample);
+}
+function updateBodyFromTrack(){
+if(bodyTrackingActive||homeArmed&&bodyTrackMode)return;
+if(!homeAudio||!bodyTrack||!bodyTrack.length)return;
+const t=Math.max(0,homeAudio.currentTime||0);
+const j=bodySampleAtAudioTime(t);
+if(j)applyBodySample(j);
+}
+
 function bodyDraw(ctx){
 if(!BODY.ready||!BODY.pts)return;
 const p=BODY.pts;
@@ -1697,22 +2459,46 @@ const segs=[
 const thick=Math.max(5.5,circle.radius*0.16);
 ctx.save();
 ctx.lineCap='round';ctx.lineJoin='round';
-// Core fill stroke — solid, no glow (readable body)
+// Neck line: from bottom of head ball down to neck joint / shoulders
+const headBottomX=circle.x, headBottomY=circle.y+circle.radius*0.98;
 ctx.shadowBlur=0;
 ctx.strokeStyle=sk.f;
 ctx.lineWidth=thick;
 ctx.beginPath();
+ctx.moveTo(headBottomX, headBottomY);
+ctx.lineTo(p.neck.x, p.neck.y);
+if(p.lShoulder){ctx.moveTo(p.neck.x,p.neck.y);ctx.lineTo(p.lShoulder.x,p.lShoulder.y);}
+if(p.rShoulder){ctx.moveTo(p.neck.x,p.neck.y);ctx.lineTo(p.rShoulder.x,p.rShoulder.y);}
+ctx.moveTo(p.neck.x,p.neck.y);ctx.lineTo(p.chest.x,p.chest.y);
+ctx.stroke();
+ctx.shadowColor=sk.g;
+ctx.shadowBlur=14;
+ctx.strokeStyle=sk.s;
+ctx.lineWidth=Math.max(1.8,thick*0.28);
+ctx.beginPath();
+ctx.moveTo(headBottomX, headBottomY);
+ctx.lineTo(p.neck.x, p.neck.y);
+if(p.lShoulder){ctx.moveTo(p.neck.x,p.neck.y);ctx.lineTo(p.lShoulder.x,p.lShoulder.y);}
+if(p.rShoulder){ctx.moveTo(p.neck.x,p.neck.y);ctx.lineTo(p.rShoulder.x,p.rShoulder.y);}
+ctx.moveTo(p.neck.x,p.neck.y);ctx.lineTo(p.chest.x,p.chest.y);
+ctx.stroke();
+ctx.shadowBlur=0;
+// Rest of body
+ctx.strokeStyle=sk.f;
+ctx.lineWidth=thick;
+ctx.beginPath();
 for(const [a,b] of segs){
+if(a==='neck')continue; // already drawn neck connections
 ctx.moveTo(p[a].x,p[a].y);ctx.lineTo(p[b].x,p[b].y);
 }
 ctx.stroke();
-// Outline only glows (edge light matching ball)
 ctx.shadowColor=sk.g;
 ctx.shadowBlur=14;
 ctx.strokeStyle=sk.s;
 ctx.lineWidth=Math.max(1.8,thick*0.28);
 ctx.beginPath();
 for(const [a,b] of segs){
+if(a==='neck')continue;
 ctx.moveTo(p[a].x,p[a].y);ctx.lineTo(p[b].x,p[b].y);
 }
 ctx.stroke();
@@ -1815,55 +2601,103 @@ ctx.beginPath();
 ctx.ellipse(0,mouthY+s*0.04,s*0.16,s*0.2,0,0,Math.PI*2);
 ctx.stroke();
 }else if(dir===6){
-// Full-size face (same as before) + mild spherical shift from head pose
-const yaw=Math.max(-0.4,Math.min(0.4, homeHeadYaw||0));
-const pitch=Math.max(-0.3,Math.min(0.3, homeHeadPitch||0));
-const roll=Math.max(-0.18,Math.min(0.18, homeHeadTilt||0));
-const bobX=(homeHeadBobX||0)*s*0.2;
-const bobY=(homeHeadBobY||0)*s*0.2;
-// Sphere-style offsets: shift features as if on a ball (does not shrink size)
-const ox=yaw*s*0.22 + bobX;
-const oy=pitch*s*0.18 + bobY;
-const turnAmt=Math.abs(yaw)*1.2+Math.abs(pitch)*0.7;
-const faceVis=Math.max(0, Math.min(1, 1.25-turnAmt));
-if(faceVis >= 0.04){
+// Face on a sphere: features orbit with yaw/pitch; back of head when turned away
+const yaw=Math.max(-1.45,Math.min(1.45, homeHeadYaw||0));
+const pitch=Math.max(-0.75,Math.min(0.75, homeHeadPitch||0));
+const roll=Math.max(-0.35,Math.min(0.35, homeHeadTilt||0));
+const bobX=(homeHeadBobX||0)*s*0.15;
+const bobY=(homeHeadBobY||0)*s*0.15;
+// Project a point on the unit face-sphere (front z>0) after yaw/pitch
+function sph(lx, ly){
+const rr=Math.min(0.92, Math.hypot(lx,ly));
+const z0=Math.sqrt(Math.max(0.001, 1-rr*rr));
+const cy=Math.cos(yaw), sy=Math.sin(yaw);
+let x1=lx*cy + z0*sy;
+let z1=-lx*sy + z0*cy;
+const cp=Math.cos(pitch), sp=Math.sin(pitch);
+let y1=ly*cp - z1*sp;
+z1=ly*sp + z1*cp;
+const front=z1>0.02;
+const depth=Math.max(0, Math.min(1, z1));
+const sc=0.72+depth*0.38;
+return {x:x1*s*sc + bobX, y:y1*s*sc + bobY, z:z1, front:front, depth:depth, sc:sc};
+}
+// Fully hidden when turned past ~90° — no back-of-head disc
+if(Math.abs(yaw)<=1.05){
 ctx.save();
-ctx.translate(ox, oy);
 ctx.rotate(roll);
-ctx.globalAlpha=faceVis;
-// Near-side slightly larger, far-side slightly smaller (subtle, not overall shrink)
-const leftSc=1+yaw*0.08;
-const rightSc=1-yaw*0.08;
-const bL=homeBrowL||0, bR=homeBrowR||0;
-const browRaise=((bL+bR)*0.5)*s*0.1;
-const by=browY - browRaise;
-ctx.lineWidth=Math.max(2.3,s*0.085);
-ctx.strokeStyle='#111';
 ctx.beginPath();
-ctx.moveTo(-s*0.5*leftSc, by);
-ctx.lineTo(-s*0.16*leftSc, by);
-ctx.moveTo(s*0.16*rightSc, by);
-ctx.lineTo(s*0.5*rightSc, by);
+ctx.arc(0,0,s*0.92,0,Math.PI*2);
+ctx.clip();
+
+const bL=homeBrowL||0, bR=homeBrowR||0;
+const browRaise=((bL+bR)*0.5)*0.12;
+const browSkew=(bR-bL)*0.04;
+function drawBrow(side){
+// Independent brow height; slant always opposite (outer lower, inner higher)
+const raise=(side<0?(homeBrowL||0):(homeBrowR||0))*0.14;
+const outerX=side*0.48, innerX=side*0.12;
+const outerY=-0.34 - raise + 0.04;  // outer end slightly lower
+const innerY=-0.40 - raise - 0.03;  // inner end slightly higher
+const a=sph(outerX, outerY), b=sph(innerX, innerY);
+if(!a.front||!b.front)return;
+ctx.strokeStyle='#111';
+ctx.lineWidth=Math.max(2.3,s*0.085)*((a.sc+b.sc)*0.5);
+ctx.beginPath();
+ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
 ctx.stroke();
+}
+drawBrow(-1); drawBrow(1);
+
 const ex=homeEyeX||0, ey=homeEyeY||0;
 const eo=Math.max(0.2, Math.min(1.35, homeEyeOpen!=null?homeEyeOpen:0.55));
-const erx=eyeRx*(0.85+eo*0.45);
-const ery=eyeRy*(0.55+eo*0.9);
-const lx=-s*0.36*leftSc, rx=s*0.36*rightSc;
-const eyeYY=eyeY;
-ctx.fillStyle='#111';
-ctx.beginPath();
-ctx.ellipse(lx, eyeYY, erx*leftSc, ery, 0.08, 0, Math.PI*2);ctx.fill();
-ctx.beginPath();
-ctx.ellipse(rx, eyeYY, erx*rightSc, ery, -0.08, 0, Math.PI*2);ctx.fill();
-ctx.fillStyle='#eee';
-const pr=Math.max(s*0.035, ery*0.45);
-ctx.beginPath();ctx.arc(lx+ex*erx*0.45, eyeYY+ey*ery*0.4, pr, 0, Math.PI*2);ctx.fill();
-ctx.beginPath();ctx.arc(rx+ex*erx*0.45, eyeYY+ey*ery*0.4, pr, 0, Math.PI*2);ctx.fill();
-ctx.fillStyle='#111';
-// Mouth upright in face space; whole face rotate(roll) tilts it with eyes/brows
-drawHomeMouthViseme(ctx, s, mouthY, homeMouthShape||'rest');
+const blinkAmt=Math.max(0, Math.min(1, 1.05 - Math.min(1, eo)));
+function drawEyeS(side){
+const e=sph(side*0.34 + ex*0.06, -0.16 + ey*0.05);
+// Hard cut: not visible at all when around the side/back
+if(!e.front||e.z<0.08)return;
 ctx.globalAlpha=1;
+const erx=eyeRx*(0.85+eo*0.45)*e.sc;
+const ery=eyeRy*(0.55+eo*0.9)*e.sc;
+ctx.fillStyle='#111';
+ctx.beginPath();
+ctx.ellipse(e.x, e.y, erx, ery, side*0.08, 0, Math.PI*2);ctx.fill();
+if(blinkAmt<0.9){
+ctx.fillStyle='#eee';
+const pr=Math.max(s*0.025, ery*0.42*(1-blinkAmt*0.35));
+ctx.beginPath();
+ctx.arc(e.x+ex*erx*0.35, e.y+ey*ery*0.25+blinkAmt*ery*0.2, pr, 0, Math.PI*2);ctx.fill();
+}
+ctx.save();
+ctx.beginPath();
+ctx.ellipse(e.x, e.y, erx, ery, side*0.08, 0, Math.PI*2);
+ctx.clip();
+ctx.strokeStyle='#111';
+ctx.lineWidth=Math.max(1.6, Math.min(erx,ery)*0.35);
+const lidY=e.y - ery*0.75 + blinkAmt*ery*1.5;
+ctx.beginPath();
+ctx.moveTo(e.x-erx*0.78, lidY);
+ctx.quadraticCurveTo(e.x, lidY - ery*0.06*(1-blinkAmt), e.x+erx*0.78, lidY);
+ctx.stroke();
+ctx.restore();
+}
+drawEyeS(-1); drawEyeS(1);
+
+const mL=sph(-0.28, 0.40), mR=sph(0.28, 0.40), mU=sph(0, 0.34), mLo=sph(0, 0.48);
+const mouthFront=(mL.front&&mL.z>0.08?1:0)+(mR.front&&mR.z>0.08?1:0);
+if(mouthFront>=1&&(mU.front||mLo.front)){
+const mcx=(mL.x+mR.x)*0.5, mcy=(mU.y+mLo.y)*0.5;
+const mw=Math.hypot(mR.x-mL.x, mR.y-mL.y);
+const mh=Math.max(s*0.04, Math.hypot(mLo.x-mU.x, mLo.y-mU.y));
+ctx.save();
+ctx.globalAlpha=1;
+ctx.translate(mcx, mcy);
+const faceScale=Math.max(0.35, Math.min(1.15, mw/(s*0.56)));
+ctx.scale(faceScale, Math.max(0.35, Math.min(1.15, mh/(s*0.14))));
+drawHomeMouthViseme(ctx, s, 0, homeMouthShape||'rest');
+ctx.restore();
+}
+
 ctx.restore();
 }
 }else if(dir===0||dir===2||dir===4){
@@ -2085,6 +2919,12 @@ return;
 if(homeAway){
 cancelHomeArmCD();
 if(!window._homeFreeze)freezeHomeUI();
+// Clear auto body pose — back to normal game body
+bodyPoseActive=false;
+bodyTrackMode=false;
+bodyVideoPlaying=false;
+if(bodyVideo){try{bodyVideo.pause();}catch(e){}}
+if(BODY.pts){bodyApplyPose('super');bodyPinNeck();}
 homeTrans={dir:'return',phase:'squatIn',t0:Date.now(),scrollX:viewW+90,walkT:0,jumpT:0,saved:homeSaved||null};
 if(homeB){homeB.innerHTML='&#127968;';homeB.title='Home';}
 }else{
@@ -2098,6 +2938,7 @@ rFrom:circle.radius,rTo:INIT_R,glideFrom:{x:circle.x,y:circle.y}};
 circle.isDragging=false;
 mapBorderProg=0;mapBorderFrom={l:SSW,t:0,w:viewW-2*SSW,h:viewH};mapBorderTo=computeMapBorderTarget();
 if(homeB){homeB.innerHTML='&#127918;';homeB.title='Play';}
+setTimeout(updateAudioSyncUI, 50);
 }
 if(homeB)homeB.classList.add('on');
 }
@@ -2397,11 +3238,16 @@ function cancelHomeArmCD(){
 homeArmCD=false;homeArmCdVal=3;homeArmCdRemain=1000;homeArmCdOp=0;
 if(homeCd){homeCd.style.opacity='0';homeCd.textContent='';}
 const wasRecording=!!homeMouthRecording;
+const wasLive=!!mouthLivePreview;
 const needMicAudio=wasRecording && !homeAudio;
 if(homeMouthRecording){
 recordMouthSample();
 commitMouthRecording();
 if(homeAudioPlaying)stopHomeAudio(false);
+}
+if(bodyTrackingActive){
+recordBodySample();
+commitBodyRecording();
 }
 if(mouthVideo&&mouthVideoReady&&!mouthLivePreview){
 try{mouthVideo.pause();}catch(e){}
@@ -2410,19 +3256,41 @@ homeArmed=false;
 homeMouthTrackLive=!!(homeMouthTrack&&homeMouthTrack.length);
 if(armB)armB.classList.remove('armed');
 closeTrackPicker();
+const afterPromote=()=>{
 if(needMicAudio){
 setTrackHint('SAVING MIC AUDIO…');
-finalizeRecordedMicAudio().then(ok=>{
-setTrackHint(ok?'READY · PLAY AUDIO TO SEE FACE':'FACE TRACK SAVED');
+(async()=>{
+let ok=false;
+if(mouthRecordedBlob){
+ok=await adoptBlobAsHomeAudio(mouthRecordedBlob,'MIC');
+}else{
+ok=await finalizeRecordedMicAudio();
+}
+setTrackHint(ok?'READY · PLAY TO SEE FACE + VIDEO':'FACE TRACK SAVED');
 if(homeWaveProg>0.5)layoutHomeWave();
 draw();
-});
+})();
 }else if(homeMouthTrack&&homeMouthTrack.length){
-setTrackHint('FACE TRACK SAVED · PLAY / SCRUB AUDIO');
-}else if(mouthVideoReady){
+setTrackHint(mouthVideoReady&&!mouthLivePreview
+?'RECORDED · PLAY / SCRUB FOR FACE + VIDEO'
+:'FACE TRACK SAVED · PLAY / SCRUB AUDIO');
+}else if(mouthVideoReady&&mouthLivePreview){
 setTrackHint('LIVE · PRESS RED AGAIN TO COUNTDOWN');
+}else if(mouthVideoReady){
+setTrackHint('VIDEO READY · PLAY / SCRUB');
 }else setTrackHint('');
 if(homeWaveProg>0.5)layoutHomeWave();
+draw();
+};
+// End of live take → swap live feed for the recorded file so playback uses the take
+if(wasRecording&&wasLive){
+setTrackHint('SAVING TAKE…');
+promoteLiveCamRecordingToFile().then(ok=>{
+afterPromote();
+}).catch(()=>afterPromote());
+}else{
+afterPromote();
+}
 }
 function commitMouthRecording(){
 if(!homeMouthRecording){
@@ -2452,7 +3320,7 @@ homeMouthRecordBuffer=null;
 homeMouthRecording=false;
 }
 function packSample(e){
-const def={openN:0,widthN:0.28,smile:0,frown:0,lipX:0,eyeX:0,eyeY:0,eyeOpen:0.55,browL:0,browR:0,headTilt:0,headBobX:0,headBobY:0,
+const def={openN:0,widthN:0.28,smile:0,frown:0,lipX:0,eyeX:0,eyeY:0,eyeOpen:0.55,browL:0,browR:0,headTilt:0,headBobX:0,headBobY:0,headYaw:0,headPitch:0,
 lipL:{x:-0.22,y:0},lipR:{x:0.22,y:0},lipUp:{x:0,y:-0.03},lipLo:{x:0,y:0.03}};
 if(!e)return def;
 if(e.openN==null&&e.shape)return Object.assign({},def,{openN:e.shape==='rest'?0:0.4});
@@ -2461,6 +3329,7 @@ openN:e.openN||0, widthN:e.widthN!=null?e.widthN:0.28,
 smile:e.smile||0, frown:e.frown||0, lipX:e.lipX||0,
 eyeX:e.eyeX||0, eyeY:e.eyeY||0, eyeOpen:e.eyeOpen!=null?e.eyeOpen:0.55,
 browL:e.browL||0, browR:e.browR||0, headTilt:e.headTilt||0, headBobX:e.headBobX||0, headBobY:e.headBobY||0,
+headYaw:e.headYaw||0, headPitch:e.headPitch||0,
 lipL:e.lipL||def.lipL, lipR:e.lipR||def.lipR, lipUp:e.lipUp||def.lipUp, lipLo:e.lipLo||def.lipLo
 };
 }
@@ -2473,6 +3342,7 @@ openN:n(A.openN,B.openN), widthN:n(A.widthN,B.widthN),
 smile:n(A.smile,B.smile), frown:n(A.frown,B.frown), lipX:n(A.lipX,B.lipX),
 eyeX:n(A.eyeX,B.eyeX), eyeY:n(A.eyeY,B.eyeY), eyeOpen:n(A.eyeOpen,B.eyeOpen),
 browL:n(A.browL,B.browL), browR:n(A.browR,B.browR), headTilt:n(A.headTilt,B.headTilt), headBobX:n(A.headBobX,B.headBobX), headBobY:n(A.headBobY,B.headBobY),
+headYaw:n(A.headYaw,B.headYaw), headPitch:n(A.headPitch,B.headPitch),
 lipL:p(A.lipL,B.lipL), lipR:p(A.lipR,B.lipR), lipUp:p(A.lipUp,B.lipUp), lipLo:p(A.lipLo,B.lipLo)
 };
 }
@@ -2498,6 +3368,7 @@ homeMouthSmile=s.smile||0; homeMouthFrown=s.frown||0; homeMouthLipX=s.lipX||0;
 homeEyeX=s.eyeX||0; homeEyeY=s.eyeY||0; homeEyeOpen=s.eyeOpen!=null?s.eyeOpen:0.55;
 homeBrowL=s.browL||0; homeBrowR=s.browR||0; homeHeadTilt=s.headTilt||0;
 homeHeadBobX=s.headBobX!=null?s.headBobX:0; homeHeadBobY=s.headBobY!=null?s.headBobY:0;
+homeHeadYaw=s.headYaw!=null?s.headYaw:0; homeHeadPitch=s.headPitch!=null?s.headPitch:0;
 if(s.lipL)homeLipL=s.lipL; if(s.lipR)homeLipR=s.lipR;
 if(s.lipUp)homeLipUp=s.lipUp; if(s.lipLo)homeLipLo=s.lipLo;
 homeMouthOpen=homeMouthOpenN>0.06||homeMouthSmile>0.1;
@@ -2513,8 +3384,18 @@ if(Math.abs((mouthVideo.currentTime||0)-want)>0.1)mouthVideo.currentTime=want;
 }catch(e){}
 }
 function updateMouthFromTrack(){
-// Armed / active record session owns sampling in animate()
-if(homeArmed||homeMouthRecording)return;
+// Armed / active face record owns sampling in animate() (not body mode)
+if(!bodyTrackMode&&(homeArmed||homeMouthRecording))return;
+if(bodyTrackMode){
+// Face animation only from saved track — never from body video
+if(!homeAudio||!homeMouthTrack||!homeMouthTrack.length){
+homeMouthTrackLive=!!(homeMouthTrack&&homeMouthTrack.length);
+return;
+}
+const t=Math.max(0,(homeAudio.currentTime||0));
+applySampleToFace(mouthSampleAtAudioTime(t));
+return;
+}
 if(!homeAudio){
 homeMouthTrackLive=false;
 return;
@@ -2522,32 +3403,48 @@ return;
 const playing=!!(homeExporting||(homeAudioPlaying&&homeAudio&&!homeAudio.paused));
 const t=Math.max(0,(homeAudio.currentTime||0)+(homeExporting?0.05:0));
 
-// Uploaded face video: always drive face live from the video frame at the playhead.
-// No recording required — sample whatever frame the video is on.
-if(mouthVideoReady&&!mouthLivePreview){
-syncFaceVideoToAudio();
-if(playing){
-if(mouthVideo.paused){
-const p=mouthVideo.play();
-if(p&&p.then)p.catch(()=>{});
-}
-// Live landmark sample from the current video frame
-sampleMouthFromVideoFrame();
-return;
-}
-// Paused / scrubbing: seek video then sample that still frame
-if(homeWaveDragging||t>0.01){
-sampleMouthFromVideoFrame();
+// Never drive playback from live camera — only recorded/uploaded file video
+if(mouthLivePreview){
+if(homeMouthTrack&&homeMouthTrack.length){
+applySampleToFace(mouthSampleAtAudioTime(t));
 return;
 }
 homeMouthTrackLive=false;
 return;
 }
 
-// Fallback: recorded track only (e.g. live-cam takes after mic audio saved)
+// Recorded face track is the source of truth for stick-figure animation during gray play
 if(homeMouthTrack&&homeMouthTrack.length){
 applySampleToFace(mouthSampleAtAudioTime(t));
+if(mouthVideoReady){
+syncFaceVideoToAudio();
+if(playing){
+if(mouthVideo.paused){
+const p=mouthVideo.play();
+if(p&&p.then)p.catch(()=>{});
+}
+}else if(mouthVideo&&!mouthVideo.paused&&!homeWaveDragging){
+try{mouthVideo.pause();}catch(e){}
+}
+}
 return;
+}
+
+// No track yet: sample landmarks from uploaded/recorded file video at playhead
+if(mouthVideoReady){
+syncFaceVideoToAudio();
+if(playing){
+if(mouthVideo.paused){
+const p=mouthVideo.play();
+if(p&&p.then)p.catch(()=>{});
+}
+sampleMouthFromVideoFrame();
+return;
+}
+if(homeWaveDragging||t>0.01){
+sampleMouthFromVideoFrame();
+return;
+}
 }
 homeMouthTrackLive=false;
 }
@@ -2815,6 +3712,18 @@ const t=Math.max(0,Math.min(dur,homeAudio.currentTime||0));
 const bin=Math.min(HOME_WAVE_BINS-1,Math.floor((t/dur)*HOME_WAVE_BINS));
 for(let i=0;i<=bin;i++)homePeakFilled[i]=1;
 }
+function updateAudioSyncUI(){
+const w=$('audioSyncWrap');
+if(!w)return;
+if(homeAudio&&homeAway)w.classList.add('show');
+else w.classList.remove('show');
+const sl=$('audioSync'), sv=$('audioSyncVal');
+if(sl){sl.min='-1.5';sl.max='1.5';sl.step='0.05';sl.value=String(homeAudioDelay||0);}
+if(sv){
+const v=homeAudioDelay||0;
+sv.textContent=(v>0?'+':'')+v.toFixed(2)+'s';
+}
+}
 function showWaveShell(){
 if(!waveWrap)return;
 waveWrap.classList.add('show');
@@ -2859,6 +3768,7 @@ v.setAttribute('webkit-playsinline','');
 v.controls=false;
 v.muted=false;
 v.volume=1;
+v.defaultMuted=false;
 v.style.cssText='position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
 v.src=url;
 document.body.appendChild(v);
@@ -2892,9 +3802,14 @@ clearHomeAudio();
 homeAudioUrl=URL.createObjectURL(file);
 homeAudio=createHomeMediaElement(file,homeAudioUrl);
 homeAudio.addEventListener('timeupdate',()=>{
-if(!homeMouthRecording&&!homeArmed&&homeMouthTrack&&homeMouthTrack.length){
-updateMouthFromTrack();
+if(homeMouthRecording)return;
+if(homeMouthTrack&&homeMouthTrack.length){
+const t=homeVisualTime();
+applySampleToFace(mouthSampleAtAudioTime(t));
+BODY.faceDir=6;
+homeMouthTrackLive=true;
 }
+syncMouthVideoToAudio(false);
 });
 homeAudio.addEventListener('ended',()=>{
 if(homeMouthRecording){
@@ -2932,6 +3847,7 @@ dismissWaveAfterFail();
 }
 }
 function layoutHomeWave(){
+updateAudioSyncUI();
 if(!waveWrap)return;
 const padX=Math.max(8,(getViewportSize().vw)*0.025);
 const mapTop=98;
@@ -3028,30 +3944,64 @@ try{homeAudio.currentTime=t;}catch(e){}
 drawHomeWave();
 }
 function homeAudioTogglePlay(){
-if(homeExporting||!homeAudio)return;
-if(homeAudioPlaying){
-try{homeAudio.pause();}catch(e){}
+if(homeExporting)return;
+const hasAudio=!!homeAudio;
+const hasBody=!!(bodyVideo&&bodyVideoReady&&!bodyLivePreview);
+if(!hasAudio&&!hasBody)return;
+
+const isPlaying=!!(homeAudioPlaying||bodyVideoPlaying);
+if(isPlaying){
+// PAUSE everything
+if(homeAudio){try{homeAudio.pause();}catch(e){}}
 homeAudioPlaying=false;
+bodyVideoPlaying=false;
+if(mouthVideo&&mouthVideoReady&&!mouthLivePreview){try{mouthVideo.pause();}catch(e){}}
+if(bodyVideo&&bodyVideoReady&&!bodyLivePreview){try{bodyVideo.pause();}catch(e){}}
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
-if(mouthVideo&&mouthVideoReady&&!mouthLivePreview){
-try{mouthVideo.pause();}catch(e){}
+if(homeArmed||homeArmCD||homeMouthRecording||bodyTrackingActive)cancelHomeArmCD();
+else if(armB)armB.classList.remove('armed');
+drawHomeWave();
+return;
 }
-if(homeArmed||homeArmCD)cancelHomeArmCD();
-}else{
+
+const startPlay=()=>{
+if(hasAudio){
+try{homeAudio.muted=false; homeAudio.volume=1;}catch(e){}
 ensureHomeAnalyser();
+if(homeACtx&&homeACtx.state==='suspended'){try{homeACtx.resume();}catch(e){}}
 const p=homeAudio.play();
 if(p&&p.then)p.catch(err=>console.warn('play failed',err));
 homeAudioPlaying=true;
-if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
-if(mouthVideo&&mouthVideoReady&&!mouthLivePreview){
-syncFaceVideoToAudio();
+}
+// Body video: always play when available (with or without audio)
+if(hasAudio){try{homeAudio.playbackRate=1;}catch(e){}}
+if(bodyVideo&&bodyVideoReady&&!bodyLivePreview){
+if(hasAudio)syncBodyVideoToAudio(true);
+else{try{if(bodyVideo.ended)bodyVideo.currentTime=0;}catch(e){}}
+const vDur=bodyVideo.duration||0;
+const at=hasAudio?(homeAudio.currentTime||0):0;
+if(!hasAudio||at<vDur-0.05){
+const bp=bodyVideo.play();
+if(bp&&bp.then)bp.catch(()=>{});
+bodyVideoPlaying=true;
+}else{
+try{bodyVideo.pause();bodyVideo.currentTime=Math.max(0,vDur-0.04);}catch(e){}
+bodyVideoPlaying=false;
+}
+}
+if(mouthVideo&&mouthVideoReady&&!mouthLivePreview&&!bodyTrackMode){
+if(hasAudio)syncFaceVideoToAudio();
 const vp=mouthVideo.play();
 if(vp&&vp.then)vp.catch(()=>{});
 }
+if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
 sampleHomeAudioLevel();
 updateMouthFromTrack();
-}
 drawHomeWave();
+};
+if(mouthLivePreview&&homeMouthTrack&&homeMouthTrack.length){
+promoteLiveCamRecordingToFile().then(()=>startPlay()).catch(()=>startPlay());
+}else startPlay();
 }
 let homeExporting=false;
 function closeHomeModal(){
@@ -3320,14 +4270,24 @@ try{homeAudio.currentTime=t;}catch(err){}
 // Scrub face video with the same ratio
 if(mouthVideo&&mouthVideoReady&&mouthVideo.duration&&isFinite(mouthVideo.duration)){
 try{
-const vt=Math.max(0,Math.min(mouthVideo.duration-0.04, r*mouthVideo.duration));
+const lead=Math.max(0,homeAudioDelay||0);
+const vt=Math.max(0,Math.min(mouthVideo.duration-0.04, t+lead));
 mouthVideo.currentTime=vt;
 }catch(err){}
 }
-if(mouthVideoReady&&!mouthLivePreview){
+if(bodyVideo&&bodyVideoReady&&bodyVideo.duration&&isFinite(bodyVideo.duration)){
+try{
+// Absolute time match with audio (not duration ratio)
+const vt=Math.max(0,Math.min(bodyVideo.duration-0.04, t));
+bodyVideo.currentTime=vt;
+}catch(err){}
+}
+sampleBodyFromVideoFrame();
+if(homeMouthTrack&&homeMouthTrack.length){
+applySampleToFace(mouthSampleAtAudioTime(t+Math.max(0,homeAudioDelay||0)));
+homeMouthTrackLive=true;
+}else if(mouthVideoReady&&!mouthLivePreview){
 sampleMouthFromVideoFrame();
-}else if(homeMouthTrack&&homeMouthTrack.length){
-applySampleToFace(mouthSampleAtAudioTime(t));
 }
 drawHomeWave();
 };
@@ -3368,43 +4328,80 @@ window.addEventListener('touchmove',onMove,{passive:false});
 window.addEventListener('touchend',onUp);
 }
 function armHomeTracker(){
-// Gray → red: arm only; choose live or upload if needed
-homeArmed=true;
 homeWaveDragging=false;
-if(armB)armB.classList.add('armed');
 homeArmCD=false;
-homeMouthOpenN=0;homeMouthOpen=false;homeMouthSmile=0;homeMouthFrown=0;
+if(bodyTrackMode){
+homeArmed=false;
+if(armB)armB.classList.remove('armed');
+openBodyPicker();
+setTrackHint('BODY MODE · UPLOAD OR LIVE');
+if(homeWaveProg>0.5)layoutHomeWave();
+return;
+}
+// Uploaded (file) video: stay gray — gray press opens picker to change source
+if(mouthVideoReady&&!mouthLivePreview){
+homeArmed=false;
+if(armB)armB.classList.remove('armed');
+openTrackPicker();
+setTrackHint('UPLOAD DIFFERENT VIDEO OR SWITCH TO LIVE');
+if(homeWaveProg>0.5)layoutHomeWave();
+return;
+}
+// No source yet → picker (stay gray until live chosen)
 if(!mouthVideoReady){
+homeArmed=false;
+if(armB)armB.classList.remove('armed');
 openTrackPicker();
 setTrackHint('LIVE CAMERA OR UPLOAD VIDEO');
-}else{
-closeTrackPicker();
-setTrackHint(mouthLivePreview?'LIVE READY · PRESS RED FOR COUNTDOWN':'VIDEO READY · PRESS RED TO RECORD');
-ensureFaceLandmarker();
+if(homeWaveProg>0.5)layoutHomeWave();
+return;
 }
+// Live camera ready → arm red for countdown/record
+homeArmed=true;
+if(armB)armB.classList.add('armed');
+homeMouthOpenN=0;homeMouthOpen=false;homeMouthSmile=0;homeMouthFrown=0;
+closeTrackPicker();
+setTrackHint('LIVE READY · PRESS RED FOR COUNTDOWN');
+ensureFaceLandmarker();
 if(homeWaveProg>0.5)layoutHomeWave();
 }
 function startHomeArmCD(){
-// Red press → record. Countdown only for LIVE camera; uploaded video starts immediately.
-if(!homeArmed)armHomeTracker();
 if(homeArmCD||homeMouthRecording)return;
+homeWaveDragging=false;
+// Uploaded file video: gray stays gray; arm click already opened picker.
+// Recording of face while uploaded video plays is driven by beginMouthRecordingSession when user wants —
+// For live, must be armed red first.
 if(!mouthVideoReady){
 openTrackPicker();
 setTrackHint('CHOOSE LIVE OR UPLOAD FIRST');
 return;
 }
-homeWaveDragging=false;
-ensureFaceLandmarker();
-// Uploaded video: skip countdown
 if(!mouthLivePreview){
+// Uploaded: optional face-track record without turning red — use play + existing track path.
+// If explicitly recording was requested via red path with upload, start immediately:
 homeArmCD=false;
 if(homeCd){homeCd.style.opacity='0';homeCd.textContent='';}
-setTrackHint('RECORDING…');
-beginMouthRecordingSession();
+homeArmed=true;
+if(armB)armB.classList.add('armed');
+setTrackHint(bodyTrackMode?'BODY RECORDING…':'RECORDING…');
+if(bodyTrackMode){
+beginBodyRecordingSession();
+if(homeAudio&&homeAudio.paused){
+try{homeAudio.muted=false;homeAudio.volume=1;}catch(e){}
+homeAudio.play().catch(()=>{});
+homeAudioPlaying=true;
+}
+}else beginMouthRecordingSession();
 if(homeWaveProg>0.5)layoutHomeWave();
 return;
 }
+if(!homeArmed){
+armHomeTracker();
+return;
+}
 // Live camera: 3-2-1 countdown
+if(bodyTrackMode)ensurePoseLandmarker();
+else ensureFaceLandmarker();
 homeArmCD=true;homeArmCdVal=3;homeArmCdRemain=1000;homeArmCdOp=1;
 if(homeCd){
 homeCd.textContent='3';
@@ -3438,8 +4435,17 @@ homeArmCdRemain+=1000;
 if(homeArmCdVal<=0){
 homeArmCD=false;homeArmCdOp=0;
 if(homeCd){homeCd.style.opacity='0';homeCd.textContent='';}
-// Countdown done while armed → start audio + mouth recording
-beginMouthRecordingSession();
+// Countdown done while armed → start audio + face or body recording
+if(bodyTrackMode){
+beginBodyRecordingSession();
+if(homeAudio){
+try{homeAudio.muted=false;homeAudio.volume=1;}catch(e){}
+const p=homeAudio.play();
+if(p&&p.then)p.catch(()=>{});
+homeAudioPlaying=true;
+if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
+}
+}else beginMouthRecordingSession();
 return;
 }
 if(homeCd){homeCd.textContent=String(homeArmCdVal);homeCd.style.opacity='1';}
@@ -3681,7 +4687,11 @@ circle.y=sy;homeTrans.phase='idleAway';homeTrans.t0=now;
 }else if(homeTrans.phase==='idleAway'){
 BODY.faceDir=6;BODY.pose='stand';BODY.sway=0;homeAway=true;
 circle.radius=INIT_R;
-circle.x=w/2;circle.y=homeStandYFor(INIT_R);
+circle.x=w/2; // horizontally centered
+// Vertical: auto body pose may lift head with the body for ground clearance
+if(!(bodyPoseActive||(bodyVideoReady&&(homeAudioPlaying||bodyVideoPlaying)))){
+circle.y=homeStandYFor(INIT_R);
+}
 homeTrans.scrollX=targetScroll;
 }else if(homeTrans.phase==='squatIn'){
 homeAway=false;
@@ -3744,9 +4754,13 @@ if(t>=1){
 circle.x=b.x;circle.y=b.y;circle.radius=rTo;
 circle.dx=homeTrans.restDx||0;circle.dy=homeTrans.restDy||0;
 // Final body frame while still in glideBack so pose/face/borders stick
+bodyPoseActive=false;
+bodyTrackMode=false;
+if(BODY.pts){bodyApplyPose('super');bodyPinNeck();}
 bodyUpdate();
 homeTrans=null;homeAway=false;
 mapBorderProg=0;mapBorderFrom=null;mapBorderTo=null;
+const asw=$('audioSyncWrap'); if(asw)asw.classList.remove('show');
 clearHomeUIFreeze();
 applyHomeUIScroll(0);
 if(homeB){homeB.classList.remove('on');homeB.innerHTML='&#127968;';homeB.title='Home';}
@@ -3786,10 +4800,22 @@ bodyUpdate(); // borders, splits, faces during exit+return glides
 }else if(homeTrans||homeAway){
 if(!BODY.ready||!BODY.pts)bodyReset();
 bodyPinNeck();
+// Body joint overlay / recordings drive limbs — do NOT reset to super pose
+const bodyDriven=!!(bodyPoseActive||bodyTrackMode||(bodyVideoReady&&(homeAudioPlaying||bodyVideoPlaying)));
+if(bodyDriven){
+// Pose already set by applyPoseLandmarksToStick — only keep neck under head ball
+const r=Math.max(14,circle.radius);
+if(BODY.pts&&BODY.pts.neck){
+BODY.pts.neck.x=circle.x;
+BODY.pts.neck.y=circle.y+r*0.98+r*0.55*0.5;
+BODY.pts.neck.px=BODY.pts.neck.x; BODY.pts.neck.py=BODY.pts.neck.y;
+}
+}else{
 bodyApplyPose(BODY.pose||'super');
 if(homeTrans&&['squat','squatIn','landSquat','standUp','landInSquat','idleAway'].indexOf(homeTrans.phase)>=0||homeAway){
 const floor=viewH-2;
 for(const f of ['lFoot','rFoot']){BODY.pts[f].y=floor;BODY.pts[f].py=floor;}
+}
 }
 bodyUpdateFace();
 }
@@ -4245,6 +5271,7 @@ function draw(){
 const w=viewW,h=viewH,pw=w-2*SSW,sH=h/3;
 // Animated map border rect (same values used for stroke later)
 let bL=SSW,bT=0,bW=pw,bH=h;
+lastMapBorder={l:bL,t:bT,w:bW,h:bH};
 if(mapBorderProg>0.001&&map==='rectangle'){
 mapBorderTo=computeMapBorderTarget();
 const from={l:SSW,t:0,w:pw,h:h};
@@ -4256,6 +5283,8 @@ bT=from.t+(mapBorderTo.t-from.t)*ease;
 bW=from.w+(mapBorderTo.w-from.w)*ease;
 bH=from.h+(mapBorderTo.h-from.h)*ease;
 }
+lastMapBorder={l:bL,t:bT,w:bW,h:bH};
+
 // Expand canvas upward when border top is above the normal map top
 const borderDelta=applyMapBorderCanvas();
 // Clear full buffer
@@ -4274,8 +5303,12 @@ ctx.fillStyle='#050508';
 ctx.fillRect(bL,bT,bW,bH);
 drawBg(w,h);
 // Mouth-track video behind stick figure (inside 9:16 / map border)
-if((homeAway||homeTrans)&&mouthVideoReady){
-drawMouthVideoBehind(ctx,bL,bT,bW,bH);
+if((homeAway||homeTrans)){
+if(bodyTrackMode&&bodyVideoReady){
+drawBodyVideoBehind(ctx,bL,bT,bW,bH);
+drawBodyOverlayUI(ctx,bL,bT,bW,bH);
+}
+else if(!bodyTrackMode&&mouthVideoReady)drawMouthVideoBehind(ctx,bL,bT,bW,bH);
 }
 ctx.restore();
 
@@ -5011,7 +6044,6 @@ if(homeExporting)return;
 if(uiLocked)return;
 if(lockTrans)return;
 if(homeTrans||homeAway){
-// Face tracking is automatic (MediaPipe) — no manual anchors
 return;
 }
 if(postGame)return; // don't grab the ball on the death tap
@@ -5176,19 +6208,40 @@ tN.onclick=goNext;tNA.onclick=goNext;tP.onclick=goPrev;tSk.onclick=closeTut;
 
 function setModBtn(btn,on){if(btn)btn.classList.toggle('on',!!on)}
 if(homeB)homeB.onclick=()=>toggleHome();
-if(armB)armB.onclick=()=>{
+if(armB){
+const armPointerDown=()=>{
 if(homeExporting||homeDockProg<0.85)return;
-if(homeArmCD||homeMouthRecording){
-// Mid-countdown or recording → cancel to gray
+armHoldFired=false;
+if(armHoldTimer)clearTimeout(armHoldTimer);
+armHoldTimer=setTimeout(()=>{
+armHoldFired=true;
+armHoldTimer=null;
+openBodyModePrompt();
+},550);
+};
+const armPointerUp=()=>{
+if(armHoldTimer){clearTimeout(armHoldTimer);armHoldTimer=null;}
+};
+armB.addEventListener('pointerdown',e=>{e.preventDefault();armPointerDown();});
+armB.addEventListener('pointerup',armPointerUp);
+armB.addEventListener('pointerleave',armPointerUp);
+armB.addEventListener('pointercancel',armPointerUp);
+armB.onclick=()=>{
+if(homeExporting||homeDockProg<0.85)return;
+if(armHoldFired){armHoldFired=false;return;}
+if(homeArmCD||homeMouthRecording||bodyTrackingActive){
+if(bodyTrackingActive)commitBodyRecording();
 cancelHomeArmCD();
 }else if(homeArmed){
-// Already red (armed, not counting) → start countdown
+if(bodyTrackMode){
+// Body mode red press → countdown then body record
 startHomeArmCD();
+}else startHomeArmCD();
 }else{
-// Gray → arm red (no countdown yet)
 armHomeTracker();
 }
 };
+}
 if(upB)upB.onclick=e=>{
 e.preventDefault();
 if(homeExporting||homeDockProg<0.85)return;
@@ -5211,10 +6264,22 @@ homeAudioSeek(-5);
 if(homePB)homePB.onclick=e=>{
 e.preventDefault();
 if(homeExporting||homeDockProg<0.85)return;
-if(!homeAudio)return;
+if(!homeAudio&&!(bodyVideo&&bodyVideoReady))return;
 homeAudioTogglePlay();
 };
 setupWavePointer();
+(function setupAudioSync(){
+const sl=$('audioSync'), sv=$('audioSyncVal');
+if(!sl)return;
+sl.addEventListener('input',()=>{
+homeAudioDelay=Math.max(-1.5, Math.min(1.5, parseFloat(sl.value)||0));
+if(sv){
+const sign=homeAudioDelay>0?'+':'';
+sv.textContent=sign+homeAudioDelay.toFixed(2)+'s';
+}
+applyAvOffsetNow(true);
+});
+})();
 bncB.onclick=()=>{if(lockTrans||homeTrans||homeAway)return;bouncyOn=!bouncyOn;setModBtn(bncB,bouncyOn)};
 slwB.onclick=()=>{if(lockTrans||homeTrans||homeAway)return;slowOn=!slowOn;setModBtn(slwB,slowOn)};
 lckB.onclick=()=>{
@@ -5289,6 +6354,17 @@ try{fileEl.value='';}catch(err){}
 });
 if(tpRecord)tpRecord.onclick=()=>{startMouthCameraRecord();};
 if(tpClear)tpClear.onclick=()=>{clearMouthVideo();closeTrackPicker();};
+const bpX=$('bpX'), bpUpload=$('bpUpload'), bpRecord=$('bpRecord'), bpClear=$('bpClear');
+const bodyFileEl=$('bodyVideoFile');
+if(bpX)bpX.onclick=()=>closeBodyPicker();
+if($('bodyPick'))$('bodyPick').addEventListener('click',e=>{if(e.target===$('bodyPick'))closeBodyPicker();});
+if(bpUpload)bpUpload.onclick=()=>{closeBodyPicker();if(bodyFileEl)bodyFileEl.click();};
+if(bodyFileEl)bodyFileEl.addEventListener('change',()=>{
+const f=bodyFileEl.files&&bodyFileEl.files[0];
+if(f)loadBodyVideoFile(f);
+try{bodyFileEl.value='';}catch(err){}
+});
+if(bpClear)bpClear.onclick=()=>{clearBodyVideo();closeBodyPicker();};
 })();
 
 function animate(){try{
@@ -5299,25 +6375,77 @@ if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh;ctx.s
 const nowA=Date.now();
 const dtArm=Math.min(100,nowA-_homeArmLast);_homeArmLast=nowA;
 tickHomeArmCD(dtArm);
+tickJointHold();
 updateHomeWaveAnim();
 // Face: live capture while armed/recording; otherwise playback from track vs audio time
-if(homeMouthRecording||homeArmed){
-if(homeAudioPlaying||homeMouthRecording)sampleHomeAudioLevel();
+if(homeAudioPlaying||homeWaveDragging)sampleHomeAudioLevel();
+
+// AUTO body pose only while playing or scrubbing (frozen when paused)
+if(bodyVideoReady&&(homeAudioPlaying||bodyVideoPlaying||homeWaveDragging)){
+sampleBodyFromVideoFrame();
+}
+
+// FACE animation — playing/scrubbing only; freeze when paused
+if(!homeMouthRecording&&homeAudio&&(homeAudioPlaying||homeWaveDragging)){
+const t=Math.max(0,homeAudio.currentTime||0);
+if(mouthVideoReady&&mouthVideo&&!mouthLivePreview){
+if(homeAudioPlaying){
+syncMouthVideoToAudio(false);
+if(mouthVideo.paused){
+const p=mouthVideo.play();
+if(p&&p.then)p.catch(()=>{});
+}
+}else if(homeWaveDragging){
+try{mouthVideo.pause();}catch(e){}
+syncMouthVideoToAudio(true);
+}
+}
+if(homeMouthTrack&&homeMouthTrack.length){
+const vt=homeVisualTime();
+const td=homeAudio.duration&&isFinite(homeAudio.duration)?homeAudio.duration:vt;
+applySampleToFace(mouthSampleAtAudioTime(Math.min(td, vt)));
+homeMouthTrackLive=true;
+}else if(mouthVideoReady&&mouthVideo&&!mouthLivePreview){
+sampleMouthFromVideoFrame();
+}
+if(homeAway||bodyTrackMode)BODY.faceDir=6;
+}else if(!homeMouthRecording&&homeAudio&&!homeAudioPlaying&&!homeWaveDragging){
+if(homeAway||bodyTrackMode)BODY.faceDir=6;
+try{if(mouthVideo&&!mouthVideo.paused&&!mouthLivePreview)mouthVideo.pause();}catch(e){}
+}
+
+// BODY video plays with soft ANIM LEAD sync
+if(bodyVideoReady&&homeAudio){
+if(homeWaveDragging){
+try{bodyVideo.pause();}catch(e){}
+syncBodyVideoToAudio(true);
+}else if(homeAudioPlaying||bodyVideoPlaying){
+syncBodyVideoToAudio(false);
+if(bodyVideo.paused){
+const p=bodyVideo.play();
+if(p&&p.then)p.catch(()=>{});
+}
+}
+}
+
+// FACE live capture (face mode only while armed/recording)
+if(!bodyTrackMode&&(homeMouthRecording||homeArmed)){
 if(mouthVideoReady){
 sampleMouthFromVideoFrame();
-// Keep uploaded face-video locked to audio while recording
 if(homeMouthRecording&&mouthVideo&&!mouthLivePreview&&homeAudio&&homeAudio.duration&&mouthVideo.duration){
 try{
 const ratio=(homeAudio.currentTime||0)/Math.max(0.001,homeAudio.duration);
 const want=Math.max(0,Math.min(mouthVideo.duration-0.04, ratio*mouthVideo.duration));
-if(Math.abs((mouthVideo.currentTime||0)-want)>0.2)mouthVideo.currentTime=want;
+if(Math.abs((mouthVideo.currentTime||0)-want)>0.05)mouthVideo.currentTime=want;
 }catch(e){}
 }
 }
-if(homeMouthRecording)recordMouthSample();
-}else{
-if(homeAudioPlaying||homeWaveDragging)sampleHomeAudioLevel();
-updateMouthFromTrack();
+if(homeMouthRecording){
+if(mouthVideoReady&&!mouthLivePreview)syncMouthVideoToAudio(false);
+recordMouthSample();
+}
+}else if(!bodyTrackMode&&!homeArmed){
+if(!(homeMouthTrack&&homeMouthTrack.length)&&homeAudio)updateMouthFromTrack();
 }
 phys();draw();
 }catch(err){console.error(err)}requestAnimationFrame(animate)}
