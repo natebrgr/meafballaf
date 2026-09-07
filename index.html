@@ -383,19 +383,6 @@ color:rgba(0,240,255,.9);letter-spacing:.04em;pointer-events:none;
 text-shadow:0 0 8px rgba(0,0,0,.85);
 }
 #waveHint.hide{display:none;}
-#audioSyncWrap{
-position:fixed;z-index:56;display:none;align-items:center;gap:8px;
-left:50%;transform:translateX(-50%);
-bottom:118px;
-background:rgba(8,12,22,.9);border:1px solid rgba(0,229,255,.35);
-border-radius:12px;padding:5px 12px;pointer-events:auto;
-}
-#audioSyncWrap.show{display:flex}
-#audioSyncWrap .asLabel{font-family:Orbitron,sans-serif;font-size:.5rem;color:#00e5ff;letter-spacing:.05em;white-space:nowrap}
-#audioSyncWrap .asVal{font-family:Orbitron,sans-serif;font-size:.5rem;color:#e8f0ff;min-width:36px}
-#audioSync{
-width:110px;accent-color:#00e5ff;cursor:pointer;
-}
 #waveHit{
 position:absolute;inset:0;z-index:4;cursor:ew-resize;touch-action:none;background:transparent;
 }
@@ -508,11 +495,6 @@ body.home-exporting #trackPick{pointer-events:none!important;}
 <div id="waveHead"></div>
 <div id="waveHint">PRESS PLAY</div>
 <div id="waveHit"></div>
-</div>
-<div id="audioSyncWrap" title="Shift audio earlier (−) or later (+) vs the video">
-<span class="asLabel">AUDIO</span>
-<input type="range" id="audioSync" min="-1.5" max="1.5" step="0.05" value="0"/>
-<span class="asVal" id="audioSyncVal">0.00s</span>
 </div>
 <div id="homeModal">
 <div class="hm-box">
@@ -640,8 +622,6 @@ let homeWaveProg=0; // 0=off-screen above, 1=docked under $
 let homeWaveDragging=false;
 let homeWaveDragRatio=0;
 let homeAudioPlaying=false;
-let homeAudioDelay=0; // seconds: + = audio later (video ahead), − = audio earlier
-
 let homeWaveLoading=false;
 let homeWaveCssW=300,homeWaveCssH=56;
 let homeACtx=null,homeAnalyser=null,homeMediaSrc=null;
@@ -1153,8 +1133,8 @@ if(!live){
 ctx.lineWidth=Math.max(2.4,s*0.085);
 ctx.strokeStyle=lipCol;
 ctx.beginPath();
-ctx.moveTo(px({x:-0.14,y:0}), py({x:0,y:0}));
-ctx.lineTo(px({x:0.14,y:0}), py({x:0,y:0}));
+ctx.moveTo(px({x:-0.24,y:0}), py({x:0,y:0}));
+ctx.lineTo(px({x:0.24,y:0}), py({x:0,y:0}));
 ctx.stroke();
 ctx.restore();
 return;
@@ -1307,12 +1287,11 @@ try{homeAudio.muted=false; homeAudio.volume=1;}catch(e){}
 homeAudio.addEventListener('timeupdate',()=>{
 if(homeMouthRecording)return;
 if(homeMouthTrack&&homeMouthTrack.length){
-const t=homeVisualTime();
+const t=Math.max(0,homeAudio.currentTime||0);
 applySampleToFace(mouthSampleAtAudioTime(t));
 BODY.faceDir=6;
 homeMouthTrackLive=true;
 }
-syncMouthVideoToAudio(false);
 });
 homeAudio.addEventListener('ended',()=>{
 if(homeMouthRecording){recordMouthSample();commitMouthRecording();}
@@ -1382,10 +1361,7 @@ mouthLivePreview=false;
 try{await v.play(); v.pause();}catch(e){}
 await ensureFaceLandmarker();
 await sampleMouthFromVideoFrame();
-// Always replace waveform/audio with this face video's audio
-try{if(homeAudio)homeAudio.pause();}catch(e){}
-homeAudioPlaying=false;
-if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
+if(!homeAudio){
 setTrackHint('LOADING VIDEO AUDIO…');
 const ok=await adoptBlobAsHomeAudio(file, 'VIDEO');
 if(!ok){
@@ -1404,6 +1380,9 @@ setTrackHint('VIDEO READY · UPLOAD AUDIO IF SILENT');
 }
 }else{
 setTrackHint('VIDEO + AUDIO READY · PLAY · GRAY = CHANGE SOURCE');
+}
+}else{
+setTrackHint('VIDEO READY · PLAY · GRAY = CHANGE SOURCE');
 }
 if(homeWaveProg>0.5)layoutHomeWave();
 draw();
@@ -1607,7 +1586,7 @@ const eyeMidX=(le.x+re.x)/2, eyeMidY=(le.y+re.y)/2;
 let headYaw=Math.max(-1,Math.min(1, (nose.x-eyeMidX)/(faceW*0.55)));
 const noseBelowEyes=(nose.y-eyeMidY)/Math.max(1e-6,faceW);
 // Typical forward pose nose-below-eyes ≈ 0.28–0.38 of faceW — subtract neutral
-let headPitch=Math.max(-1,Math.min(1, (noseBelowEyes - 0.34)/0.5));
+let headPitch=Math.max(-1,Math.min(1, (noseBelowEyes - 0.32)/0.55));
 // Key lip landmarks (MediaPipe)
 const L=lm[61], R=lm[291];           // corners
 const Up=lm[13], Lo=lm[17];          // inner upper / lower mid
@@ -1758,11 +1737,10 @@ homeLipUp=lerpP(homeLipUp, lipUp, aMouth);
 homeLipLo=lerpP(homeLipLo, lipLo, aMouth);
 const tilt = mirror ? -(m.headTilt||0) : (m.headTilt||0);
 homeHeadTilt=lerp(homeHeadTilt||0, tilt, aSoft);
-const yaw = (mirror ? -(m.headYaw||0) : (m.headYaw||0)) * 1.15;
-// Invert pitch; bias so neutral face sits level (was too low)
-const pitch = -(m.headPitch||0) * 0.28 + 0.08;
-homeHeadYaw=lerp(homeHeadYaw||0, Math.max(-1.35,Math.min(1.35,yaw)), aSoft);
-homeHeadPitch=lerp(homeHeadPitch||0, Math.max(-0.55,Math.min(0.55,pitch)), aSoft);
+const yaw = (mirror ? -(m.headYaw||0) : (m.headYaw||0)) * 0.35;
+const pitch = (m.headPitch||0) * 0.12;
+homeHeadYaw=lerp(homeHeadYaw||0, yaw, aSoft);
+homeHeadPitch=lerp(homeHeadPitch||0, pitch, aSoft);
 // Head bob (small, eases toward target each frame)
 let bobX = m.headBobX||0, bobY = m.headBobY||0;
 if(mirror) bobX = -bobX;
@@ -1816,11 +1794,10 @@ homeHeadYaw=L(homeHeadYaw||0, 0);
 homeHeadPitch=L(homeHeadPitch||0, 0);
 homeHeadBobX=L(homeHeadBobX||0, 0);
 homeHeadBobY=L(homeHeadBobY||0, 0);
-homeLipL=LP(homeLipL,{x:-0.16,y:0});
-homeLipR=LP(homeLipR,{x:0.16,y:0});
-homeLipUp=LP(homeLipUp,{x:0,y:-0.02});
-homeLipLo=LP(homeLipLo,{x:0,y:0.03});
-homeMouthWidthN=L(homeMouthWidthN||0.45, 0.28);
+homeLipL=LP(homeLipL,{x:-0.28,y:0});
+homeLipR=LP(homeLipR,{x:0.28,y:0});
+homeLipUp=LP(homeLipUp,{x:0,y:-0.04});
+homeLipLo=LP(homeLipLo,{x:0,y:0.05});
 homeMouthTrackLive=true;
 }
 async function sampleMouthFromVideoFrame(){
@@ -2110,55 +2087,6 @@ await ensurePoseLandmarker();
 setTrackHint('BODY LIVE · TRACKING · HEAD FIXED');
 draw();
 }
-function applyAvOffsetNow(force){
-if(!homeAudio)return;
-const vt=homeVisualTime();
-if(mouthVideo&&mouthVideoReady&&!mouthLivePreview){
-try{
-const vDur=mouthVideo.duration||0;
-if(vDur>0){
-const want=Math.max(0,Math.min(vDur-0.03, vt));
-mouthVideo.currentTime=want;
-}
-}catch(e){}
-}
-if(bodyVideo&&bodyVideoReady){
-try{
-const vDur=bodyVideo.duration||0;
-if(vDur>0)bodyVideo.currentTime=Math.max(0,Math.min(vDur-0.03, vt));
-}catch(e){}
-}
-if(homeMouthTrack&&homeMouthTrack.length){
-applySampleToFace(mouthSampleAtAudioTime(vt));
-homeMouthTrackLive=true;
-BODY.faceDir=6;
-}else if(mouthVideoReady&&!mouthLivePreview){
-sampleMouthFromVideoFrame();
-}
-if(force)draw();
-}
-function homeVisualTime(){
-// Visual clock relative to audio: +offset means picture ahead of sound
-const t=homeAudio?Math.max(0,homeAudio.currentTime||0):0;
-const d=homeAudioDelay||0;
-return Math.max(0, t+d);
-}
-function syncMouthVideoToAudio(force){
-if(!mouthVideo||!mouthVideoReady||mouthLivePreview)return;
-if(!homeAudio)return;
-const vDur=(mouthVideo.duration&&isFinite(mouthVideo.duration))?mouthVideo.duration:0;
-if(!(vDur>0))return;
-const want=Math.max(0, Math.min(vDur-0.02, homeVisualTime()));
-try{
-const cur=mouthVideo.currentTime||0;
-const drift=want-cur;
-// Tighter when user has set an offset so the slider is obvious
-const tol=Math.abs(homeAudioDelay||0)>0.001?0.06:0.14;
-if(force || Math.abs(drift)>tol){
-mouthVideo.currentTime=want;
-}
-}catch(e){}
-}
 function bodySharedEnd(){
 // Shared timeline ends at shorter of audio / body video
 const aDur=(homeAudio&&homeAudio.duration&&isFinite(homeAudio.duration))?homeAudio.duration:0;
@@ -2167,13 +2095,30 @@ if(aDur>0&&vDur>0)return Math.min(aDur,vDur);
 return vDur||aDur||0;
 }
 function syncBodyVideoToAudio(force){
+// Body video time == audio time (seconds), capped to body duration.
+// Longer body video is cut off at audio end; shorter body freezes on last frame.
 if(!bodyVideo||!bodyVideoReady)return;
+const at=homeAudio?Math.max(0,homeAudio.currentTime||0):0;
 const vDur=(bodyVideo.duration&&isFinite(bodyVideo.duration))?bodyVideo.duration:0;
 if(!(vDur>0))return;
-const want=Math.max(0, Math.min(vDur-0.02, homeAudio?homeVisualTime():0));
+const aDur=(homeAudio&&homeAudio.duration&&isFinite(homeAudio.duration))?homeAudio.duration:0;
+// Never play body past audio end when audio exists
+let want=at;
+if(aDur>0)want=Math.min(want, aDur);
+want=Math.max(0, Math.min(vDur-0.04, want));
 try{
-if(force||Math.abs((bodyVideo.currentTime||0)-want)>0.15){
+const drift=Math.abs((bodyVideo.currentTime||0)-want);
+if(force||drift>0.3){
 bodyVideo.currentTime=want;
+}
+// Past end of body video: freeze last frame
+if(at>=vDur-0.05){
+if(!bodyVideo.paused){try{bodyVideo.pause();}catch(e){}}
+bodyVideo.currentTime=Math.max(0,vDur-0.04);
+}
+// Past end of audio: pause body
+if(aDur>0&&at>=aDur-0.05){
+if(!bodyVideo.paused){try{bodyVideo.pause();}catch(e){}}
 }
 }catch(e){}
 }
@@ -2188,77 +2133,33 @@ let _poseCanvas=null;
 
 function getBodyBorder(){return lastMapBorder||{l:0,t:0,w:viewW,h:viewH};}
 
-function restBodyPose(smooth){
-if(!BODY.pts)bodyReset();
-const r=Math.max(14, circle.radius);
-const standY=typeof homeStandYFor==='function'?homeStandYFor(r):(viewH-r*3.2);
-const a=smooth?0.18:1;
-circle.x=(typeof viewW==='number'?viewW/2:circle.x);
-circle.y=circle.y*(1-a)+standY*a;
-// Don't let head leave the playable vertical range while resting
-const minY=r+8, maxY=viewH-r*2.5;
-circle.y=Math.max(minY, Math.min(maxY, circle.y));
-BODY.pose='stand';
-bodyApplyPose('stand');
-bodyPinNeck();
-// Extend neck a bit so rest matches tracking neck
-if(BODY.pts.neck){
-BODY.pts.neck.y=circle.y+r*0.98+r*0.55*0.5;
-BODY.pts.neck.py=BODY.pts.neck.y;
-}
-bodyPoseActive=false;
-}
 function applyPoseLandmarksToStick(lm, mirror){
 if(!lm||!lm.length)return false;
 if(!BODY.pts)bodyReset();
 const r=Math.max(14, circle.radius);
+// Head stays horizontally centered (circle.x); may rise vertically for ground clearance
+const headX=circle.x;
+const headBottom=circle.y+r*0.98;
+const neckLen=r*0.55; // visible neck between head and shoulders
+const shoulderY=headBottom+neckLen;
 
 function P(i){
 const p=lm[i];
 if(!p||typeof p.x!=='number')return null;
-// Require reasonable on-screen coords
-if(p.x<-0.15||p.x>1.15||p.y<-0.15||p.y>1.2)return null;
-// Visibility / presence when available
-if(typeof p.visibility==='number'&&p.visibility<0.35)return null;
-if(typeof p.presence==='number'&&p.presence<0.4)return null;
 let x=p.x, y=p.y;
 if(mirror)x=1-x;
 return {x,y};
 }
 const ls=P(11), rs=P(12);
 if(!ls||!rs)return false;
-const shDist=Math.hypot(ls.x-rs.x, ls.y-rs.y);
-if(!(shDist>0.02&&shDist<0.9))return false;
-
 const le=P(13), re=P(14), lw=P(15), rw=P(16);
 const lh=P(23), rh=P(24), lk=P(25), rk=P(26), la=P(27), ra=P(28);
-// Full body required: both hips + at least one knee and one ankle
-if(!lh||!rh)return false;
-if(!(lk||rk))return false;
-if(!(la||ra))return false;
 const midShX=(ls.x+rs.x)*0.5, midShY=(ls.y+rs.y)*0.5;
-if(midShY<0.02||midShY>0.85)return false;
-const midHipYchk=(lh.y+rh.y)*0.5;
-if(midHipYchk<=midShY+0.05)return false;
-
 const midHipX=(lh&&rh)?(lh.x+rh.x)*0.5:midShX;
 const midHipY=(lh&&rh)?(lh.y+rh.y)*0.5:midShY+0.28;
-let torsoH=Math.abs(midHipY-midShY);
-if(!(torsoH>0.04))torsoH=0.22; // fallback if hips missing
-// Cap scale so off-frame compression doesn't explode limb lengths
-let scale=(r*1.45)/torsoH;
-const maxScale=r*8;
-const minScale=r*2.2;
-scale=Math.max(minScale, Math.min(maxScale, scale));
-
-const headX=typeof viewW==='number'?viewW/2:circle.x;
-// Start from a stable head height (stand), then ground-lift after
-const standY=typeof homeStandYFor==='function'?homeStandYFor(r):circle.y;
-if(!bodyPoseActive)circle.y=standY;
-const headBottom=circle.y+r*0.98;
-const neckLen=r*0.55;
-const shoulderY=headBottom+neckLen;
-
+const torsoH=Math.max(0.05, Math.abs(midHipY-midShY));
+const scale=(r*1.45)/torsoH;
+// Map pose so mid-shoulders land at shoulderY (below neck)
 function map(px,py){
 return {
 x: headX+(px-midShX)*scale,
@@ -2269,15 +2170,18 @@ const br=getBodyBorder();
 function setPt(name, pt){
 if(!pt)return;
 const t=BODY.pts[name];
-let x=Math.max(br.l+6, Math.min(br.l+br.w-6, pt.x));
+// Direct assignment — no lag toward targets
+let x=pt.x;
 let y=pt.y;
-// Soft vertical clamp so limbs never leave the border wildly
-y=Math.max(br.t+4, Math.min(br.t+br.h+r*0.5, y));
+x=Math.max(br.l+4, Math.min(br.l+br.w-4, x));
+// don't floor-clamp Y here — ground lift handles vertical
 t.x=x; t.y=y; t.px=x; t.py=y;
 }
+// Neck sits midway between head bottom and shoulders
 BODY.pts.neck.x=headX;
 BODY.pts.neck.y=headBottom+neckLen*0.5;
 BODY.pts.neck.px=headX; BODY.pts.neck.py=BODY.pts.neck.y;
+// Chest slightly below neck
 BODY.pts.chest.x=headX;
 BODY.pts.chest.y=headBottom+neckLen*0.75;
 BODY.pts.chest.px=headX; BODY.pts.chest.py=BODY.pts.chest.y;
@@ -2294,7 +2198,7 @@ if(rk)setPt('rKnee', map(rk.x,rk.y));
 if(la)setPt('lFoot', map(la.x,la.y));
 if(ra)setPt('rFoot', map(ra.x,ra.y));
 
-// Ground clearance with hard cap so head never flies off the top
+// Ground clearance: if any body part would go below floor, lift entire figure (head + body)
 const floor=viewH-2;
 const keys=['lShoulder','rShoulder','lElbow','rElbow','lHand','rHand','hip','chest','lKnee','rKnee','lFoot','rFoot','neck'];
 let lowest=-1e9;
@@ -2303,10 +2207,7 @@ const p=BODY.pts[k];
 if(p&&p.y>lowest)lowest=p.y;
 }
 if(lowest>floor){
-let lift=lowest-floor;
-const minHeadY=r+10; // keep head on screen
-const maxLift=Math.max(0, circle.y-minHeadY);
-lift=Math.min(lift, maxLift);
+const lift=lowest-floor;
 circle.y-=lift;
 for(const k of keys){
 const p=BODY.pts[k];
@@ -2314,6 +2215,8 @@ if(!p)continue;
 p.y-=lift; p.py=p.y;
 }
 }else if(homeAudioPlaying||bodyVideoPlaying){
+// Settle only while playing — freeze when paused
+const standY=typeof homeStandYFor==='function'?homeStandYFor(r):circle.y;
 const gap=floor-lowest;
 if(gap>4&&circle.y<standY-1){
 const drop=Math.min(gap*0.12, standY-circle.y, 5);
@@ -2325,9 +2228,7 @@ p.y+=drop; p.py=p.y;
 }
 }
 }
-circle.x=headX;
-// Final safety: head must stay on screen
-circle.y=Math.max(r+8, Math.min(viewH-r*1.2, circle.y));
+circle.x=typeof viewW==='number'?viewW/2:circle.x; // keep horizontally centered
 bodyPoseActive=true;
 return true;
 }
@@ -2351,14 +2252,9 @@ _poseCanvas.getContext('2d').drawImage(vid,0,0,w,h);
 res=pl.detectForVideo(_poseCanvas, _poseTs+0.5);
 }
 if(res&&res.landmarks&&res.landmarks[0]){
-const ok=applyPoseLandmarksToStick(res.landmarks[0], !!bodyLivePreview);
-if(ok)return true;
+return applyPoseLandmarksToStick(res.landmarks[0], !!bodyLivePreview);
 }
-// No usable body → ease back to default standing pose
-restBodyPose(true);
-return false;
 }catch(e){console.warn('pose',e);}
-restBodyPose(true);
 return false;
 }
 function drawBodyOverlayUI(){}
@@ -2601,103 +2497,78 @@ ctx.beginPath();
 ctx.ellipse(0,mouthY+s*0.04,s*0.16,s*0.2,0,0,Math.PI*2);
 ctx.stroke();
 }else if(dir===6){
-// Face on a sphere: features orbit with yaw/pitch; back of head when turned away
-const yaw=Math.max(-1.45,Math.min(1.45, homeHeadYaw||0));
-const pitch=Math.max(-0.75,Math.min(0.75, homeHeadPitch||0));
-const roll=Math.max(-0.35,Math.min(0.35, homeHeadTilt||0));
-const bobX=(homeHeadBobX||0)*s*0.15;
-const bobY=(homeHeadBobY||0)*s*0.15;
-// Project a point on the unit face-sphere (front z>0) after yaw/pitch
-function sph(lx, ly){
-const rr=Math.min(0.92, Math.hypot(lx,ly));
-const z0=Math.sqrt(Math.max(0.001, 1-rr*rr));
-const cy=Math.cos(yaw), sy=Math.sin(yaw);
-let x1=lx*cy + z0*sy;
-let z1=-lx*sy + z0*cy;
-const cp=Math.cos(pitch), sp=Math.sin(pitch);
-let y1=ly*cp - z1*sp;
-z1=ly*sp + z1*cp;
-const front=z1>0.02;
-const depth=Math.max(0, Math.min(1, z1));
-const sc=0.72+depth*0.38;
-return {x:x1*s*sc + bobX, y:y1*s*sc + bobY, z:z1, front:front, depth:depth, sc:sc};
-}
-// Fully hidden when turned past ~90° — no back-of-head disc
-if(Math.abs(yaw)<=1.05){
+// Full-size face (same as before) + mild spherical shift from head pose
+const yaw=Math.max(-0.4,Math.min(0.4, homeHeadYaw||0));
+const pitch=Math.max(-0.3,Math.min(0.3, homeHeadPitch||0));
+const roll=Math.max(-0.18,Math.min(0.18, homeHeadTilt||0));
+const bobX=(homeHeadBobX||0)*s*0.2;
+const bobY=(homeHeadBobY||0)*s*0.2;
+// Sphere-style offsets: shift features as if on a ball (does not shrink size)
+const ox=yaw*s*0.22 + bobX;
+const oy=pitch*s*0.06 + bobY; // less vertical mouth drift on head tilt
+const turnAmt=Math.abs(yaw)*1.2+Math.abs(pitch)*0.7;
+const faceVis=Math.max(0, Math.min(1, 1.25-turnAmt));
+if(faceVis >= 0.04){
 ctx.save();
+ctx.translate(ox, oy);
 ctx.rotate(roll);
-ctx.beginPath();
-ctx.arc(0,0,s*0.92,0,Math.PI*2);
-ctx.clip();
-
+ctx.globalAlpha=faceVis;
+// Near-side slightly larger, far-side slightly smaller (subtle, not overall shrink)
+const leftSc=1+yaw*0.08;
+const rightSc=1-yaw*0.08;
 const bL=homeBrowL||0, bR=homeBrowR||0;
-const browRaise=((bL+bR)*0.5)*0.12;
-const browSkew=(bR-bL)*0.04;
-function drawBrow(side){
-// Independent brow height; slant always opposite (outer lower, inner higher)
-const raise=(side<0?(homeBrowL||0):(homeBrowR||0))*0.14;
-const outerX=side*0.48, innerX=side*0.12;
-const outerY=-0.34 - raise + 0.04;  // outer end slightly lower
-const innerY=-0.40 - raise - 0.03;  // inner end slightly higher
-const a=sph(outerX, outerY), b=sph(innerX, innerY);
-if(!a.front||!b.front)return;
+const browRaise=((bL+bR)*0.5)*s*0.22;
+const browSkew=(bR-bL)*s*0.06;
+const by=browY - browRaise;
+ctx.lineWidth=Math.max(2.3,s*0.085);
 ctx.strokeStyle='#111';
-ctx.lineWidth=Math.max(2.3,s*0.085)*((a.sc+b.sc)*0.5);
 ctx.beginPath();
-ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+ctx.moveTo(-s*0.5*leftSc, by + browSkew*0.3);
+ctx.lineTo(-s*0.16*leftSc, by - browSkew*0.5);
+ctx.moveTo(s*0.16*rightSc, by - browSkew*0.5);
+ctx.lineTo(s*0.5*rightSc, by + browSkew*0.3);
 ctx.stroke();
-}
-drawBrow(-1); drawBrow(1);
-
 const ex=homeEyeX||0, ey=homeEyeY||0;
 const eo=Math.max(0.2, Math.min(1.35, homeEyeOpen!=null?homeEyeOpen:0.55));
+const erx=eyeRx*(0.85+eo*0.45);
+const ery=eyeRy*(0.55+eo*0.9);
+const lx=-s*0.36*leftSc, rx=s*0.36*rightSc;
+const eyeYY=eyeY;
+// blinkAmt 0 = wide open (lid at top), 1 = closed (lid at bottom)
 const blinkAmt=Math.max(0, Math.min(1, 1.05 - Math.min(1, eo)));
-function drawEyeS(side){
-const e=sph(side*0.34 + ex*0.06, -0.16 + ey*0.05);
-// Hard cut: not visible at all when around the side/back
-if(!e.front||e.z<0.08)return;
-ctx.globalAlpha=1;
-const erx=eyeRx*(0.85+eo*0.45)*e.sc;
-const ery=eyeRy*(0.55+eo*0.9)*e.sc;
+function drawEye(cx, cy, rxE, ryE, ang, side){
 ctx.fillStyle='#111';
 ctx.beginPath();
-ctx.ellipse(e.x, e.y, erx, ery, side*0.08, 0, Math.PI*2);ctx.fill();
-if(blinkAmt<0.9){
+ctx.ellipse(cx, cy, rxE, ryE, ang, 0, Math.PI*2);ctx.fill();
+if(blinkAmt < 0.9){
 ctx.fillStyle='#eee';
-const pr=Math.max(s*0.025, ery*0.42*(1-blinkAmt*0.35));
+const pr=Math.max(s*0.03, ryE*0.42*(1-blinkAmt*0.35));
 ctx.beginPath();
-ctx.arc(e.x+ex*erx*0.35, e.y+ey*ery*0.25+blinkAmt*ery*0.2, pr, 0, Math.PI*2);ctx.fill();
+ctx.arc(cx+ex*rxE*0.45, cy+ey*ryE*0.3 + blinkAmt*ryE*0.2, pr, 0, Math.PI*2);ctx.fill();
 }
+// Black eyelid — stays inside the eye ellipse, scales with eye size
 ctx.save();
 ctx.beginPath();
-ctx.ellipse(e.x, e.y, erx, ery, side*0.08, 0, Math.PI*2);
+ctx.ellipse(cx, cy, rxE, ryE, ang, 0, Math.PI*2);
 ctx.clip();
 ctx.strokeStyle='#111';
-ctx.lineWidth=Math.max(1.6, Math.min(erx,ery)*0.35);
-const lidY=e.y - ery*0.75 + blinkAmt*ery*1.5;
+ctx.lineWidth=Math.max(1.8, Math.min(rxE, ryE)*0.35);
+ctx.lineCap='round';
+// Map blink: top of eye → bottom of eye
+const lidY=cy - ryE*0.75 + blinkAmt*ryE*1.5;
+const halfW=rxE*0.78; // shorter than full eye width so ends stay inside
 ctx.beginPath();
-ctx.moveTo(e.x-erx*0.78, lidY);
-ctx.quadraticCurveTo(e.x, lidY - ery*0.06*(1-blinkAmt), e.x+erx*0.78, lidY);
+ctx.moveTo(cx - halfW, lidY);
+ctx.quadraticCurveTo(cx, lidY - ryE*0.06*(1-blinkAmt), cx + halfW, lidY);
 ctx.stroke();
 ctx.restore();
+ctx.fillStyle='#111';
 }
-drawEyeS(-1); drawEyeS(1);
-
-const mL=sph(-0.28, 0.40), mR=sph(0.28, 0.40), mU=sph(0, 0.34), mLo=sph(0, 0.48);
-const mouthFront=(mL.front&&mL.z>0.08?1:0)+(mR.front&&mR.z>0.08?1:0);
-if(mouthFront>=1&&(mU.front||mLo.front)){
-const mcx=(mL.x+mR.x)*0.5, mcy=(mU.y+mLo.y)*0.5;
-const mw=Math.hypot(mR.x-mL.x, mR.y-mL.y);
-const mh=Math.max(s*0.04, Math.hypot(mLo.x-mU.x, mLo.y-mU.y));
-ctx.save();
+drawEye(lx, eyeYY, erx*leftSc, ery, 0.08, -1);
+drawEye(rx, eyeYY, erx*rightSc, ery, -0.08, 1);
+// Mouth upright in face space; whole face rotate(roll) tilts it with eyes/brows
+drawHomeMouthViseme(ctx, s, mouthY, homeMouthShape||'rest');
 ctx.globalAlpha=1;
-ctx.translate(mcx, mcy);
-const faceScale=Math.max(0.35, Math.min(1.15, mw/(s*0.56)));
-ctx.scale(faceScale, Math.max(0.35, Math.min(1.15, mh/(s*0.14))));
-drawHomeMouthViseme(ctx, s, 0, homeMouthShape||'rest');
-ctx.restore();
-}
-
 ctx.restore();
 }
 }else if(dir===0||dir===2||dir===4){
@@ -2938,7 +2809,6 @@ rFrom:circle.radius,rTo:INIT_R,glideFrom:{x:circle.x,y:circle.y}};
 circle.isDragging=false;
 mapBorderProg=0;mapBorderFrom={l:SSW,t:0,w:viewW-2*SSW,h:viewH};mapBorderTo=computeMapBorderTarget();
 if(homeB){homeB.innerHTML='&#127918;';homeB.title='Play';}
-setTimeout(updateAudioSyncUI, 50);
 }
 if(homeB)homeB.classList.add('on');
 }
@@ -3712,18 +3582,6 @@ const t=Math.max(0,Math.min(dur,homeAudio.currentTime||0));
 const bin=Math.min(HOME_WAVE_BINS-1,Math.floor((t/dur)*HOME_WAVE_BINS));
 for(let i=0;i<=bin;i++)homePeakFilled[i]=1;
 }
-function updateAudioSyncUI(){
-const w=$('audioSyncWrap');
-if(!w)return;
-if(homeAudio&&homeAway)w.classList.add('show');
-else w.classList.remove('show');
-const sl=$('audioSync'), sv=$('audioSyncVal');
-if(sl){sl.min='-1.5';sl.max='1.5';sl.step='0.05';sl.value=String(homeAudioDelay||0);}
-if(sv){
-const v=homeAudioDelay||0;
-sv.textContent=(v>0?'+':'')+v.toFixed(2)+'s';
-}
-}
 function showWaveShell(){
 if(!waveWrap)return;
 waveWrap.classList.add('show');
@@ -3804,12 +3662,11 @@ homeAudio=createHomeMediaElement(file,homeAudioUrl);
 homeAudio.addEventListener('timeupdate',()=>{
 if(homeMouthRecording)return;
 if(homeMouthTrack&&homeMouthTrack.length){
-const t=homeVisualTime();
+const t=Math.max(0,homeAudio.currentTime||0);
 applySampleToFace(mouthSampleAtAudioTime(t));
 BODY.faceDir=6;
 homeMouthTrackLive=true;
 }
-syncMouthVideoToAudio(false);
 });
 homeAudio.addEventListener('ended',()=>{
 if(homeMouthRecording){
@@ -3847,7 +3704,6 @@ dismissWaveAfterFail();
 }
 }
 function layoutHomeWave(){
-updateAudioSyncUI();
 if(!waveWrap)return;
 const padX=Math.max(8,(getViewportSize().vw)*0.025);
 const mapTop=98;
@@ -4270,8 +4126,7 @@ try{homeAudio.currentTime=t;}catch(err){}
 // Scrub face video with the same ratio
 if(mouthVideo&&mouthVideoReady&&mouthVideo.duration&&isFinite(mouthVideo.duration)){
 try{
-const lead=Math.max(0,homeAudioDelay||0);
-const vt=Math.max(0,Math.min(mouthVideo.duration-0.04, t+lead));
+const vt=Math.max(0,Math.min(mouthVideo.duration-0.04, t));
 mouthVideo.currentTime=vt;
 }catch(err){}
 }
@@ -4283,11 +4138,10 @@ bodyVideo.currentTime=vt;
 }catch(err){}
 }
 sampleBodyFromVideoFrame();
-if(homeMouthTrack&&homeMouthTrack.length){
-applySampleToFace(mouthSampleAtAudioTime(t+Math.max(0,homeAudioDelay||0)));
-homeMouthTrackLive=true;
-}else if(mouthVideoReady&&!mouthLivePreview){
+if(mouthVideoReady&&!mouthLivePreview){
 sampleMouthFromVideoFrame();
+}else if(homeMouthTrack&&homeMouthTrack.length){
+applySampleToFace(mouthSampleAtAudioTime(t));
 }
 drawHomeWave();
 };
@@ -4760,7 +4614,6 @@ if(BODY.pts){bodyApplyPose('super');bodyPinNeck();}
 bodyUpdate();
 homeTrans=null;homeAway=false;
 mapBorderProg=0;mapBorderFrom=null;mapBorderTo=null;
-const asw=$('audioSyncWrap'); if(asw)asw.classList.remove('show');
 clearHomeUIFreeze();
 applyHomeUIScroll(0);
 if(homeB){homeB.classList.remove('on');homeB.innerHTML='&#127968;';homeB.title='Home';}
@@ -6268,18 +6121,6 @@ if(!homeAudio&&!(bodyVideo&&bodyVideoReady))return;
 homeAudioTogglePlay();
 };
 setupWavePointer();
-(function setupAudioSync(){
-const sl=$('audioSync'), sv=$('audioSyncVal');
-if(!sl)return;
-sl.addEventListener('input',()=>{
-homeAudioDelay=Math.max(-1.5, Math.min(1.5, parseFloat(sl.value)||0));
-if(sv){
-const sign=homeAudioDelay>0?'+':'';
-sv.textContent=sign+homeAudioDelay.toFixed(2)+'s';
-}
-applyAvOffsetNow(true);
-});
-})();
 bncB.onclick=()=>{if(lockTrans||homeTrans||homeAway)return;bouncyOn=!bouncyOn;setModBtn(bncB,bouncyOn)};
 slwB.onclick=()=>{if(lockTrans||homeTrans||homeAway)return;slowOn=!slowOn;setModBtn(slwB,slowOn)};
 lckB.onclick=()=>{
@@ -6388,24 +6229,19 @@ sampleBodyFromVideoFrame();
 // FACE animation — playing/scrubbing only; freeze when paused
 if(!homeMouthRecording&&homeAudio&&(homeAudioPlaying||homeWaveDragging)){
 const t=Math.max(0,homeAudio.currentTime||0);
-if(mouthVideoReady&&mouthVideo&&!mouthLivePreview){
-if(homeAudioPlaying){
-syncMouthVideoToAudio(false);
-if(mouthVideo.paused){
-const p=mouthVideo.play();
-if(p&&p.then)p.catch(()=>{});
-}
-}else if(homeWaveDragging){
-try{mouthVideo.pause();}catch(e){}
-syncMouthVideoToAudio(true);
-}
-}
 if(homeMouthTrack&&homeMouthTrack.length){
-const vt=homeVisualTime();
-const td=homeAudio.duration&&isFinite(homeAudio.duration)?homeAudio.duration:vt;
-applySampleToFace(mouthSampleAtAudioTime(Math.min(td, vt)));
+// Playback from saved track — no live ML face detect (frees CPU for body pose)
+applySampleToFace(mouthSampleAtAudioTime(t));
 homeMouthTrackLive=true;
 }else if(mouthVideoReady&&mouthVideo&&!mouthLivePreview){
+// Live face only when no saved track
+try{
+if(mouthVideo.duration&&isFinite(mouthVideo.duration)){
+const want=Math.max(0,Math.min(mouthVideo.duration-0.04, t));
+if(Math.abs((mouthVideo.currentTime||0)-want)>0.25)mouthVideo.currentTime=want;
+}
+if(homeAudioPlaying&&mouthVideo.paused){const p=mouthVideo.play();if(p&&p.then)p.catch(()=>{});}
+}catch(e){}
 sampleMouthFromVideoFrame();
 }
 if(homeAway||bodyTrackMode)BODY.faceDir=6;
@@ -6414,16 +6250,17 @@ if(homeAway||bodyTrackMode)BODY.faceDir=6;
 try{if(mouthVideo&&!mouthVideo.paused&&!mouthLivePreview)mouthVideo.pause();}catch(e){}
 }
 
-// BODY video plays with soft ANIM LEAD sync
+// BODY video: keep absolute time sync with audio
 if(bodyVideoReady&&homeAudio){
-if(homeWaveDragging){
-try{bodyVideo.pause();}catch(e){}
-syncBodyVideoToAudio(true);
-}else if(homeAudioPlaying||bodyVideoPlaying){
+if(homeWaveDragging)syncBodyVideoToAudio(true);
+else if(homeAudioPlaying||bodyVideoPlaying){
 syncBodyVideoToAudio(false);
-if(bodyVideo.paused){
-const p=bodyVideo.play();
-if(p&&p.then)p.catch(()=>{});
+const vDur=bodyVideo.duration||0;
+const at=homeAudio.currentTime||0;
+// Play body only while within its duration and (if audio) within audio
+const canPlay=at<vDur-0.05&&(!(homeAudio.duration)||at<(homeAudio.duration-0.02));
+if(canPlay&&bodyVideo.paused&&(homeAudioPlaying||bodyVideoPlaying)){
+const p=bodyVideo.play();if(p&&p.then)p.catch(()=>{});
 }
 }
 }
@@ -6436,14 +6273,11 @@ if(homeMouthRecording&&mouthVideo&&!mouthLivePreview&&homeAudio&&homeAudio.durat
 try{
 const ratio=(homeAudio.currentTime||0)/Math.max(0.001,homeAudio.duration);
 const want=Math.max(0,Math.min(mouthVideo.duration-0.04, ratio*mouthVideo.duration));
-if(Math.abs((mouthVideo.currentTime||0)-want)>0.05)mouthVideo.currentTime=want;
+if(Math.abs((mouthVideo.currentTime||0)-want)>0.25)mouthVideo.currentTime=want;
 }catch(e){}
 }
 }
-if(homeMouthRecording){
-if(mouthVideoReady&&!mouthLivePreview)syncMouthVideoToAudio(false);
-recordMouthSample();
-}
+if(homeMouthRecording)recordMouthSample();
 }else if(!bodyTrackMode&&!homeArmed){
 if(!(homeMouthTrack&&homeMouthTrack.length)&&homeAudio)updateMouthFromTrack();
 }
