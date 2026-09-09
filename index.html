@@ -4589,19 +4589,23 @@ try{if(mouthVideoReady&&mouthVideo&&!mouthLivePreview){mouthVideo.currentTime=0;
 await new Promise(r=>setTimeout(r,150));
 draw();
 const crop=getHomeExportCrop();
-const mainPr=Math.min(window.devicePixelRatio||1,3);
+// Cap DPR at 2 during export for steadier encode (still sharp on retina)
+const mainPr=Math.min(window.devicePixelRatio||1,2);
 const outW=Math.max(2,Math.round(crop.w*mainPr));
 const outH=Math.max(2,Math.round(crop.h*mainPr));
 const exp=document.createElement('canvas');
 exp.width=outW;exp.height=outH;
 const expCtx=exp.getContext('2d',{alpha:false,desynchronized:true});
 expCtx.imageSmoothingEnabled=false;
-const fps=60;
+// Manual frame delivery (0) = we call requestFrame only when a clean frame is ready
+const EXPORT_FPS=30;
 let expStream;
-try{expStream=exp.captureStream(fps);}catch(e){
+try{expStream=exp.captureStream(0);}catch(e){
+try{expStream=exp.captureStream(EXPORT_FPS);}catch(e2){
 setExportLock(false);mapBorderProg=prevBorderProg;homeAway=wasHomeAway;if(BODY)BODY.faceDir=wasFaceDir;
 openHomeModal('Could not capture video frames.',[{label:'OK',primary:true,fn:null}]);
 return;
+}
 }
 const vTracks=expStream.getVideoTracks();
 let audioTracks=[];
@@ -4647,37 +4651,57 @@ return;
 rec.ondataavailable=ev=>{if(ev.data&&ev.data.size>0)chunks.push(ev.data);};
 const stopped=new Promise(resolve=>{rec.onstop=()=>resolve();});
 // Larger timeslice reduces overhead on long (>1 min) exports while still streaming chunks
-rec.start(250);
+rec.start(200);
 let copyRaf=0;
 let lastBodySample=0;
-const paintExportFrame=()=>{
+let lastEmitAudioT=-1;
+const frameStep=1/EXPORT_FPS;
+function softSeek(el, want, maxDrift){
+if(!el)return;
+maxDrift=maxDrift!=null?maxDrift:0.35;
+try{
+const d=el.duration;
+if(!(d&&isFinite(d)&&d>0))return;
+const t=Math.max(0,Math.min(d-0.04, want));
+if(Math.abs((el.currentTime||0)-t)>maxDrift) el.currentTime=t;
+}catch(e){}
+}
+const paintExportFrame=(force)=>{
 try{
 const at=Math.max(0, homeAudio.currentTime||0);
-// Keep mouth / body / background locked to the audio clock every frame
-updateMouthFromTrack();
-// Body pose sample (throttled a bit)
-if(bodyVideoReady&&bodyTrackMode){
+// Emit at a steady audio-clock cadence (prevents bursty/choppy frames under load)
+if(!force){
+  if(lastEmitAudioT>=0 && (at-lastEmitAudioT)<frameStep*0.92){
+    return;
+  }
+}
+lastEmitAudioT=at;
+// Mouth from recorded track only during export (no live ML — keeps frames smooth)
+if(homeMouthTrack&&homeMouthTrack.length){
+  applySampleToFace(mouthSampleAtAudioTime(at));
+  homeMouthTrackLive=true;
+}else{
+  updateMouthFromTrack();
+}
+// Soft-sync body video + light pose sample (no forced seek every frame)
+if(bodyVideoReady&&bodyTrackMode&&bodyVideo){
+  softSeek(bodyVideo, at, 0.4);
+  try{if(bodyVideo.paused){const p=bodyVideo.play();if(p&&p.then)p.catch(()=>{});}}catch(e){}
   const now=performance.now();
-  if(now-lastBodySample>20){
+  if(now-lastBodySample>66){ // ~15 Hz pose — smoothed by BODY_SMOOTH
     lastBodySample=now;
-    try{syncBodyVideoToAudio(true);}catch(e){}
     try{sampleBodyFromVideoFrame();}catch(e){}
   }
 }
-// Background video sync + play
+// Soft-sync background video
 if(homeBgMediaReady&&homeBgIsVideo&&homeBgMedia){
-  try{syncHomeBgToAudio(true);}catch(e){}
+  softSeek(homeBgMedia, at % Math.max(0.1,(homeBgMedia.duration||at+1)), 0.45);
   try{if(homeBgMedia.paused){const p=homeBgMedia.play();if(p&&p.then)p.catch(()=>{});}}catch(e){}
 }
-// Face video frame sync when no recorded mouth track
+// Face source video only if no mouth track (soft)
 if((!homeMouthTrack||!homeMouthTrack.length)&&mouthVideoReady&&mouthVideo&&!mouthLivePreview){
-  try{
-    if(mouthVideo.duration&&isFinite(mouthVideo.duration)){
-      const want=Math.max(0,Math.min(mouthVideo.duration-0.04, at));
-      if(Math.abs((mouthVideo.currentTime||0)-want)>0.3)mouthVideo.currentTime=want;
-    }
-    if(mouthVideo.paused){const p=mouthVideo.play();if(p&&p.then)p.catch(()=>{});}
-  }catch(e){}
+  softSeek(mouthVideo, at, 0.4);
+  try{if(mouthVideo.paused){const p=mouthVideo.play();if(p&&p.then)p.catch(()=>{});}}catch(e){}
 }
 draw();
 const sx=crop.l*mainPr,sy=crop.t*mainPr,sw=crop.w*mainPr,sh=crop.h*mainPr;
@@ -4691,23 +4715,22 @@ if(vt&&typeof vt.requestFrame==='function')vt.requestFrame();
 };
 const copyLoop=()=>{
 if(!homeExporting)return;
-paintExportFrame();
+paintExportFrame(false);
 copyRaf=requestAnimationFrame(copyLoop);
 };
 copyRaf=requestAnimationFrame(copyLoop);
 homeAudioPlaying=true;
 if(homePB){homePB.textContent='PAUSE';homePB.title='Pause';}
 try{homeAudio.currentTime=0;}catch(e){}
-// Re-read duration after seek-to-0 (some browsers finalize length here)
 if(!(trackDur&&isFinite(trackDur)&&trackDur>0)){
   trackDur=(homeAudio.duration&&isFinite(homeAudio.duration)&&homeAudio.duration>0)?homeAudio.duration:null;
 }
 const banner=$('homeRecBanner');
 if(banner&&trackDur)banner.textContent='RENDERING VIDEO… '+Math.round(trackDur)+'s';
 try{await homeAudio.play();}catch(e){console.warn('export play failed',e);}
-// Start body/bg playback
-try{if(bodyVideoReady&&bodyVideo&&!bodyLivePreview){syncBodyVideoToAudio(true);const bp=bodyVideo.play();if(bp&&bp.then)bp.catch(()=>{});}}catch(e){}
-try{if(homeBgMediaReady&&homeBgIsVideo&&homeBgMedia){syncHomeBgToAudio(true);const bp=homeBgMedia.play();if(bp&&bp.then)bp.catch(()=>{});}}catch(e){}
+// Start body/bg in play mode once (soft seeks keep them aligned)
+try{if(bodyVideoReady&&bodyVideo&&!bodyLivePreview){softSeek(bodyVideo,0,0);const bp=bodyVideo.play();if(bp&&bp.then)bp.catch(()=>{});}}catch(e){}
+try{if(homeBgMediaReady&&homeBgIsVideo&&homeBgMedia){softSeek(homeBgMedia,0,0);const bp=homeBgMedia.play();if(bp&&bp.then)bp.catch(()=>{});}}catch(e){}
 await new Promise(resolve=>{
 let done=false;
 let failSafe=null;
@@ -4757,7 +4780,7 @@ try{if(mouthVideo&&!mouthLivePreview)mouthVideo.pause();}catch(e){}
 homeAudioPlaying=false;
 homeMouthOpenN=0;homeMouthOpen=false;homeMouthTrackLive=false;
 if(homePB){homePB.textContent='PLAY';homePB.title='Play';}
-paintExportFrame();
+paintExportFrame(true);
 if(rec.state!=='inactive'){
 try{rec.requestData();}catch(e){}
 try{rec.stop();}catch(e){}
@@ -6933,6 +6956,8 @@ try{bgFileEl.value='';}catch(err){}
 })();
 
 function animate(){try{
+// During export the dedicated export loop owns draw/sample — keep rAF alive only
+if(homeExporting){requestAnimationFrame(animate);return;}
 // Re-assert canvas buffer every frame — iOS/Snapchat often resets it
 const pr=Math.min(window.devicePixelRatio||1,2);
 const bw=Math.floor(viewW*pr),bh=Math.floor(viewH*pr);
