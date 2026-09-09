@@ -1921,6 +1921,36 @@ homeMouthTrackLive=true;
 let _faceMissFrames=0;
 let _faceCanvas=null;
 let _faceTs=0;
+// Synchronous face sample for export (landmarker must already be loaded)
+function sampleMouthFromVideoFrameSync(){
+if(!mouthVideo||!mouthVideoReady||!faceLandmarker)return false;
+try{
+_faceTs=Math.max(_faceTs+1, (mouthVideo.currentTime||0)*1000+1);
+let res=null;
+try{ res=faceLandmarker.detectForVideo(mouthVideo, _faceTs); }
+catch(e1){
+if(!_faceCanvas)_faceCanvas=document.createElement('canvas');
+const w=mouthVideo.videoWidth|0, h=mouthVideo.videoHeight|0;
+if(w>=16&&h>=16){
+_faceCanvas.width=w; _faceCanvas.height=h;
+_faceCanvas.getContext('2d').drawImage(mouthVideo,0,0,w,h);
+res=faceLandmarker.detectForVideo(_faceCanvas, _faceTs+0.5);
+}
+}
+if(res&&res.faceLandmarks&&res.faceLandmarks[0]){
+_faceMissFrames=0;
+const cats=(res.faceBlendshapes&&res.faceBlendshapes[0]&&res.faceBlendshapes[0].categories)||null;
+const m=faceMetricsFromLandmarks(res.faceLandmarks[0], cats);
+// No smooth lag during export — face must match this frame
+applyFaceMetrics(m, homeExporting?false:true);
+homeMouthTrackLive=true;
+if(BODY)BODY.faceDir=6;
+return true;
+}
+_faceMissFrames++;
+return false;
+}catch(e){console.warn('face sync',e);return false;}
+}
 async function sampleMouthFromVideoFrame(){
 if(!mouthVideo||!mouthVideoReady)return false;
 const fl=await ensureFaceLandmarker();
@@ -1928,8 +1958,8 @@ if(!fl){
 return sampleFromAnchorsOnly();
 }
 const ts=performance.now();
-const faceMinGap=(bodyVideoReady&&(homeAudioPlaying||bodyVideoPlaying))?22:8;
-if(ts-mouthTrackLastTs<faceMinGap)return false;
+const faceMinGap=homeExporting?0:((bodyVideoReady&&(homeAudioPlaying||bodyVideoPlaying))?22:8);
+if(faceMinGap>0&&ts-mouthTrackLastTs<faceMinGap)return false;
 mouthTrackLastTs=ts;
 try{
 _faceTs=Math.max(_faceTs+1, (mouthVideo.currentTime||0)*1000+1);
@@ -4587,6 +4617,18 @@ try{if(bodyVideoReady&&bodyVideo){bodyVideo.currentTime=0;}}catch(e){}
 try{if(homeBgMediaReady&&homeBgIsVideo&&homeBgMedia){homeBgMedia.currentTime=0;}}catch(e){}
 try{if(mouthVideoReady&&mouthVideo&&!mouthLivePreview){mouthVideo.currentTime=0;}}catch(e){}
 await new Promise(r=>setTimeout(r,150));
+// Preload face landmarker so export frames can sample synchronously
+try{await ensureFaceLandmarker();}catch(e){}
+if(BODY)BODY.faceDir=6;
+homeMouthTrackLive=true;
+// Seed first face expression at t=0
+try{
+  if(homeMouthTrack&&homeMouthTrack.length){
+    applySampleToFace(mouthSampleAtAudioTime(0));
+  }else if(mouthVideoReady){
+    sampleMouthFromVideoFrameSync();
+  }
+}catch(e){}
 draw();
 const crop=getHomeExportCrop();
 // Cap DPR at 2 during export for steadier encode (still sharp on retina)
@@ -4686,19 +4728,31 @@ if(!force){
   }
 }
 lastEmitAudioT=at;
-// Mouth from recorded track only during export (no live ML — keeps frames smooth)
+// Always talking-face mode during export
+if(BODY)BODY.faceDir=6;
+homeMouthTrackLive=true;
+// 1) Recorded face track (sync, perfect timing)
 if(homeMouthTrack&&homeMouthTrack.length){
   applySampleToFace(mouthSampleAtAudioTime(at));
   homeMouthTrackLive=true;
+}else if(mouthVideoReady&&mouthVideo&&!mouthLivePreview){
+  // 2) Live face video — soft seek then SYNC sample so this frame has the expression
+  softSeek(mouthVideo, at, 0.35);
+  try{if(mouthVideo.paused){const p=mouthVideo.play();if(p&&p.then)p.catch(()=>{});}}catch(e){}
+  if(!sampleMouthFromVideoFrameSync()){
+    // Landmarker may still be loading — kick async + keep last expression
+    try{sampleMouthFromVideoFrame();}catch(e){}
+  }
 }else{
-  updateMouthFromTrack();
+  // 3) Fallback
+  try{updateMouthFromTrack();}catch(e){}
 }
-// Soft-sync body video + light pose sample (no forced seek every frame)
+// Soft-sync body video + light pose sample
 if(bodyVideoReady&&bodyTrackMode&&bodyVideo){
   softSeek(bodyVideo, at, 0.4);
   try{if(bodyVideo.paused){const p=bodyVideo.play();if(p&&p.then)p.catch(()=>{});}}catch(e){}
   const now=performance.now();
-  if(now-lastBodySample>66){ // ~15 Hz pose — smoothed by BODY_SMOOTH
+  if(now-lastBodySample>66){
     lastBodySample=now;
     try{sampleBodyFromVideoFrame();}catch(e){}
   }
@@ -4707,11 +4761,6 @@ if(bodyVideoReady&&bodyTrackMode&&bodyVideo){
 if(homeBgMediaReady&&homeBgIsVideo&&homeBgMedia){
   softSeek(homeBgMedia, at % Math.max(0.1,(homeBgMedia.duration||at+1)), 0.45);
   try{if(homeBgMedia.paused){const p=homeBgMedia.play();if(p&&p.then)p.catch(()=>{});}}catch(e){}
-}
-// Face source video only if no mouth track (soft)
-if((!homeMouthTrack||!homeMouthTrack.length)&&mouthVideoReady&&mouthVideo&&!mouthLivePreview){
-  softSeek(mouthVideo, at, 0.4);
-  try{if(mouthVideo.paused){const p=mouthVideo.play();if(p&&p.then)p.catch(()=>{});}}catch(e){}
 }
 draw();
 const sx=crop.l*mainPr,sy=crop.t*mainPr,sw=crop.w*mainPr,sh=crop.h*mainPr;
