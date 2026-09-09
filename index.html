@@ -4609,25 +4609,35 @@ return;
 }
 const vTracks=expStream.getVideoTracks();
 let audioTracks=[];
-let exportACtx=null,exportSrc=null,exportDest=null;
+let exportDest=null;
+let exportAudioCleanup=null;
+try{homeAudio.muted=false; homeAudio.volume=1; homeAudio.defaultMuted=false;}catch(e){}
+// Reliable export audio:
+// Once createMediaElementSource has been used (waveform analyser), element.captureStream()
+// often returns a silent track — so we always prefer tapping the Web Audio graph.
 try{
-if(typeof homeAudio.captureStream==='function'){
-audioTracks=homeAudio.captureStream().getAudioTracks();
-}
-}catch(e){}
+  // Ensure MediaElementSource exists (safe if already created)
+  ensureHomeAnalyser();
+  if(homeMediaSrc&&homeACtx){
+    if(homeACtx.state==='suspended'){try{await homeACtx.resume();}catch(e){}}
+    exportDest=homeACtx.createMediaStreamDestination();
+    try{homeMediaSrc.connect(exportDest);}catch(e){}
+    audioTracks=exportDest.stream.getAudioTracks().filter(t=>t&&t.kind==='audio');
+    exportAudioCleanup=()=>{try{homeMediaSrc.disconnect(exportDest);}catch(e){}};
+  }
+}catch(err){console.warn('Export WA audio failed',err);}
+// Fallback only when no Web Audio graph was ever attached to this element
 if(!audioTracks.length){
-try{
-teardownHomeGraph();
-const AC=window.AudioContext||window.webkitAudioContext;
-exportACtx=new AC();
-if(exportACtx.state==='suspended')await exportACtx.resume();
-exportDest=exportACtx.createMediaStreamDestination();
-exportSrc=exportACtx.createMediaElementSource(homeAudio);
-exportSrc.connect(exportDest);
-exportSrc.connect(exportACtx.destination);
-homeACtx=exportACtx;homeMediaSrc=exportSrc;
-audioTracks=exportDest.stream.getAudioTracks();
-}catch(err){console.warn('Export audio setup failed',err);}
+  try{
+    if(typeof homeAudio.captureStream==='function'){
+      const cs=homeAudio.captureStream();
+      audioTracks=(cs.getAudioTracks()||[]).filter(t=>t&&t.kind==='audio');
+    }
+  }catch(e){console.warn('captureStream audio failed',e);}
+}
+audioTracks.forEach(t=>{try{t.enabled=true;}catch(e){}});
+if(!audioTracks.length){
+  console.warn('Export: no audio tracks — video will be silent');
 }
 const outStream=new MediaStream([...vTracks,...audioTracks]);
 const chunks=[];
@@ -4727,7 +4737,11 @@ if(!(trackDur&&isFinite(trackDur)&&trackDur>0)){
 }
 const banner=$('homeRecBanner');
 if(banner&&trackDur)banner.textContent='RENDERING VIDEO… '+Math.round(trackDur)+'s';
+try{if(homeACtx&&homeACtx.state==='suspended')await homeACtx.resume();}catch(e){}
+try{homeAudio.muted=false; homeAudio.volume=1;}catch(e){}
 try{await homeAudio.play();}catch(e){console.warn('export play failed',e);}
+// Confirm audio is actually flowing into the recorder graph
+try{if(homeACtx&&homeACtx.state==='suspended')await homeACtx.resume();}catch(e){}
 // Start body/bg in play mode once (soft seeks keep them aligned)
 try{if(bodyVideoReady&&bodyVideo&&!bodyLivePreview){softSeek(bodyVideo,0,0);const bp=bodyVideo.play();if(bp&&bp.then)bp.catch(()=>{});}}catch(e){}
 try{if(homeBgMediaReady&&homeBgIsVideo&&homeBgMedia){softSeek(homeBgMedia,0,0);const bp=homeBgMedia.play();if(bp&&bp.then)bp.catch(()=>{});}}catch(e){}
@@ -4788,6 +4802,7 @@ try{rec.stop();}catch(e){}
 await stopped;
 vTracks.forEach(t=>{try{t.stop();}catch(e){}});
 audioTracks.forEach(t=>{try{t.stop();}catch(e){}});
+try{if(typeof exportAudioCleanup==='function')exportAudioCleanup();}catch(e){}
 mapBorderProg=prevBorderProg;
 homeAway=wasHomeAway;
 if(BODY)BODY.faceDir=wasFaceDir;
